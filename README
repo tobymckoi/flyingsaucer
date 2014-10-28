@@ -1,3 +1,23 @@
+
+RustBeast Patches for Flying Saucer by Tobias Downer
+----------------------------------------------------
+
+This repository contains various patches for Flying Saucer with the following
+focus;
+
+1. Improving rendering performance within Swing and Java 2D.
+2. Improved support for embeddable UI components and customization.
+3. Support for zoom.
+4. Keep layout and rendering as similar as possible to other HTML/CSS rendering
+   engines.
+
+These patches are targeted to Java 1.7+ JREs. I might change a lot and break
+stuff so be warned!
+
+
+Original Flying Saucer README is below;
+
+
 Flying Saucer
 
 http://code.google.com/p/flying-saucer/
