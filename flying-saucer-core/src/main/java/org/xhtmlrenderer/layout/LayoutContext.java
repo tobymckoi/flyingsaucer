@@ -258,7 +258,7 @@ public class LayoutContext implements CssContext {
         return _sharedContext.getMmPerPx();
     }
 
-    public int getDotsPerPixel() {
+    public float getDotsPerPixel() {
         return _sharedContext.getDotsPerPixel();
     }
 

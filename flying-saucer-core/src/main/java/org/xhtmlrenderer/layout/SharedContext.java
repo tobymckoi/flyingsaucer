@@ -88,7 +88,7 @@ public class SharedContext {
     private final static float DEFAULT_DPI = 72;
     private boolean print;
 
-    private int dotsPerPixel = 1;
+    private float dotsPerPixel = 1;
 
     private Map styleMap;
 
@@ -536,11 +536,11 @@ public class SharedContext {
         font_resolver = resolver;
     }
 
-    public int getDotsPerPixel() {
+    public float getDotsPerPixel() {
         return dotsPerPixel;
     }
 
-    public void setDotsPerPixel(int pixelsPerDot) {
+    public void setDotsPerPixel(float pixelsPerDot) {
         this.dotsPerPixel = pixelsPerDot;
     }
 
