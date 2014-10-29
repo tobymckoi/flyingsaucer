@@ -81,12 +81,6 @@ public class ImageMapReplacedElementFactory extends SwingReplacedElementFactory 
          final String usemapAttr = context.getNamespaceHandler().getAttributeValue(e, IMG_USEMAP_ATTR);
          if (isNotBlank(usemapAttr)) {
             final ReplacedElement re = replaceImageMap(uac, context, e, usemapAttr, cssWidth, cssHeight);
-            if (context.isInteractive() && re instanceof SwingReplacedElement) {
-                FSCanvas canvas = context.getCanvas();
-                if (canvas instanceof JComponent) {
-                    ((JComponent) canvas).add(((SwingReplacedElement) re).getJComponent());
-                }
-            }
             return re;
          } else {
             return replaceImage(uac, context, e, cssWidth, cssHeight);
