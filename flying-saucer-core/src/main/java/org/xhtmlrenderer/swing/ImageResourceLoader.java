@@ -128,50 +128,35 @@ public class ImageResourceLoader {
     public synchronized ImageResource get(final String uri, final int width, final int height) {
         if (ImageUtil.isEmbeddedBase64Image(uri)) {
             ImageResource resource = loadEmbeddedBase64ImageResource(uri);
-            resource.getImage().scale(width, height);
+            if (resource.getImage() != null) {
+                resource = new ImageResource(null, resource.getImage().createScaled(width, height));
+            }
             return resource;
         } else {
-            CacheKey key = new CacheKey(uri, width, height);
+            CacheKey key = new CacheKey(uri);
             ImageResource ir = (ImageResource) _imageCache.get(key);
             if (ir == null) {
-                // not loaded, or not loaded at target size
 
-                // loaded a base size?
-                ir = (ImageResource) _imageCache.get(new CacheKey(uri, -1, -1));
-
-                // no: loaded
-                if (ir == null) {
-                    if (isImmediateLoadUri(uri)) {
-                        XRLog.load(Level.FINE, "Load immediate: " + uri);
-                        ir = loadImageResourceFromUri(uri);
-                        FSImage awtfsImage = ir.getImage();
-                        BufferedImage newImg = ((AWTFSImage) awtfsImage).getImage();
-                        loaded(ir, -1, -1);
-                        if (width > -1 && height > -1) {
-                            XRLog.load(Level.FINE, this + ", scaling " + uri + " to " + width + ", " + height);
-                            newImg = ImageUtil.getScaledInstance(newImg, width, height);
-                            ir = new ImageResource(ir.getImageUri(), AWTFSImage.createImage(newImg));
-                            loaded(ir, width, height);
-                        }
-                    } else {
-                        XRLog.load(Level.FINE, "Image cache miss, URI not yet loaded, queueing: " + uri);
-                        MutableFSImage mfsi = new MutableFSImage(_repaintListener);
-                        ir = new ImageResource(uri, mfsi);
-                        _loadQueue.addToQueue(this, uri, mfsi, width, height);
-                    }
-
+                // Not in the cache, so try and load it,
+                if (isImmediateLoadUri(uri)) {
+                    XRLog.load(Level.FINE, "Load immediate: " + uri);
+                    ir = loadImageResourceFromUri(uri);
                     _imageCache.put(key, ir);
-                } else {
-                    // loaded at base size, need to scale
-                    XRLog.load(Level.FINE, this + ", scaling " + uri + " to " + width + ", " + height);
                     FSImage awtfsImage = ir.getImage();
-                    BufferedImage newImg = ((AWTFSImage) awtfsImage).getImage();
-
-                    newImg = ImageUtil.getScaledInstance(newImg, width, height);
-                    ir = new ImageResource(ir.getImageUri(), AWTFSImage.createImage(newImg));
-                    loaded(ir, width, height);
+                    if (width > -1 && height > -1) {
+                        XRLog.load(Level.FINE, this + ", scaling " + uri + " to " + width + ", " + height);
+                        ir = new ImageResource(ir.getImageUri(), awtfsImage.createScaled(width, height));
+                    }
+                } else {
+                    XRLog.load(Level.FINE, "Image cache miss, URI not yet loaded, queueing: " + uri);
+                    MutableFSImage mfsi = new MutableFSImage(_repaintListener);
+                    ir = new ImageResource(uri, mfsi);
+                    _imageCache.put(key, ir);
+                    _loadQueue.addToQueue(this, uri, mfsi, width, height);
                 }
+
             }
+            
             return ir;
         }
     }
@@ -183,7 +168,7 @@ public class ImageResourceLoader {
     public synchronized void loaded(final ImageResource ir, final int width, final int height) {
         String imageUri = ir.getImageUri();
         if (imageUri != null) {
-            _imageCache.put(new CacheKey(imageUri, width, height), ir);
+            _imageCache.put(new CacheKey(imageUri), ir);
         }
     }
 
@@ -208,13 +193,9 @@ public class ImageResourceLoader {
 
     private static class CacheKey {
         final String uri;
-        final int width;
-        final int height;
 
-        public CacheKey(final String uri, final int width, final int height) {
+        public CacheKey(final String uri) {
             this.uri = uri;
-            this.width = width;
-            this.height = height;
         }
 
         public boolean equals(final Object o) {
@@ -223,8 +204,6 @@ public class ImageResourceLoader {
 
             final CacheKey cacheKey = (CacheKey) o;
 
-            if (height != cacheKey.height) return false;
-            if (width != cacheKey.width) return false;
             if (!uri.equals(cacheKey.uri)) return false;
 
             return true;
@@ -232,8 +211,6 @@ public class ImageResourceLoader {
 
         public int hashCode() {
             int result = uri.hashCode();
-            result = 31 * result + width;
-            result = 31 * result + height;
             return result;
         }
     }

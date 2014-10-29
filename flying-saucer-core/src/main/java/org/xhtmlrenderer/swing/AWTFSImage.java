@@ -50,43 +50,52 @@ public abstract class AWTFSImage implements FSImage {
 
 
     static class NewAWTFSImage extends AWTFSImage {
-        private BufferedImage img;
+        private final BufferedImage img;
+        private final int targetWidth;
+        private final int targetHeight;
+
+        private NewAWTFSImage(BufferedImage img, int targetWidth, int targetHeight) {
+            this.img = img;
+            this.targetWidth = targetWidth;
+            this.targetHeight = targetHeight;
+        }
 
         public NewAWTFSImage(BufferedImage img) {
-            this.img = img;
+            this(img, img.getWidth(), img.getHeight());
         }
 
         public int getWidth() {
-            return img.getWidth(null);
+            return targetWidth;
         }
 
         public int getHeight() {
-            return img.getHeight(null);
+            return targetHeight;
         }
 
         public BufferedImage getImage() {
             return img;
         }
 
-        public void scale(int width, int height) {
+        public FSImage createScaled(int width, int height) {
             if (width > 0 || height > 0) {
                 int currentWith = getWidth();
                 int currentHeight = getHeight();
-                int targetWidth = width;
-                int targetHeight = height;
+                int toWidth = width;
+                int toHeight = height;
 
-                if (targetWidth == -1) {
-                    targetWidth = (int)(currentWith * ((double)targetHeight / currentHeight));
+                if (toWidth == -1) {
+                    toWidth = (int)(currentWith * ((double)toHeight / currentHeight));
                 }
 
-                if (targetHeight == -1) {
-                    targetHeight = (int)(currentHeight * ((double)targetWidth / currentWith));
+                if (toHeight == -1) {
+                    toHeight = (int)(currentHeight * ((double)toWidth / currentWith));
                 }
 
-                if (currentWith != targetWidth || currentHeight != targetHeight) {
-                    img = ImageUtil.getScaledInstance(img, targetWidth, targetHeight);
+                if (currentWith != toWidth || currentHeight != toHeight) {
+                    return new NewAWTFSImage(img, toWidth, toHeight);
                 }
             }
+            return this;
         }
     }
 
@@ -101,7 +110,8 @@ public abstract class AWTFSImage implements FSImage {
             return 0;
         }
 
-        public void scale(int width, int height) {
+        public FSImage createScaled(int width, int height) {
+            return this;
         }
 
         public BufferedImage getImage() {

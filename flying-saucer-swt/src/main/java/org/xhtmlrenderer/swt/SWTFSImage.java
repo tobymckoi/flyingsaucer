@@ -102,9 +102,9 @@ public class SWTFSImage implements FSImage {
         _width = width;
     }
 
-    public void scale(int width, int height) {
+    public FSImage createScaled(int width, int height) {
         if (width < 0 && height < 0) {
-            return;
+            return this;
         } else if (width < 0) {
             width = Math.round(_width
                     * (_height == 0 ? 1 : ((float) height / _height)));
@@ -112,8 +112,10 @@ public class SWTFSImage implements FSImage {
             height = Math.round(_height
                     * (_width == 0 ? 1 : ((float) width / _width)));
         }
-        _width = width;
-        _height = height;
+        SWTFSImage retImage = new SWTFSImage(this);
+        retImage._width = width;
+        retImage._height = height;
+        return retImage;
     }
-
+    
 }

@@ -38,7 +38,7 @@ public class ITextFSImage implements FSImage, Cloneable {
         return (int)_image.getPlainHeight();
     }
 
-    public void scale(int width, int height) {
+    public FSImage createScaled(int width, int height) {
         if (width > 0 || height > 0) {
             int currentWith = getWidth();
             int currentHeight = getHeight();
@@ -54,9 +54,13 @@ public class ITextFSImage implements FSImage, Cloneable {
             }
 
             if (currentWith != targetWidth || currentHeight != targetHeight) {
+                // This is probably a bad implementation. We need to clone
+                // the image then scale it.
                 _image.scaleAbsolute(targetWidth, targetHeight);
+                return this;
             }
         }
+        return this;
     }
 
     public Image getImage() {

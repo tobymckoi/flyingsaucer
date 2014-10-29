@@ -185,11 +185,10 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
             SwingElementPane pane = canvas.getSwingElementPane();
             pane.paintComponent(_graphics, component, contentBounds, true);
         } else if (replaced instanceof ImageReplacedElement) {
-            Image image = ((ImageReplacedElement)replaced).getImage();
+            FSImage image = ((ImageReplacedElement)replaced).getFSImage();
             
             Point location = replaced.getLocation();
-            _graphics.drawImage(
-                    image, (int)location.getX(), (int)location.getY(), null);
+            drawImage(image, (int)location.getX(), (int)location.getY());
         }
     }
     
@@ -267,7 +266,10 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     }
     
     public void drawImage(FSImage image, int x, int y) {
-        _graphics.drawImage(((AWTFSImage)image).getImage(), x, y, null);
+        int actualWidth = image.getWidth();
+        int actualHeight = image.getHeight();
+        Image awtImage = ((AWTFSImage)image).getImage();
+        _graphics.drawImage(awtImage, x, y, actualWidth, actualHeight, null);
     }
     
     public boolean isSupportsSelection() {

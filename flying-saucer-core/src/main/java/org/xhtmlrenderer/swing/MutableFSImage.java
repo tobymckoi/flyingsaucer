@@ -26,6 +26,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.logging.Level;
+import org.xhtmlrenderer.extend.FSImage;
+import org.xhtmlrenderer.swing.AWTFSImage.NewAWTFSImage;
 
 
 /**
@@ -34,14 +36,14 @@ import java.util.logging.Level;
  * Swing event dispatch thread. The method isLoaded() will return true once the image load has completed. Before the
  * image has loaded, a 1x1 transparent pixel will be returned from getImage().
  */
-public class MutableFSImage extends AWTFSImage {
+public class MutableFSImage extends NewAWTFSImage {
     private volatile BufferedImage img;
     private final RepaintListener repaintListener;
     private volatile boolean loaded;
 
     public MutableFSImage(RepaintListener repaintListener) {
+        super(ImageUtil.createTransparentImage(10, 10));
         this.repaintListener = repaintListener;
-        img = ImageUtil.createTransparentImage(10, 10);
     }
 
     public synchronized BufferedImage getImage() {
@@ -56,8 +58,8 @@ public class MutableFSImage extends AWTFSImage {
         return img.getHeight(null);
     }
 
-    public synchronized void scale(int width, int height) {
-        img.getScaledInstance(width, height, Image.SCALE_DEFAULT);
+    public synchronized FSImage createScaled(int width, int height) {
+        return super.createScaled(width, height);
     }
 
     public synchronized void setImage(String uri, BufferedImage newImg, final boolean wasScaled) {

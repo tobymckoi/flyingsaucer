@@ -20,19 +20,18 @@
 package org.xhtmlrenderer.swing;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
+import org.xhtmlrenderer.extend.FSImage;
 
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.layout.LayoutContext;
-import org.xhtmlrenderer.util.Configuration;
-import org.xhtmlrenderer.util.ImageUtil;
 
 /**
  * An ImageReplacedElement is a {@link ReplacedElement} that contains a {@link java.awt.Image}. It's used as a
  * container for images included within XML being rendered. The image contained is immutable.
  */
 public class ImageReplacedElement implements ReplacedElement {
-    protected Image _image;
+
+    protected FSImage _image;
     
     private Point _location = new Point(0, 0);
 
@@ -49,37 +48,8 @@ public class ImageReplacedElement implements ReplacedElement {
      * @param targetWidth The width we'd like the image to have, in pixels.
      * @param targetHeight The height we'd like the image to have, in pixels.
      */
-    public ImageReplacedElement(Image image, int targetWidth, int targetHeight) {
-		if (targetWidth > 0 || targetHeight > 0) {
-            int w = image.getWidth(null);
-            int h = image.getHeight(null);
-
-		    int newW = targetWidth;
-		    int newH = targetHeight;
-
-		    if (newW == -1) {
-		        newW = (int)(w * ((double)newH / h));
-		    }
-
-	        if (newH == -1) {
-	            newH = (int)(h * ((double)newW / w));
-	        }
-
-			if (w != newW || h != newH) {
-                if (image instanceof BufferedImage) {
-                    image = ImageUtil.getScaledInstance((BufferedImage) image, newW, newH);
-                } else {
-                   String scalingType = Configuration.valueFor("xr.image.scale", "HIGH").trim() ;
-
-                   if(scalingType.equalsIgnoreCase("HIGH") || scalingType.equalsIgnoreCase("MID") ){
-                       image = image.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-                   } else{
-                    image = image.getScaledInstance(newW, newH, Image.SCALE_FAST);
-                }
-            }
-        }
-        }
-        _image = image;
+    public ImageReplacedElement(FSImage image, int targetWidth, int targetHeight) {
+        _image = image.createScaled(targetWidth, targetHeight);
     }
 
     /** {@inheritDoc} */
@@ -89,12 +59,12 @@ public class ImageReplacedElement implements ReplacedElement {
 
     /** {@inheritDoc} */
     public int getIntrinsicHeight() {
-        return _image.getHeight(null);
+        return (int) _image.getHeight();
     }
 
     /** {@inheritDoc} */
     public int getIntrinsicWidth() {
-        return _image.getWidth(null);
+        return (int) _image.getWidth();
     }
 
     /** {@inheritDoc} */
@@ -116,7 +86,7 @@ public class ImageReplacedElement implements ReplacedElement {
      * The image we're replacing.
      * @return see desc
      */
-    public Image getImage() {
+    public FSImage getFSImage() {
         return _image;
     }
 

@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import org.xhtmlrenderer.extend.FSImage;
 
 /**
  * A ReplacedElementFactory where Elements are replaced by Swing components.
@@ -144,7 +145,8 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
         } else if (ImageUtil.isEmbeddedBase64Image(imageSrc)) {
             BufferedImage image = ImageUtil.loadEmbeddedBase64Image(imageSrc);
             if (image != null) {
-                re = new ImageReplacedElement(image, cssWidth, cssHeight);
+                re = new ImageReplacedElement(
+                          AWTFSImage.createImage(image), cssWidth, cssHeight);
             }
         } else {
             // lookup in cache, or instantiate
@@ -154,7 +156,16 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
                 XRLog.load(Level.FINE, "Swing: Image " + ruri + " requested at "+ " to " + cssWidth + ", " + cssHeight);
                 ImageResource imageResource = imageResourceLoader.get(ruri, cssWidth, cssHeight);
                 if (imageResource.isLoaded()) {
-                    re = new ImageReplacedElement(((AWTFSImage) imageResource.getImage()).getImage(), cssWidth, cssHeight);
+                    FSImage image = (FSImage) imageResource.getImage();
+                    // If no css dimensions then scale native dimension of
+                    // image by dots per pixel,
+                    if (cssWidth == -1 && cssHeight == -1) {
+                       float dpp = context.getDotsPerPixel();
+                       image = image.createScaled(
+                               (int) (image.getWidth() * dpp),
+                               (int) (image.getHeight() * dpp));
+                    }
+                    re = new ImageReplacedElement(image, cssWidth, cssHeight);
                 } else {
                     re = new DeferredImageReplacedElement(imageResource, repaintListener, cssWidth, cssHeight);
                 }
@@ -194,7 +205,7 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
             g.setFont(new Font("Serif", Font.PLAIN, 12));
             g.drawString("Missing", 0, 12);
             g.dispose();
-            mre = new ImageReplacedElement(missingImage, cssWidth, cssHeight);
+            mre = new ImageReplacedElement(AWTFSImage.createImage(missingImage), cssWidth, cssHeight);
         } catch (Exception e) {
             mre = new EmptyReplacedElement(
                     cssWidth < 0 ? 0 : cssWidth,

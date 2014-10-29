@@ -243,7 +243,8 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
             clip(backgroundBounds);
 
-            scaleBackgroundImage(c, style, localBGImageContainer, backgroundImage);
+            backgroundImage = scaleBackgroundImage(c, style,
+                                      localBGImageContainer, backgroundImage);
 
             float imageWidth = backgroundImage.getWidth();
             float imageHeight = backgroundImage.getHeight();
@@ -355,7 +356,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
     }
 
-    private void scaleBackgroundImage(CssContext c, CalculatedStyle style, Rectangle backgroundContainer, FSImage image) {
+    private FSImage scaleBackgroundImage(CssContext c, CalculatedStyle style, Rectangle backgroundContainer, FSImage image) {
         BackgroundSize backgroundSize = style.getBackgroundSize();
 
         if (! backgroundSize.isBothAuto()) {
@@ -363,24 +364,25 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 int testHeight = (int)((double)image.getHeight() * backgroundContainer.width / image.getWidth());
                 if (backgroundSize.isContain()) {
                     if (testHeight > backgroundContainer.height) {
-                        image.scale(-1, backgroundContainer.height);
+                        image = image.createScaled(-1, backgroundContainer.height);
                     } else {
-                        image.scale(backgroundContainer.width, -1);
+                        image = image.createScaled(backgroundContainer.width, -1);
                     }
                 } else if (backgroundSize.isCover()) {
                     if (testHeight > backgroundContainer.height) {
-                        image.scale(backgroundContainer.width, -1);
+                        image = image.createScaled(backgroundContainer.width, -1);
                     } else {
-                        image.scale(-1, backgroundContainer.height);
+                        image = image.createScaled(-1, backgroundContainer.height);
                     }
                 }
             } else {
                 int scaledWidth = calcBackgroundSizeLength(c, style, backgroundSize.getWidth(), backgroundContainer.width);
                 int scaledHeight = calcBackgroundSizeLength(c, style, backgroundSize.getHeight(), backgroundContainer.height);
 
-                image.scale(scaledWidth, scaledHeight);
+                image = image.createScaled(scaledWidth, scaledHeight);
             }
         }
+        return image;
     }
 
     private int calcBackgroundSizeLength(CssContext c, CalculatedStyle style, PropertyValue value, float boundsDim) {

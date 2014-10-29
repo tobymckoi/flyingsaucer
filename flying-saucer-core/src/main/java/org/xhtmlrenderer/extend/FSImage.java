@@ -22,5 +22,5 @@ package org.xhtmlrenderer.extend;
 public interface FSImage {
     public int getWidth();
     public int getHeight();
-    public void scale(int width, int height);
+    public FSImage createScaled(int width, int height);
 }

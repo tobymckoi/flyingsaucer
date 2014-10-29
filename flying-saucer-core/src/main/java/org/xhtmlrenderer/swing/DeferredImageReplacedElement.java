@@ -20,13 +20,11 @@
 package org.xhtmlrenderer.swing;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.util.logging.Level;
 
-import org.xhtmlrenderer.extend.ReplacedElement;
+import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.util.ImageUtil;
-import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.resource.ImageResource;
 
@@ -48,7 +46,6 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
     private final int _targetHeight;
     private final int _targetWidth;
 
-    private boolean _doScaleImage;
     private boolean _loaded;
     private final ImageResource _imageResource;
 
@@ -67,15 +64,14 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
         _loaded = false;
         this.repaintListener = repaintListener;
         if (w == -1 && h == -1) {
-            _doScaleImage = false;
             _targetHeight = 1;
             _targetWidth = 1;
         } else {
-            _doScaleImage = true;
             _targetHeight = Math.max(1, h);
             _targetWidth = Math.max(1, w);
         }
-        _image = ImageUtil.createCompatibleBufferedImage(_targetWidth, _targetHeight);
+        _image = AWTFSImage.createImage(
+                ImageUtil.createCompatibleBufferedImage(_targetWidth, _targetHeight));
     }
 
     /** {@inheritDoc} */
@@ -85,12 +81,12 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
 
     /** {@inheritDoc} */
     public int getIntrinsicHeight() {
-        return  _loaded ? _image.getHeight(null) : _targetHeight;
+        return  _loaded ? _image.getHeight() : _targetHeight;
     }
 
     /** {@inheritDoc} */
     public int getIntrinsicWidth() {
-        return _loaded ? _image.getWidth(null) : _targetWidth;
+        return _loaded ? _image.getWidth() : _targetWidth;
     }
 
     /** {@inheritDoc} */
@@ -112,12 +108,12 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
      * The image we're replacing.
      * @return see desc
      */
-    public Image getImage() {
+    public FSImage getFSImage() {
         if (!_loaded && _imageResource.isLoaded()) {
-            Image image = ((AWTFSImage) _imageResource.getImage()).getImage();
-            if (_doScaleImage && (_targetWidth > 0 || _targetHeight > 0)) {
-                int w = image.getWidth(null);
-                int h = image.getHeight(null);
+            FSImage image = (AWTFSImage) _imageResource.getImage();
+            if (_targetWidth > 0 || _targetHeight > 0) {
+                int w = image.getWidth();
+                int h = image.getHeight();
                 int newW = _targetWidth;
                 int newH = _targetHeight;
 
@@ -130,20 +126,7 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
                 }
 
                 if (w != newW || h != newH) {
-                    if (image instanceof BufferedImage) {
-                        image = ImageUtil.getScaledInstance((BufferedImage) image, newW, newH);
-                    } else {
-                        if (true) {
-                            throw new RuntimeException("image is not a buffered image! " + _imageResource.getImageUri());
-                        }
-                        String scalingType = Configuration.valueFor("xr.image.scale", "HIGH").trim();
-
-                        if (scalingType.equalsIgnoreCase("HIGH") || scalingType.equalsIgnoreCase("MID")) {
-                            image = image.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-                        } else {
-                            image = image.getScaledInstance(newW, newH, Image.SCALE_FAST);
-                        }
-                    }
+                    image = image.createScaled(newW, newH);
                 }
                 _image = image;
             } else {
@@ -153,7 +136,7 @@ public class DeferredImageReplacedElement extends ImageReplacedElement {
             XRLog.load(Level.FINE, "Icon: replaced image " + _imageResource.getImageUri() + ", repaint requested");
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    repaintListener.repaintRequested(_doScaleImage);
+                    repaintListener.repaintRequested(true);
                 }
             });
 

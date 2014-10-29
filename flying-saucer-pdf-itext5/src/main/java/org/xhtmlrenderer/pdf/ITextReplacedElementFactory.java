@@ -59,7 +59,7 @@ public class ITextReplacedElementFactory implements ReplacedElementFactory {
                 FSImage fsImage = uac.getImageResource(srcAttr).getImage();
                 if (fsImage != null) {
                     if (cssWidth != -1 || cssHeight != -1) {
-                        fsImage.scale(cssWidth, cssHeight);
+                        fsImage = fsImage.createScaled(cssWidth, cssHeight);
                     }
                     return new ITextImageElement(fsImage);
                 }                    

@@ -80,12 +80,9 @@ public class SwingImageReplacer extends ElementReplacer {
                 //FSImage is here since we need to capture a target H/W
                 //for the image (as opposed to what the actual image size is).
                 FSImage fsImage = uac.getImageResource(imageSrc).getImage();
-                if (fsImage != null) {
-                    im = ((AWTFSImage) fsImage).getImage();
-                }
 
-                if (im != null) {
-                    re = new ImageReplacedElement(im, cssWidth, cssHeight);
+                if (fsImage != null) {
+                    re = new ImageReplacedElement(fsImage, cssWidth, cssHeight);
                 } else {
                     // TODO: Should return "broken" image icon, e.g. "not found"
                     re = newIrreplaceableImageElement(cssWidth, cssHeight);
@@ -142,7 +139,7 @@ public class SwingImageReplacer extends ElementReplacer {
             g.setFont(new Font("Serif", Font.PLAIN, 12));
             g.drawString("Missing", 0, 12);
             g.dispose();
-            mre = new ImageReplacedElement(missingImage, cssWidth, cssHeight);
+            mre = new ImageReplacedElement(AWTFSImage.createImage(missingImage), cssWidth, cssHeight);
         } catch (Exception e) {
             mre = new EmptyReplacedElement(
                     cssWidth < 0 ? 0 : cssWidth,

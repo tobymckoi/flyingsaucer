@@ -45,20 +45,25 @@ public class PDFAsImage implements FSImage {
         return (int)_height;
     }
 
-    public void scale(int width, int height) {
+    public FSImage createScaled(int width, int height) {
         float targetWidth = width;
         float targetHeight = height;
-        
+
         if (width == -1) {
             targetWidth = getWidthAsFloat() * (targetHeight / getHeight());
         }
-        
+
         if (height == -1) {
             targetHeight = getHeightAsFloat() * (targetWidth / getWidth());
         }
-        
-        _width = targetWidth;
-        _height = targetHeight;
+
+        PDFAsImage retImage = new PDFAsImage(_source);
+        retImage._width = targetWidth;
+        retImage._height = targetHeight;
+        retImage._unscaledWidth = _unscaledWidth;
+        retImage._unscaledHeight = _unscaledHeight;
+        return retImage;
+
     }
     
     public URI getURI() {
