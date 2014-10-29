@@ -230,8 +230,8 @@ public class Java2DTextRenderer implements TextRenderer {
         Object fracHint = null;
         final Graphics2D graphics = ((Java2DFontContext)fc).getGraphics();
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
-        // We have to enable fractional metrics to get accurate text bound
-        // calculations.
+        // When fractional metrics is off it makes each glyph align to pixel
+        // boundary,
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
                                   fractionalFontMetricsHint);
         final Font awtFont = ((AWTFSFont)font).getAWTFont();
@@ -244,6 +244,11 @@ public class Java2DTextRenderer implements TextRenderer {
         GlyphVector vector = awtFont.createGlyphVector(ctx, string);
         width = (float) vector.getLogicalBounds().getWidth();
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
+        if(fractionalFontMetricsHint == RenderingHints.VALUE_FRACTIONALMETRICS_OFF) {
+            // If fractional metrics off then round to the nearest int, just
+            // incase there are precision errors from adding floats.
+            width = (int)Math.round(width);
+        }
 
         textWidthCache.put(key, width);
 

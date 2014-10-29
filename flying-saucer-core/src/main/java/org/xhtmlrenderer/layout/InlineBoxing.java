@@ -258,7 +258,7 @@ public class InlineBoxing {
                         if (isLastPart) {
                             widthCalc += breakerRun.getTrailingWhitespaceWidthDifference();
                         }
-                        int calculatedWidth = (int) Math.ceil(widthCalc);
+                        int calculatedWidth = Math.round(widthCalc);
 
 
                         InlineText inlineText = new InlineText();
