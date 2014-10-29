@@ -44,7 +44,7 @@ public class MouseTracker extends MouseInputAdapter {
     private BasicPanel _panel;
     private Map _handlers;
     private Box _last;
-    private boolean _enabled;
+    private boolean _enabled = false;
 
     /**
      * Instantiates a MouseTracker to listen to mouse events for the given panel.

@@ -182,8 +182,8 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
             Rectangle contentBounds = box.getContentAreaEdge(box.getAbsX(), box.getAbsY(), c);
             JComponent component = ((SwingReplacedElement)box.getReplacedElement()).getJComponent();
             RootPanel canvas = (RootPanel)c.getCanvas();
-            CellRendererPane pane = canvas.getCellRendererPane();
-            pane.paintComponent(_graphics, component, canvas, contentBounds.x,  contentBounds.y, contentBounds.width, contentBounds.height,true);
+            SwingElementPane pane = canvas.getSwingElementPane();
+            pane.paintComponent(_graphics, component, contentBounds, true);
         } else if (replaced instanceof ImageReplacedElement) {
             Image image = ((ImageReplacedElement)replaced).getImage();
             
