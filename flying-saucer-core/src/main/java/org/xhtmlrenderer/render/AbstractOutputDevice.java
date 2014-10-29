@@ -382,6 +382,16 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 image = image.createScaled(scaledWidth, scaledHeight);
             }
         }
+        else {
+            // Scale by dots per pixel,
+            float dpp = c.getDotsPerPixel();
+            int bgWidth = image.getWidth();
+            int bgHeight = image.getHeight();
+            if (bgWidth >= 0 && bgHeight >= 0) {
+                image = image.createScaled(
+                              (int) (bgWidth * dpp), (int) (bgHeight * dpp));
+            }
+        }
         return image;
     }
 
