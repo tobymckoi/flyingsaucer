@@ -379,6 +379,115 @@ public class FloatManager {
         }
     }
 
+    /**
+     * Finds the list of floating elements from the floatsList that intersect
+     * the given bounds.
+     * 
+     * @param cssCtx
+     * @param bounds
+     * @param floatsList
+     * @return 
+     */
+    private List<Rectangle> findIntersectedFloatAreas(final CssContext cssCtx, final Rectangle bounds, final List<BoxOffset> floatsList) {
+        List<Rectangle> intersectedAreas = new ArrayList(3);
+        for (final BoxOffset floater : floatsList) {
+            final Rectangle fr = floater.getBox().getMarginEdge(cssCtx, -floater.getX(), -floater.getY());
+            if (bounds.intersects(fr)) {
+                intersectedAreas.add(fr);
+            }
+        }
+        return intersectedAreas;
+    }
+
+    /**
+     * Returns the left most area from the list.
+     * 
+     * @param areas
+     * @return 
+     */
+    private Rectangle findLeftmost(List<Rectangle> areas) {
+        Rectangle r = null;
+        for (Rectangle area : areas) {
+            if (r == null || area.x < r.x) {
+                r = area;
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Returns the right most area from the list.
+     * 
+     * @param areas
+     * @return 
+     */
+    private Rectangle findRightmost(List<Rectangle> areas) {
+        Rectangle r = null;
+        for (Rectangle area : areas) {
+            if (r == null || area.x > r.x) {
+                r = area;
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Returns a rectangle that represents the area between a left and right
+     * float area that intersects the bounds of the LineBox. This is used when
+     * text flow is being stressed by floating elements and we need to find
+     * the area to reset the text flow from.
+     * 
+     * @param cssCtx
+     * @param bfc
+     * @param line
+     * @param maxAvailableWidth
+     * @return 
+     */
+    public Rectangle getFloatExclusionBounds(
+            final CssContext cssCtx, final BlockFormattingContext bfc,
+            final LineBox line, final int maxAvailableWidth) {
+
+        final Point offset = bfc.getOffset();
+        final Rectangle lineBounds =
+                            line.getMarginEdge(cssCtx, -offset.x, -offset.y);
+
+        applyLineHeightHack(cssCtx, line, lineBounds);
+
+        // Make the line horizonal extents very large,
+        lineBounds.x = Short.MIN_VALUE * 8;
+        lineBounds.width = Short.MAX_VALUE * 16;
+
+        // Find all rectangles that intersect the line bounds,
+        List<Rectangle> leftAreas = findIntersectedFloatAreas(
+                                        cssCtx, lineBounds, getFloats(LEFT));
+        List<Rectangle> rightAreas = findIntersectedFloatAreas(
+                                        cssCtx, lineBounds, getFloats(RIGHT));
+
+        if (leftAreas.isEmpty() && rightAreas.isEmpty()) {
+            return null;
+        }
+        // The leftmost and rightmost areas,
+        Rectangle leftmost = findRightmost(leftAreas);
+        Rectangle rightmost = findLeftmost(rightAreas);
+
+        int leftx = leftmost == null ?
+                0 : Math.max(0, leftmost.x + leftmost.width);
+        int rightx = rightmost == null ?
+                maxAvailableWidth : Math.min(maxAvailableWidth, rightmost.x);
+
+        int leftTopY = leftmost == null ? 0 : leftmost.y;
+        int rightTopY = rightmost == null ? 0 : rightmost.y;
+        int leftBotY = leftmost == null ? Integer.MAX_VALUE : leftmost.y + leftmost.height;
+        int rightBotY = rightmost == null ? Integer.MAX_VALUE : rightmost.y + rightmost.height;
+
+        int ry = Math.max(leftTopY, rightTopY);
+        int rh = Math.min(leftBotY, rightBotY) - ry;
+
+        Rectangle r = new Rectangle(leftx, ry, rightx - leftx, rh);
+        return r;
+
+    }
+
     public void setMaster(Box owner) {
         _master = owner;
     }

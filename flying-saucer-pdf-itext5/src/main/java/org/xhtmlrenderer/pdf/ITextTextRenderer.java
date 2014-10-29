@@ -78,6 +78,11 @@ public class ITextTextRenderer implements TextRenderer {
         }
     }
 
+    public float getLogicalGlyphsWidth(FontContext fontContext, FSFont font, String string) {
+        BaseFont bf = ((ITextFSFont)font).getFontDescription().getFont();
+        return bf.getWidthPoint(string, font.getSize2D());
+    }
+
     public void setFontScale(float scale) {
     }
 

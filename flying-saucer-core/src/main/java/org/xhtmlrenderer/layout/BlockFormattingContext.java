@@ -21,6 +21,7 @@
 package org.xhtmlrenderer.layout;
 
 import java.awt.Point;
+import java.awt.Rectangle;
 
 import org.xhtmlrenderer.css.style.CssContext;
 import org.xhtmlrenderer.render.BlockBox;
@@ -76,6 +77,21 @@ public class BlockFormattingContext {
         return getFloatManager().getNextLineBoxDelta(cssCtx, this, line, containingBlockWidth);
     }
 
+    /**
+     * Returns a Rectangle the describes the smallest area between floating
+     * elements that the given LineBox intersects. This is used to find the
+     * area to flow text past when text placement is stressed by floating
+     * areas.
+     * 
+     * @param c
+     * @param line
+     * @param containingBlockWidth
+     * @return 
+     */
+    public Rectangle getFloatExclusionBounds(CssContext c, LineBox line, int containingBlockWidth) {
+        return getFloatManager().getFloatExclusionBounds(c, this, line, containingBlockWidth);
+    }
+
     public void floatBox(LayoutContext c, BlockBox floated) {
         getFloatManager().floatBox(c, c.getLayer(), this, floated);
     }
@@ -87,4 +103,5 @@ public class BlockFormattingContext {
     public String toString() {
         return "BlockFormattingContext: (" + _x + "," + _y + ")";
     }
+
 }

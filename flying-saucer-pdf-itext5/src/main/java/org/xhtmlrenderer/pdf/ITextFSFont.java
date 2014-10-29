@@ -34,8 +34,31 @@ public class ITextFSFont implements FSFont {
     public float getSize2D() {
         return _size;
     }
+
+    public Object getFontObject() {
+        return this;
+    }
     
     public FontDescription getFontDescription() {
         return _font;
     }
+
+    public int hashCode() {
+        int hash = 5;
+        hash = 97 * hash + (this._font != null ? this._font.hashCode() : 0);
+        hash = 97 * hash + Float.floatToIntBits(this._size);
+        return hash;
+    }
+
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final ITextFSFont other = (ITextFSFont) obj;
+        return this._font.equals(other._font) && _size == other._size;
+    }
+
 }

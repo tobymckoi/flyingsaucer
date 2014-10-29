@@ -20,6 +20,7 @@
 package org.xhtmlrenderer.layout;
 
 import java.awt.Rectangle;
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -346,6 +347,11 @@ public class LayoutContext implements CssContext {
 
     public FSFontMetrics getFSFontMetrics(FSFont font) {
         return getTextRenderer().getFSFontMetrics(getFontContext(), font, "");
+    }
+
+    public BreakIterator getLineBreaker() {
+        // PENDING: Localization?
+        return BreakIterator.getLineInstance();
     }
 
     public class CounterContext {

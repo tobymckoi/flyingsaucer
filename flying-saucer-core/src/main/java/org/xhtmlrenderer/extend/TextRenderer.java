@@ -45,6 +45,18 @@ public interface TextRenderer {
 
     public int getWidth(FontContext context, FSFont font, String string);
 
+    /**
+     * Returns the logical width of the string when rendered using the given
+     * font. When the logical width is added to the y position of the text, you
+     * get the position to place text immediately proceeding this string.
+     * 
+     * @param fontContext
+     * @param font
+     * @param string
+     * @return 
+     */
+    public float getLogicalGlyphsWidth(FontContext fontContext, FSFont font, String string);
+
     public void setFontScale(float scale);
 
     public float getFontScale();

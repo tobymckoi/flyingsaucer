@@ -21,4 +21,13 @@ package org.xhtmlrenderer.render;
 
 public interface FSFont {
     public float getSize2D();
+
+    /**
+     * The unique Font object that we can use for equality testing and as a
+     * key in a hashing table.
+     * 
+     * @return 
+     */
+    public Object getFontObject();
+
 }

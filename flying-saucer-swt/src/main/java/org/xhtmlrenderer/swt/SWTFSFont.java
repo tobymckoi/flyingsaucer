@@ -47,6 +47,10 @@ public class SWTFSFont implements FSFont {
         return _size;
     }
 
+    public Object getFontObject() {
+        return this;
+    }
+
     public Font getSWTFont() {
         return _font;
     }
@@ -61,6 +65,24 @@ public class SWTFSFont implements FSFont {
         if (!_noDispose && !_font.isDisposed()) {
             _font.dispose();
         }
+    }
+
+    public int hashCode() {
+        int hash = 3;
+        hash = 53 * hash + (this._font != null ? this._font.hashCode() : 0);
+        hash = 53 * hash + Float.floatToIntBits(this._size);
+        return hash;
+    }
+
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SWTFSFont other = (SWTFSFont) obj;
+        return _font.equals(other._font) && _size == other._size;
     }
 
 }

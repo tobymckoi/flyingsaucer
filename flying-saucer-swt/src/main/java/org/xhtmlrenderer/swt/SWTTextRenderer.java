@@ -74,6 +74,18 @@ public class SWTTextRenderer implements TextRenderer {
         return width;
     }
 
+    public float getLogicalGlyphsWidth(FontContext context, FSFont font, String string) {
+        // Not sure if this is correct? I'm not familiar enough with SWT to
+        // know how to calculate logical glyph extent of a string. This may be
+        // good enough?
+        GC gc = ((SWTFontContext) context).getGC();
+        Font previous = gc.getFont();
+        gc.setFont(((SWTFSFont) font).getSWTFont());
+        int width = gc.stringExtent(string).x;
+        gc.setFont(previous);
+        return width;
+    }
+
     public float getFontScale() {
         return _scale;
     }

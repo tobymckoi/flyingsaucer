@@ -37,4 +37,10 @@ public class AWTFSFont implements FSFont {
     public Font getAWTFont() {
         return _font;
     }
+
+    @Override
+    public Object getFontObject() {
+        return _font;
+    }
+
 }
