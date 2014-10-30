@@ -244,9 +244,9 @@ public class ContentFunctionFactory {
             for (int i = 0; i < 100; i++) {
                 tmp.append(value);
             }
-            float valueWidth = c.getTextRenderer().getWidth(c.getFontContext(),
+            float valueWidth = c.getTextRenderer().getLogicalGlyphsWidth(c.getFontContext(),
                     iB.getStyle().getFSFont(c), tmp.toString()) / 100f;
-            int spaceWidth = c.getTextRenderer().getWidth(c.getFontContext(),
+            int spaceWidth = (int) c.getTextRenderer().getLogicalGlyphsWidth(c.getFontContext(),
                     iB.getStyle().getFSFont(c), " ");
 
             // compute leader width and necessary count of values

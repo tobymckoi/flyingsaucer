@@ -143,11 +143,19 @@ public class InlineBox implements Styleable {
         return _contentFunction != null;
     }
 
+    /**
+     * Returns the maximum integer width size that will fit the given string.
+     * 
+     * @param c
+     * @param s
+     * @return 
+     */
     private int getTextWidth(LayoutContext c, String s) {
-        return c.getTextRenderer().getWidth(
+        float width = c.getTextRenderer().getLogicalGlyphsWidth(
                 c.getFontContext(),
                 c.getFont(getStyle().getFont(c)),
                 s);
+        return (int) Math.ceil(width);
     }
 
     private int getMaxCharWidth(LayoutContext c, String s) {
@@ -198,12 +206,18 @@ public class InlineBox implements Styleable {
         }
     }
 
+    /**
+     * Returns the minimum integer size that will fit a space character.
+     * 
+     * @param c
+     * @return 
+     */
     public int getSpaceWidth(LayoutContext c) {
-        return c.getTextRenderer().getWidth(
+        float width = c.getTextRenderer().getLogicalGlyphsWidth(
                 c.getFontContext(),
                 getStyle().getFSFont(c),
                 WhitespaceStripper.SPACE);
-
+        return (int) Math.ceil(width);
     }
 
     public int getTrailingSpaceWidth(LayoutContext c) {
@@ -228,7 +242,7 @@ public class InlineBox implements Styleable {
         int lastWord = 0;
 
         String text = getText(trimLeadingSpace);
-        BreakIterator breakIterator = Breaker.getWordStream(text);
+        BreakIterator breakIterator = c.getLineBreaker();
 
         // Breaker should be used
         while ( (current = breakIterator.next()) != BreakIterator.DONE) {

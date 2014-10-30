@@ -703,7 +703,9 @@ public class SelectionHighlighter implements MouseMotionListener, MouseListener 
     }
 
     private int getTextWidth(LayoutContext c, CalculatedStyle cs, String s) {
-        return c.getTextRenderer().getWidth(c.getFontContext(), c.getFont(cs.getFont(c)), s);
+        float width = c.getTextRenderer().getLogicalGlyphsWidth(
+                            c.getFontContext(), c.getFont(cs.getFont(c)), s);
+        return (int) Math.ceil(width);
     }
 
     public Range getSelectionRange() {

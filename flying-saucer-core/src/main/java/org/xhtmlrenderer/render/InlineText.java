@@ -60,9 +60,10 @@ public class InlineText {
     public void trimTrailingSpace(LayoutContext c) {
         if (! isEmpty() && _masterText.charAt(_end-1) == ' ') {
             _end--;
-            setWidth(c.getTextRenderer().getWidth(c.getFontContext(), 
+            float width = c.getTextRenderer().getLogicalGlyphsWidth(c.getFontContext(), 
                     getParent().getStyle().getFSFont(c),
-                    getSubstring()));
+                    getSubstring());
+            setWidth(Math.round(width));
             setTrimmedTrailingSpace(true);
         } 
     }
@@ -156,12 +157,13 @@ public class InlineText {
     public void updateDynamicValue(RenderingContext c) {
         String value = _functionData.getContentFunction().calculate(
                 c, _functionData.getFunction(), this);
+        float calcWidth = c.getTextRenderer().getLogicalGlyphsWidth(
+                c.getFontContext(), getParent().getStyle().getFSFont(c),
+                value);
         _start = 0;
         _end = value.length();
         _masterText = value;
-        _width = c.getTextRenderer().getWidth(
-                c.getFontContext(), getParent().getStyle().getFSFont(c),
-                value);
+        _width = Math.round(calcWidth);
     }
     
     public String toString() {
