@@ -227,27 +227,19 @@ public class Java2DTextRenderer implements TextRenderer {
           return fWidth;
         }
 
-        Object fracHint = null;
-        final Graphics2D graphics = ((Java2DFontContext)fc).getGraphics();
-        fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
-        // When fractional metrics is off it makes each glyph align to pixel
-        // boundary,
-        graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
-                                  fractionalFontMetricsHint);
-        final Font awtFont = ((AWTFSFont)font).getAWTFont();
-        float width;
-
         // Non-intuitively, it appears the fastest and most accurate way to
         // calculate the width of a run of text on the screen is to use a
         // GlyphVector!
-        FontRenderContext ctx = graphics.getFontRenderContext();
-        GlyphVector vector = awtFont.createGlyphVector(ctx, string);
-        width = (float) vector.getLogicalBounds().getWidth();
-        graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
+        AWTFSGlyphVector awtVector = (AWTFSGlyphVector) getGlyphVector(
+                ((Java2DFontContext)fc).getGraphics(),
+                ((AWTFSFont)font).getAWTFont(),
+                string);
+        float width = (float) awtVector.getGlyphVector().getLogicalBounds().getWidth();
+
+        // If fractional metrics off then round to the nearest int, just
+        // incase there are precision errors from adding floats.
         if(fractionalFontMetricsHint == RenderingHints.VALUE_FRACTIONALMETRICS_OFF) {
-            // If fractional metrics off then round to the nearest int, just
-            // incase there are precision errors from adding floats.
-            width = (int)Math.round(width);
+            width = Math.round(width);
         }
 
         textWidthCache.put(key, width);
@@ -360,12 +352,9 @@ public class Java2DTextRenderer implements TextRenderer {
         return result;
     }
 
-    public FSGlyphVector getGlyphVector(OutputDevice outputDevice, FSFont font, String text) {
+    public FSGlyphVector getGlyphVector(Graphics2D graphics, Font awtFont, String text) {
         Object aaHint = null;
         Object fracHint = null;
-        Graphics2D graphics = ((Java2DOutputDevice)outputDevice).getGraphics();
-        Font awtFont = ((AWTFSFont)font).getAWTFont();
-
         if (awtFont.getSize() > threshold ) {
             aaHint = graphics.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
             graphics.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, antiAliasRenderingHint );
@@ -383,6 +372,12 @@ public class Java2DTextRenderer implements TextRenderer {
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
 
         return new AWTFSGlyphVector(vector);
+    }
+
+    public FSGlyphVector getGlyphVector(OutputDevice outputDevice, FSFont font, String text) {
+        Graphics2D graphics = ((Java2DOutputDevice)outputDevice).getGraphics();
+        Font awtFont = ((AWTFSFont)font).getAWTFont();
+        return getGlyphVector(graphics, awtFont, text);
     }
 
     // -----

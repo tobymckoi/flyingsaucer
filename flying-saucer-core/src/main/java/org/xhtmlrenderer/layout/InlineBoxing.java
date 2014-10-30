@@ -370,9 +370,7 @@ public class InlineBoxing {
                     // outside of the current line bounds, so we need to
                     // recalculate the area we have to work with.
                     if (remainingWidth <= 0) {
-                        // Calculate the new width bounds. This must take into
-                        // account the situation where the float element is placed
-                        // far from the distance of the originating line.
+                        // Calculate the new width bounds.
                         BlockFormattingContext bFContext = c.getBlockFormattingContext();
                         float floatDistance = bFContext.getFloatDistance(c, currentLine, maxAvailableWidth);
                         remainingWidth = maxAvailableWidth - (int) Math.ceil(floatDistance);
