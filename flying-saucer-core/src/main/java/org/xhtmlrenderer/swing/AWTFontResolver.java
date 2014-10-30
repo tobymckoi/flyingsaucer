@@ -27,23 +27,34 @@ import org.xhtmlrenderer.render.FSFont;
 
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.awt.font.TextAttribute;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
- * Description of the Class
+ * A Font Resolver creates fonts from the given CSS font names and styles.
  *
  * @author Joshua Marinacci
  */
 public class AWTFontResolver implements FontResolver {
-    /**
-     * Description of the Field
-     */
-    HashMap instance_hash;
-    /**
-     * Description of the Field
-     */
-    HashMap available_fonts_hash;
+
+    // Maps string to font objects,
+    private final Map<String, Font> instance_hash = new HashMap();
+
+    // The family names of available fonts.
+    private final Set<String> available_fonts_hash = new HashSet();
+
+    // Overridden font names,
+    private final Map<String, Font> overriden_fonts_hash = new HashMap();
+
+    // True if fonts should be created with kerning enabled,
+    private boolean kerning_enabled = false;
+    
+    // True if fonts should be created with ligatures enabled,
+    private boolean ligatures_enabled = false;
 
     /**
      * Constructor for the FontResolverTest object
@@ -51,36 +62,53 @@ public class AWTFontResolver implements FontResolver {
     public AWTFontResolver() {
         init();
     }
-    
+
+    /**
+     * Enables kerning for all new font instances created. If the font has
+     * kerning enabled by system default, there is currently no way to disable
+     * it. Default is false (don't enable kerning).
+     */
+    public void setKerning(boolean enabled) {
+        kerning_enabled = enabled;
+    }
+
+    /**
+     * Enables ligatures for all new font instances created. If the font has
+     * ligatures enabled by system default, there is currently no way to
+     * disable it. Default is false (don't enable ligatures).
+     */
+    public void setLigatures(boolean enabled) {
+        ligatures_enabled = enabled;
+    }
+
     private void init() {
         GraphicsEnvironment gfx = GraphicsEnvironment.getLocalGraphicsEnvironment();
         String[] available_fonts = gfx.getAvailableFontFamilyNames();
-        //Uu.p("available fonts =");
-        //Uu.p(available_fonts);
-        instance_hash = new HashMap();
+
+        instance_hash.clear();
+        available_fonts_hash.clear();
 
         // preload the font map with the font names as keys
         // don't add the actual font objects because that would be a waste of memory
         // we will only add them once we need to use them
         // put empty strings in instead
-        available_fonts_hash = new HashMap();
         for (int i = 0; i < available_fonts.length; i++) {
-            available_fonts_hash.put(available_fonts[i], "");
+            available_fonts_hash.add(available_fonts[i]);
         }
 
         // preload sans, serif, and monospace into the available font hash
-        available_fonts_hash.put("Serif", new Font("Serif", Font.PLAIN, 1));
-        available_fonts_hash.put("SansSerif", new Font("SansSerif", Font.PLAIN, 1));
-        //Uu.p("put in sans serif");
-        available_fonts_hash.put("Monospaced", new Font("Monospaced", Font.PLAIN, 1));
+        available_fonts_hash.add("Serif");
+        available_fonts_hash.add("SansSerif");
+        available_fonts_hash.add("Monospaced");
     }
-    
+
     public void flushCache() {
         init();
     }
 
     /**
-     * Description of the Method
+     * Resolves a font given the list of font families. The first family found
+     * is returned.
      *
      * @param ctx
      * @param families PARAM
@@ -110,64 +138,98 @@ public class AWTFontResolver implements FontResolver {
             family = "Serif";
         }
 
-        Font fnt = createFont(ctx, (Font) available_fonts_hash.get(family), size, weight, style, variant);
+        Font fnt = createFont(ctx, family, size, weight, style, variant);
         instance_hash.put(getFontInstanceHashName(ctx, family, size, weight, style, variant), fnt);
         //Uu.p("subbing in base sans : " + fnt);
         return new AWTFSFont(fnt);
     }
 
     /**
-     * Sets the fontMapping attribute of the FontResolver object
-     *
-     * @param name The new fontMapping value
-     * @param font The new fontMapping value
-     */
-    public void setFontMapping(String name, Font font) {
-        available_fonts_hash.put(name, font.deriveFont(1f));
-    }
-
-    /**
-     * Description of the Method
+     * Creates a font with the given specifications.
      *
      * @param ctx
-     * @param root_font PARAM
+     * @param fontFamily
      * @param size      PARAM
      * @param weight    PARAM
      * @param style     PARAM
      * @param variant   PARAM
      * @return Returns
      */
-    protected static Font createFont(SharedContext ctx, Font root_font, float size, IdentValue weight, IdentValue style, IdentValue variant) {
-        //Uu.p("creating font: " + root_font + " size = " + size +
-        //    " weight = " + weight + " style = " + style + " variant = " + variant);
-        int font_const = Font.PLAIN;
-        if (weight != null &&
-                (weight == IdentValue.BOLD ||
-                weight == IdentValue.FONT_WEIGHT_700 ||
-                weight == IdentValue.FONT_WEIGHT_800 ||
-                weight == IdentValue.FONT_WEIGHT_900)) {
+    protected Font createFont(SharedContext ctx, String fontFamily, float size, IdentValue weight, IdentValue style, IdentValue variant) {
 
-            font_const = font_const | Font.BOLD;
+        Object tattr_weight = TextAttribute.WEIGHT_REGULAR;
+        Object tattr_posture = TextAttribute.POSTURE_REGULAR;
+
+        if (weight != null) {
+            if (weight == IdentValue.BOLD) {
+                tattr_weight = TextAttribute.WEIGHT_BOLD;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_100) {
+                tattr_weight = TextAttribute.WEIGHT_EXTRA_LIGHT;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_200) {
+                tattr_weight = TextAttribute.WEIGHT_LIGHT;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_300) {
+                tattr_weight = TextAttribute.WEIGHT_DEMILIGHT;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_400) {
+                tattr_weight = TextAttribute.WEIGHT_REGULAR;  // 1f;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_500) {
+                tattr_weight = TextAttribute.WEIGHT_SEMIBOLD;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_600) {
+                tattr_weight = TextAttribute.WEIGHT_MEDIUM;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_700) {
+                tattr_weight = TextAttribute.WEIGHT_BOLD;     // 2f
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_800) {
+                tattr_weight = TextAttribute.WEIGHT_HEAVY;
+            }
+            else if (weight == IdentValue.FONT_WEIGHT_900) {
+                tattr_weight = TextAttribute.WEIGHT_EXTRABOLD;
+            }
         }
+
         if (style != null && (style == IdentValue.ITALIC || style == IdentValue.OBLIQUE)) {
-            font_const = font_const | Font.ITALIC;
+            tattr_posture = TextAttribute.POSTURE_OBLIQUE;
         }
 
         // scale vs font scale value too
         size *= ctx.getTextRenderer().getFontScale();
 
-        Font fnt = root_font.deriveFont(font_const, size);
         if (variant != null) {
             if (variant == IdentValue.SMALL_CAPS) {
-                fnt = fnt.deriveFont((float) (((float) fnt.getSize()) * 0.6));
+                size *= 0.6f;
             }
         }
 
-        return fnt;
+        Map<TextAttribute, Object> fontAttrs = new HashMap();
+        fontAttrs.put(TextAttribute.FAMILY, fontFamily);
+        fontAttrs.put(TextAttribute.SIZE, size);
+        fontAttrs.put(TextAttribute.WEIGHT, tattr_weight);
+        fontAttrs.put(TextAttribute.POSTURE, tattr_posture);
+        if (kerning_enabled) {
+            fontAttrs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
+        }
+        if (ligatures_enabled) {
+            fontAttrs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
+        }
+
+        Font overrideFont = overriden_fonts_hash.get(fontFamily);
+        if (overrideFont != null) {
+            return overrideFont.deriveFont(fontAttrs);
+        }
+        else {
+            return Font.getFont(fontAttrs);
+        }
+
     }
 
     /**
-     * Description of the Method
+     * Resolves the CSS description of a font to a Font object.
      *
      * @param ctx
      * @param font    PARAM
@@ -217,44 +279,43 @@ public class AWTFontResolver implements FontResolver {
 
         // if not then
         //  does the font exist
-        if (available_fonts_hash.containsKey(font)) {
-            //Uu.p("found an available font for: " + font);
-            Object value = available_fonts_hash.get(font);
-            // have we actually allocated the root font object yet?
-            Font root_font = null;
-            if (value instanceof Font) {
-                root_font = (Font) value;
-            } else {
-                root_font = new Font(font, Font.PLAIN, 1);
-                available_fonts_hash.put(font, root_font);
-            }
-
-            // now that we have a root font, we need to create the correct version of it
-            Font fnt = createFont(ctx, root_font, size, weight, style, variant);
-
-            // add the font to the hash so we don't have to do this again
-            instance_hash.put(font_instance_name, fnt);
-            return fnt;
+        if (!available_fonts_hash.contains(font)) {
+            return null;
         }
 
-        // we didn't find any possible matching font, so just return null
-        return null;
+        // now that we have a root font, we need to create the correct version of it
+        Font fnt = createFont(ctx, font, size, weight, style, variant);
+
+        // add the font to the hash so we don't have to do this again
+        instance_hash.put(font_instance_name, fnt);
+        return fnt;
+
+    }
+
+    /**
+     * This allows the user to replace one font family with another.
+     */
+    public void setFontMapping(final String name, final Font font) {
+        overriden_fonts_hash.put(name, font);
+        available_fonts_hash.add(name);
     }
 
     /**
      * Gets the fontInstanceHashName attribute of the FontResolverTest object
      *
      * @param ctx
-     *@param name    PARAM
+     * @param name    PARAM
      * @param size    PARAM
      * @param weight  PARAM
      * @param style   PARAM
      * @param variant PARAM @return The fontInstanceHashName value
+     * @return 
      */
     protected static String getFontInstanceHashName(SharedContext ctx, String name, float size, IdentValue weight, IdentValue style, IdentValue variant) {
         return name + "-" + (size * ctx.getTextRenderer().getFontScale()) + "-" + weight + "-" + style + "-" + variant;
     }
 
+    @Override
     public FSFont resolveFont(SharedContext renderingContext, FontSpecification spec) {
         return resolveFont(renderingContext, spec.families, spec.size, spec.fontWeight, spec.fontStyle, spec.variant);
     }
