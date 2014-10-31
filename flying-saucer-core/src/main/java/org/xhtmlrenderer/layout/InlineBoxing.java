@@ -29,8 +29,12 @@ import java.util.Map;
 
 import org.xhtmlrenderer.css.constants.CSSName;
 import org.xhtmlrenderer.css.constants.IdentValue;
+import org.xhtmlrenderer.css.newmatch.CascadedStyle;
+import org.xhtmlrenderer.css.parser.FSColor;
+import org.xhtmlrenderer.css.sheet.PropertyDeclaration;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.CssContext;
+import org.xhtmlrenderer.css.style.FSDerivedValue;
 import org.xhtmlrenderer.css.style.derived.BorderPropertySet;
 import org.xhtmlrenderer.css.style.derived.RectPropertySet;
 import org.xhtmlrenderer.layout.NewBreaker.BlockBoxPart;
@@ -104,14 +108,15 @@ public class InlineBoxing {
 
         final List<FloatLayoutResult> pendingFloats = new ArrayList<FloatLayoutResult>();
 
-        boolean hasFirstLinePEs = false;
         final List<Layer> pendingInlineLayers = new ArrayList<Layer>();
 
         // Initially apply any 'first line' style to the entire box. This is
         // later reset after the first line has completed.
-        if (c.getFirstLinesTracker().hasStyles()) {
-            box.styleText(c, c.getFirstLinesTracker().deriveAll(box.getStyle()));
-            hasFirstLinePEs = true;
+        final boolean hasFirstLinePEs = c.getFirstLinesTracker().hasStyles();
+        if (hasFirstLinePEs) {
+            CalculatedStyle firstLineDerivedStyle =
+                            c.getFirstLinesTracker().deriveAll(box.getStyle());
+            box.styleText(c, firstLineDerivedStyle);
         }
 
         int lineOffset = 0;
@@ -146,6 +151,8 @@ public class InlineBoxing {
         // Layout the unbreakables into the available width,
         final NewBreaker breaker = new NewBreaker(unbreakables);
         boolean lineStart = true;
+
+        boolean isFirstLine = true;
 
         while (true) {
 
@@ -243,6 +250,8 @@ public class InlineBoxing {
                     // make a new InlineLayoutBox for this part,
                     if (iBPart.includesFirst()) {
 
+                        int nestDepth = openInlineBoxes.size();
+
                         InlineLayoutBox previousIB = currentIB;
                         currentIB = new InlineLayoutBox(c, iB.getElement(), style, maxAvailableWidth);
 
@@ -253,6 +262,13 @@ public class InlineBoxing {
                             currentLine.addChildForLayout(c, currentIB);
                         } else {
                             previousIB.addInlineChild(c, currentIB);
+                        }
+
+                        // The first block of the first line inherits the
+                        // first line pseudo element styling. This allows block
+                        // styles for the line.
+                        if (hasFirstLinePEs && isFirstLine && nestDepth == 0) {
+                            updateFirstLineStyle(c, currentIB);
                         }
 
                         if (currentIB.getElement() != null) {
@@ -424,17 +440,20 @@ public class InlineBoxing {
 
                 // If there's a first line pseudo element then we need to
                 // recalculate the styles,
-                if (hasFirstLinePEs && currentLine.isFirstLine()) {
+                if (hasFirstLinePEs && isFirstLine && currentLine.isContainsContent()) {
                     c.getFirstLinesTracker().clearStyles();
                     box.styleText(c);
                     // Remeasure the unbreakable metrics for the remaining
                     // layout.
                     NewBreaker.calculateMetricsOnAll(c, box, unbreakables);
                 }
-                
+
                 lineOffset++;
                 markerData = null;
                 contentStart = 0;
+                if (currentLine.isContainsContent()) {
+                    isFirstLine = false;
+                }
 
                 LineBox previousLine = currentLine;
                 currentLine = newLine(c, previousLine, box);
@@ -913,6 +932,46 @@ public class InlineBoxing {
             l.positionChildren(c);
         }
     }
+
+    /**
+     * Updates the style of the first line with the styles from CSS. This
+     * inherits some styles from the parent block that wouldn't normally be
+     * inherited.
+     *
+     * @param c
+     * @param currentIB
+     */
+
+    /**
+     * CSS properties that usually don't get inherited but we copy from the
+     * pseudo element style to the first block as an exception.
+     */
+    private static final CSSName[] INHERITED_FIRST_LINE = new CSSName[] {
+        CSSName.BACKGROUND_COLOR,
+        CSSName.BACKGROUND_ATTACHMENT,
+        CSSName.BACKGROUND_IMAGE,
+        CSSName.BACKGROUND_POSITION,
+        CSSName.BACKGROUND_REPEAT,
+        CSSName.BACKGROUND_SHORTHAND,
+        CSSName.BACKGROUND_SIZE,
+        CSSName.TEXT_DECORATION,
+    };
+    private static void updateFirstLineStyle(LayoutContext c, InlineLayoutBox currentIB) {
+         CalculatedStyle oldStyle = currentIB.getStyle();
+         List<CascadedStyle> firstLineStyles = c.getFirstLinesTracker().getStyles();
+         // Derive only some style types,
+         List<PropertyDeclaration> properties = new ArrayList();
+         for (CascadedStyle cs : firstLineStyles) {
+             for (CSSName cssName : INHERITED_FIRST_LINE) {
+                 if (cs.hasProperty(cssName)) {
+                     properties.add(cs.propertyByName(cssName));
+                 }
+             }
+         }
+         CascadedStyle inheritedStyles =
+                 CascadedStyle.createLayoutStyle(properties);
+         currentIB.setStyle(oldStyle.deriveStyle(inheritedStyles));
+     }
 
     private static InlineText layoutText(LayoutContext c, CalculatedStyle style, int remainingWidth,
                                          LineBreakContext lbContext, boolean needFirstLetter) {

@@ -1782,7 +1782,8 @@ public class BlockBox extends Box implements InlinePaintable {
                             }
                             styles.add(((CalculatedStyle) styles.getLast()).deriveStyle(cs));
                         } else {
-                            styles.add(style.createAnonymousStyle(IdentValue.INLINE));
+                            CalculatedStyle anonStyle = style.createAnonymousStyle(IdentValue.INLINE);
+                            styles.add(anonStyle);
                         }
                     }
 
