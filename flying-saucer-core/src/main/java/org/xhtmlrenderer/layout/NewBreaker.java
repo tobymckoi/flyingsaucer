@@ -42,13 +42,13 @@ public class NewBreaker {
      * is appropriate for laying out the text in the order of the run.
      *
      * @param c
-     * @param box
+     * @param parent
      * @return
      */
     public static List<UnbreakableContent> calculateUnbreakables(
-                                                LayoutContext c, BlockBox box) {
+                                            LayoutContext c, BlockBox parent) {
 
-        List<Styleable> currentRun = box.getInlineContent();
+        List<Styleable> currentRun = parent.getInlineContent();
         ArrayList<UnbreakableContent> output = new ArrayList(currentRun.size());
 
         int first = 0;
@@ -60,13 +60,13 @@ public class NewBreaker {
                 // Add the text elements,
                 if (pos != first) {
                     output.addAll(calculateUnbreakableWordsInText(
-                            c, currentRun.subList(first, pos)));
+                            c, parent, currentRun.subList(first, pos)));
                 }
                 // Create an UnbreakableContent (non text type)
                 Fragment fragment = new Fragment(s, 0, 0, true, true);
                 UnbreakableContent unbreakable = new UnbreakableContent(false, fragment);
 
-                unbreakable.calculateMetrics(c);
+                unbreakable.calculateMetrics(c, parent);
 
                 output.add(unbreakable);
 
@@ -79,7 +79,7 @@ public class NewBreaker {
 
         if (pos != first) {
             output.addAll(calculateUnbreakableWordsInText(
-                    c, currentRun.subList(first, pos)));
+                    c, parent, currentRun.subList(first, pos)));
         }
 
         return output;
@@ -99,7 +99,8 @@ public class NewBreaker {
      * @return
      */
     public static List<UnbreakableContent> calculateUnbreakableWordsInText(
-                                 LayoutContext c, List<Styleable> currentRun) {
+                             LayoutContext c, BlockBox parent,
+                             List<Styleable> currentRun) {
 
         // Collate the run into a string we use for line breaks,
         StringBuilder collate = new StringBuilder();
@@ -178,7 +179,7 @@ public class NewBreaker {
             }
 
             // Calculate the basic metrics (width) of this unbreakable,
-            unbreakable.calculateMetrics(c);
+            unbreakable.calculateMetrics(c, parent);
 
             // Add to the unbreakables list,
             unbreakables.add(unbreakable);
@@ -198,6 +199,7 @@ public class NewBreaker {
     private final List<UnbreakableContent> unbreakables;
 
     private int currentIndex;
+    private int lastIndexStart = -1;
 
     private boolean stayOpen = false;
     private boolean overflowedLine = false;
@@ -243,7 +245,7 @@ public class NewBreaker {
      * @param c
      * @param maxAvailableWidth
      * @param lineStart true if we are laying out the unbreakables in a line
-     * starting with an empty line.
+     *   starting with an empty line.
      * @param remainingWidth the width (in pixels) to fill.
      * @return
      */
@@ -263,6 +265,7 @@ public class NewBreaker {
         StyleRun styleRun = new StyleRun();
 
         int minWrapPoint = lineStart ? currentIndex + 1 : currentIndex;
+        lastIndexStart = currentIndex;
         int wrapPoint = currentIndex;
 
         boolean trimFirst = lineStart;
@@ -271,36 +274,21 @@ public class NewBreaker {
 
             UnbreakableContent unbreakable = iterator.next();
 
-            if (!unbreakable.isText()) {
-                if (!styleRun.isEmpty()) {
-                    // Return the current style run,
-                    stayOpen = true;
-                    final float styleRunWidth
-                            = styleRun.getWorkingWidth(c, maxAvailableWidth);
-                    return new BreakerRun(styleRun.getSyleBoxList(true),
-                            styleRunWidth,
-                            styleRun.trailingWhitespaceWidthDifference);
-                } else {
-                    // It's empty, so just return the block,
-                    ++currentIndex;
-                    stayOpen = true;
-                    return new BreakerRun(unbreakable.getBlockBox());
-                }
-            }
-
             // Note that it's impossible to get to here without the unbreakables in
             // the list all being text content.
             // If this is the start of the line then strip any leading whitespace,
             if (trimFirst) {
-                unbreakable = unbreakable.stripLeadingWhitespace();
+                if (unbreakable.isWhitespaceCollapseWhitespace()) {
+                    unbreakable = unbreakable.stripLeadingWhitespace();
+                }
                 trimFirst = false;
             }
 
-            // If it's a 'nowrap' element
-            boolean noWrap = false; //unbreakable.isNoWrap();
+            // If it's a 'noWrapOnWidth' element
+            boolean wrapOnWidth = unbreakable.isWhitespaceBreakOnWidth();
 
             // If we can wrap,
-            if (!noWrap) {
+            if (wrapOnWidth) {
                 wrapPoint = Math.max(wrapPoint, currentIndex);
             } // If no wrap,
             else {
@@ -330,8 +318,29 @@ public class NewBreaker {
 
                 // The style run represents the area to return,
                 stayOpen = false;
-                return new BreakerRun(styleRun.getSyleBoxList(false),
-                        styleRunWidth,
+                styleRun.buildForStatus(false);
+                return new BreakerRun(styleRun.getSyleBoxList(),
+                        styleRun.getContentIndex(),
+                        styleRun.getMaxHeight(), styleRunWidth,
+                        styleRun.trailingWhitespaceWidthDifference);
+
+            }
+
+            // If the line ends with a NL,
+            if (unbreakable.endsWithNL()) {
+
+                final float styleRunWidth
+                        = styleRun.getWorkingWidth(c, maxAvailableWidth);
+                if (styleRunWidth > remainingWidth) {
+                    overflowedLine = true;
+                }
+
+                // The style run represents the area to return,
+                stayOpen = false;
+                styleRun.buildForStatus(false);
+                return new BreakerRun(styleRun.getSyleBoxList(),
+                        styleRun.getContentIndex(),
+                        styleRun.getMaxHeight(), styleRunWidth,
                         styleRun.trailingWhitespaceWidthDifference);
 
             }
@@ -360,13 +369,29 @@ public class NewBreaker {
         // 'lineParts' is the unbreakable words that should layout into an open
         // box,
         stayOpen = true;
-        return new BreakerRun(styleRun.getSyleBoxList(true),
-                styleRunWidth, styleRun.trailingWhitespaceWidthDifference);
+        styleRun.rebuildStyleRun(true);
+        return new BreakerRun(styleRun.getSyleBoxList(),
+                styleRun.getContentIndex(),
+                styleRun.getMaxHeight(), styleRunWidth,
+                styleRun.trailingWhitespaceWidthDifference);
 
     }
 
-    // -----
+    /**
+     * Rolls back the breaker to the index of the last style run returned from
+     * a call to 'nextRun'.
+     * 
+     * @param breakerRun
+     * @param index 
+     */
+    public void rollbackToLastIndex(BreakerRun breakerRun, int index) {
+        List<Integer> indexes = breakerRun.partRunIndex;
+        if (index < indexes.size()) {
+            currentIndex = lastIndexStart + indexes.get(index);
+        }
+    }
 
+    // -----
 
     /**
      * The style run manages a series of style boxes added in the order they'd
@@ -375,7 +400,8 @@ public class NewBreaker {
     private static class StyleRun {
 
         private final List<UnbreakableContent> lineBuffer = new ArrayList();
-        private final List<InlineBoxPart> boxes = new ArrayList();
+        private final List<Part> parts = new ArrayList();
+        private final List<Integer> partsStartContent = new ArrayList();
         private InlineBoxPart top = null;
         private float trailingWhitespaceWidthDifference = 0;
 
@@ -384,24 +410,39 @@ public class NewBreaker {
          *
          * @param unbreakable
          */
-        private void pushAsStyleBox(UnbreakableContent unbreakable) {
+        private void pushAsStyleBox(
+                        UnbreakableContent unbreakable, int lineBufferIndex) {
+
             List<Fragment> fragments = unbreakable.getFragments();
-            for (Fragment f : fragments) {
-                if (top != null) {
-                    if (!top.sameBox(f.getInlineBox())) {
+            // If it's a text unbreakable,
+            if (unbreakable.isText()) {
+                for (Fragment f : fragments) {
+                    if (top != null) {
+                        if (!top.sameBox(f.getInlineBox())) {
+                            top = new InlineBoxPart(f.getInlineBox());
+                            top.concatenateRange(f);
+                            top.addToWidth(f.getCalculatedWidth());
+                            parts.add(top);
+                            partsStartContent.add(lineBufferIndex);
+                        } else {
+                            top.concatenateRange(f);
+                            top.addToWidth(f.getCalculatedWidth());
+                        }
+                    } else {
                         top = new InlineBoxPart(f.getInlineBox());
                         top.concatenateRange(f);
                         top.addToWidth(f.getCalculatedWidth());
-                        boxes.add(top);
-                    } else {
-                        top.concatenateRange(f);
-                        top.addToWidth(f.getCalculatedWidth());
+                        parts.add(top);
+                        partsStartContent.add(lineBufferIndex);
                     }
-                } else {
-                    top = new InlineBoxPart(f.getInlineBox());
-                    top.concatenateRange(f);
-                    top.addToWidth(f.getCalculatedWidth());
-                    boxes.add(top);
+                }
+            }
+            // If it's a BlockBox unbreakable,
+            else {
+                for (Fragment f : fragments) {
+                    BlockBox blockBox = f.getBlockBox();
+                    parts.add(new BlockBoxPart(blockBox));
+                    partsStartContent.add(lineBufferIndex);
                 }
             }
         }
@@ -410,18 +451,19 @@ public class NewBreaker {
          * Rebuild the style run from the information in lineBuffer.
          */
         private void rebuildStyleRun(boolean open) {
-            boxes.clear();
+            parts.clear();
+            partsStartContent.clear();
             top = null;
             int sz = lineBuffer.size();
             for (int i = 0; i < sz; ++i) {
                 UnbreakableContent t = lineBuffer.get(i);
                 if (!open && i == sz - 1) {
-                    pushAsStyleBox(t);
+                    pushAsStyleBox(t, i);
                     trailingWhitespaceWidthDifference
                             = -(t.getRawWidth() - t.stripTrailingWhitespace().getRawWidth());
 //                  pushAsStyleBox(t.stripTrailingWhitespace());
                 } else {
-                    pushAsStyleBox(t);
+                    pushAsStyleBox(t, i);
                 }
             }
         }
@@ -431,7 +473,7 @@ public class NewBreaker {
          */
         private void push(UnbreakableContent unbreakable) {
             lineBuffer.add(unbreakable);
-            pushAsStyleBox(unbreakable);
+            pushAsStyleBox(unbreakable, lineBuffer.size() - 1);
         }
 
         /**
@@ -442,9 +484,25 @@ public class NewBreaker {
             rebuildStyleRun(true);
         }
 
-        private List<InlineBoxPart> getSyleBoxList(boolean open) {
+        private void buildForStatus(boolean open) {
             rebuildStyleRun(open);
-            return Collections.unmodifiableList(boxes);
+        }
+
+        private List<Part> getSyleBoxList() {
+            return Collections.unmodifiableList(parts);
+        }
+
+        private List<Integer> getContentIndex() {
+            return Collections.unmodifiableList(partsStartContent);
+        }
+
+        public float getMaxHeight() {
+            float maxHeight = 1;
+            for (UnbreakableContent c : lineBuffer) {
+                float height = c.getContentHeight();
+                maxHeight = Math.max(height, maxHeight);
+            }
+            return maxHeight;
         }
 
         public boolean isEmpty() {
@@ -477,18 +535,24 @@ public class NewBreaker {
                 workingWidth += text.getRawWidth();
             }
             // Add any left or right border styles,
-            for (InlineBoxPart b : boxes) {
-                if (b.includesFirst()) {
-                    CalculatedStyle style = b.getStyle();
-                    float left_padding = style.getMarginBorderPadding(
-                            c, availableWidth, CalculatedStyle.LEFT);
-                    workingWidth += left_padding;
+            for (Part b : parts) {
+                if (b instanceof InlineBoxPart) {
+                    InlineBoxPart ibp = (InlineBoxPart) b;
+                    if (ibp.includesFirst()) {
+                        CalculatedStyle style = ibp.getStyle();
+                        float left_padding = style.getMarginBorderPadding(
+                                c, availableWidth, CalculatedStyle.LEFT);
+                        workingWidth += left_padding;
+                    }
+                    if (ibp.includesLast()) {
+                        CalculatedStyle style = ibp.getStyle();
+                        float right_padding = style.getMarginBorderPadding(
+                                c, availableWidth, CalculatedStyle.RIGHT);
+                        workingWidth += right_padding;
+                    }
                 }
-                if (b.includesLast()) {
-                    CalculatedStyle style = b.getStyle();
-                    float right_padding = style.getMarginBorderPadding(
-                            c, availableWidth, CalculatedStyle.RIGHT);
-                    workingWidth += right_padding;
+                else {
+                    // Margins should already be added to box content width.
                 }
 
             }
@@ -496,8 +560,14 @@ public class NewBreaker {
         }
 
         public String toString() {
-            return boxes.toString();
+            return parts.toString();
         }
+
+    }
+
+    public static interface Part {
+
+        
 
     }
 
@@ -506,7 +576,7 @@ public class NewBreaker {
      * to represent a run of text in a line. The InlineBoxPart can be used to
      * produce InlineText objects for layout of lines.
      */
-    public static class InlineBoxPart {
+    public static class InlineBoxPart implements Part {
 
         private final InlineBox inlineBox;
         private boolean includesFirst;
@@ -622,38 +692,50 @@ public class NewBreaker {
     }
 
     /**
+     * A BlockBoxPart represents a single child element (such as an img).
+     */
+    public static class BlockBoxPart implements Part {
+        
+        private final BlockBox blockBox;
+
+        public BlockBoxPart(BlockBox blockBox) {
+            this.blockBox = blockBox;
+        }
+        
+        public BlockBox getBlockBox() {
+            return blockBox;
+        }
+
+        @Override
+        public String toString() {
+            return getBlockBox().toString();
+        }
+
+    }
+
+    /**
      * A BreakerRun is either a run of text of potentially different styles that
      * fits within a given advance, or a single BlockBox component that
      * represents a more complex child layout.
      */
     public static class BreakerRun {
 
-        private final boolean isText;
-        private final BlockBox blockBoxChild;
-        private final List<InlineBoxPart> textRun;
+        private final List<? extends Part> partRun;
+        private final List<Integer> partRunIndex;
+        private final float calculatedHeight;
         private final float calculatedWidth;
         private final float trailingWhitespaceWidthDifference;
 
-        public BreakerRun(BlockBox child) {
-            isText = false;
-            this.blockBoxChild = child;
-            this.textRun = null;
-            this.calculatedWidth = Float.NaN;
-            this.trailingWhitespaceWidthDifference = 0f;
-        }
-
-        public BreakerRun(List<InlineBoxPart> textRun,
+        public BreakerRun(List<? extends Part> run,
+                List<Integer> partRunIndex,
+                float calculatedHeight,
                 float calculatedWidth,
                 float trailingWhitespaceWidthDifference) {
-            isText = true;
-            this.textRun = textRun;
+            this.partRun = run;
+            this.partRunIndex = partRunIndex;
+            this.calculatedHeight = calculatedHeight;
             this.calculatedWidth = calculatedWidth;
             this.trailingWhitespaceWidthDifference = trailingWhitespaceWidthDifference;
-            this.blockBoxChild = null;
-        }
-
-        public boolean isText() {
-            return isText;
         }
 
         /**
@@ -675,24 +757,18 @@ public class NewBreaker {
             return calculatedWidth;
         }
 
-        public BlockBox getChildNode() {
-            return blockBoxChild;
+        public float getWorkingHeight() {
+            return calculatedHeight;
         }
 
-        public List<InlineBoxPart> getTextRun() {
-            return textRun;
+        public List<Part> getPartRun() {
+            return (List<Part>) partRun;
         }
 
         @Override
         public String toString() {
             StringBuilder b = new StringBuilder();
-            if (isText) {
-                b.append("TEXT:");
-                b.append(getTextRun());
-            } else {
-                b.append("BOX:");
-                b.append(getChildNode());
-            }
+            b.append(getPartRun().toString());
             return b.toString();
         }
 

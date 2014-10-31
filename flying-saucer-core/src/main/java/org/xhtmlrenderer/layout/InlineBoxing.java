@@ -33,8 +33,10 @@ import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.CssContext;
 import org.xhtmlrenderer.css.style.derived.BorderPropertySet;
 import org.xhtmlrenderer.css.style.derived.RectPropertySet;
+import org.xhtmlrenderer.layout.NewBreaker.BlockBoxPart;
 import org.xhtmlrenderer.layout.NewBreaker.BreakerRun;
 import org.xhtmlrenderer.layout.NewBreaker.InlineBoxPart;
+import org.xhtmlrenderer.layout.NewBreaker.Part;
 import org.xhtmlrenderer.render.AnonymousBlockBox;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.Box;
@@ -120,48 +122,110 @@ public class InlineBoxing {
         List<UnbreakableContent> unbreakables =
                                     NewBreaker.calculateUnbreakables(c, box);
 
+        // Work out how to handle white-space. If there are no 'break on width'
+        // unbreakables then it changes layout in some subtle ways. Noteably,
+        // we don't attempt to flow text between floats.
+
+        boolean breakOnWidth = false;
+        for (UnbreakableContent unbreakable : unbreakables) {
+            if (unbreakable.isWhitespaceBreakOnWidth()) {
+                breakOnWidth = true;
+            }
+        }
+
         // Layout the unbreakables into the available width,
         final NewBreaker breaker = new NewBreaker(unbreakables);
         boolean lineStart = true;
 
         while (true) {
 
-            // Get the next breaker run. A break run is either a run of inline
-            // text components that will fit into the available width, or it
-            // will be a child box to layout, or null indicating no more runs
-            // are left in the sequence,
+            // Get the next breaker run. A breaker run is a series of Part
+            // objects representing either text or BlockBox objects to be
+            // layed out in sequence, that fits within the given width advance
+            // (remainingWidth).
+            // We must guarentee to always place the first Part in the breaker
+            // run to avoid going into an infinite loop. If the advance changes
+            // as elements are placed (because of the placement of floating
+            // elements for example), we can rollback 'breaker' to recompute
+            // for the changed advance.
             BreakerRun breakerRun = breaker.nextRun(c, maxAvailableWidth, lineStart, remainingWidth);
 
             if (breakerRun == null) {
                 break;
             }
 
-            // True only if the last call to 'nextRun' conclusively found that
-            // the run exceeded the advance.
-            boolean shouldCloseLine = breaker.shouldCloseLine();
+            // Assume start of line unless discovered otherwise,
+            lineStart = true;
 
-  //          // ###################
-  //          // ##   Debugging   ##
-  //          // ###################
-  //          System.out.println(breakerRun);
+            boolean shouldCloseLine = true;
 
-            // If it's a text run,
-            if (breakerRun.isText()) {
+            // Get the parts run,
+            List<Part> partsList = breakerRun.getPartRun();
 
-                List<InlineBoxPart> inlineParts = breakerRun.getTextRun();
+            // Does this section push against a floating section? If so we
+            // move the line to after the next floating area,
+            if (breakOnWidth && breaker.isOverflowedLine()) {
 
-                // Place the individual parts onto the line,
-                Iterator<InlineBoxPart> inlinePartsIt = inlineParts.iterator();
-                while (inlinePartsIt.hasNext()) {
-                    InlineBoxPart part = inlinePartsIt.next();
-                    boolean isLastPart = !inlinePartsIt.hasNext();
+                // The section dimensions,
+                float runWidth = breakerRun.getWorkingWidth();
+                float runHeight = breakerRun.getWorkingHeight();
 
-                    final InlineBox iB = (InlineBox) part.getInlineBox();
-                    final CalculatedStyle style = iB.getStyle();
+                currentLine.setHeight((int) Math.ceil(runHeight));
+
+                BlockFormattingContext bFContext = c.getBlockFormattingContext();
+
+                // Are we pushing against a floated object?
+                final int delta = bFContext.getNextLineBoxDelta(c, currentLine, maxAvailableWidth);
+                if (delta > 0) {
+
+                    // If we hit the width maximum on a floated section,
+                    float floatDistance = bFContext.getFloatDistance(c, currentLine, maxAvailableWidth);
+                    if (floatDistance + runWidth > maxAvailableWidth) {
+
+                        // We are pushed against a floated element so
+                        // need to try to reflow after the floating element
+                        // with the closest bottom.
+
+                        // The end of the exclusion rectangle is the area
+                        // we should try to flow the text in.
+                        Rectangle exclusionRect = bFContext.getFloatExclusionBounds(
+                                        c, currentLine, maxAvailableWidth);
+
+                        int dify = bFContext.getOffset().y;
+                        currentLine.setY((exclusionRect.y + exclusionRect.height) + dify);
+
+                        currentLine.calcCanvasLocation();
+                        remainingWidth = maxAvailableWidth;
+                        remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, currentLine, maxAvailableWidth);
+
+                        // Roll back to the first index of the breaker run,
+                        breaker.rollbackToLastIndex(breakerRun, 0);
+
+                        // Repeat the width calculation,
+                        continue;
+
+                    }
+
+                }
+
+            }
+
+            // For each inline part,
+            for (int partIndex = 0; partIndex < partsList.size(); ++partIndex) {
+                Part part = partsList.get(partIndex);
+
+                boolean isLastPart = (partIndex == partsList.size() - 1);
+
+                // For inline text,
+                if (part instanceof InlineBoxPart) {
+                    InlineBoxPart iBPart = (InlineBoxPart) part;
+
+                    InlineBox iB = (InlineBox) iBPart.getInlineBox();
+                    CalculatedStyle style = iB.getStyle();
 
                     // If this part includes the first part of the box then
                     // make a new InlineLayoutBox for this part,
-                    if (part.includesFirst()) {
+                    if (iBPart.includesFirst()) {
 
                         InlineLayoutBox previousIB = currentIB;
                         currentIB = new InlineLayoutBox(c, iB.getElement(), style, maxAvailableWidth);
@@ -191,70 +255,14 @@ public class InlineBoxing {
                     // -----
 
                     // If the part has text,
-                    if (part.hasTextContent()) {
-
-                        if (breaker.isOverflowedLine()) {
-                            BlockFormattingContext bFContext = c.getBlockFormattingContext();
-                            // Are we pushing against a floated object?
-
-                            int searchCount = 0;
-                            boolean availableAreaFound = false;
-                            // Search for an area that will accomodate the overflowed
-                            // fragment.
-                            // We capped the search to 50 attempts just incase this is
-                            // put into an infinite loop.
-                            while (!availableAreaFound && searchCount < 50) {
-                                ++searchCount;
-                                // Assume a good area found,
-                                availableAreaFound = true;
-
-                                final int delta = bFContext.getNextLineBoxDelta(c, currentLine, maxAvailableWidth);
-                                if (delta > 0) {
-                                    float breakerRunWidth = breakerRun.getWorkingWidth();
-                                    breakerRunWidth = (int) Math.ceil(breakerRunWidth);
-
-                                    // If we hit the width maximum on a floated section,
-                                    float floatDistance = bFContext.getFloatDistance(c, currentLine, maxAvailableWidth);
-                                    if (floatDistance + breakerRunWidth > maxAvailableWidth) {
-                                        // We are pushed against a floated element so
-                                        // need to try to reflow after the floating element
-                                        // with the closest bottom.
-
-                                        // The end of the exclusion rectangle is the area
-                                        // we should try to flow the text in.
-                                        Rectangle exclusionRect = bFContext.getFloatExclusionBounds(
-                                                        c, currentLine, maxAvailableWidth);
-
-                                        int dify = bFContext.getOffset().y;
-                                        currentLine.setY((exclusionRect.y + exclusionRect.height) + dify);
-
-                                        currentLine.calcCanvasLocation();
-                                        remainingWidth = maxAvailableWidth;
-                                        remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, currentLine, maxAvailableWidth);
-
-                                        // This is a little bit hacky. We forced the current
-                                        // line to a Y location that is after the floating
-                                        // areas, and then said that the text can flow after
-                                        // this unbreakable fragment.
-                                        isLastPart = false;
-                                        shouldCloseLine = false;
-                                        // The will cause the search to loop,
-                                        availableAreaFound = false;
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
+                    if (iBPart.hasTextContent()) {
 
                         // Turn into InlineText object,
 
-                        int startIndex = part.getStart();
-                        int endIndex = shouldCloseLine ?
-                                        part.getTrimmedWhitespaceEnd() : part.getEnd();
-                        float widthCalc = part.getWidth();
+                        int startIndex = iBPart.getStart();
+                        int endIndex = isLastPart ?
+                                        iBPart.getTrimmedWhitespaceEnd() : iBPart.getEnd();
+                        float widthCalc = iBPart.getWidth();
                         if (isLastPart) {
                             widthCalc += breakerRun.getTrailingWhitespaceWidthDifference();
                         }
@@ -292,7 +300,7 @@ public class InlineBoxing {
 
                     // If this is the last part in an InlineBox then we close
                     // out the current info.
-                    if (part.includesLast()) {
+                    if (iBPart.includesLast()) {
 
                         final int rightMBP = style.getMarginBorderPadding(
                                   c, maxAvailableWidth, CalculatedStyle.RIGHT);
@@ -328,112 +336,96 @@ public class InlineBoxing {
                     }
 
                 }
+                // For nested BlockBox,
+                else {
+                    BlockBoxPart bBPart = (BlockBoxPart) part;
 
-                // Close out the line,
+                    BlockBox child = bBPart.getBlockBox();
 
-                if (shouldCloseLine) {
-                    saveLine(currentLine, c, box, minimumLineHeight,
-                             maxAvailableWidth, pendingFloats,
-                             hasFirstLinePEs, pendingInlineLayers, markerData,
-                             contentStart, isAlwaysBreak(c, box, breakAtLine, lineOffset));
-                    lineOffset++;
-                    markerData = null;
-                    contentStart = 0;
-//                    if (currentLine.isFirstLine() && hasFirstLinePEs) {
-//                      lbContext.setMaster(TextUtil.transformText(iB.getText(), iB.getStyle()));
-//                    }
-                    LineBox previousLine = currentLine;
-                    currentLine = newLine(c, previousLine, box);
-                    currentIB = addOpenInlineBoxes(
-                              c, currentLine, openInlineBoxes,  maxAvailableWidth, iBMap);
-                    remainingWidth = maxAvailableWidth;
-                    remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, currentLine, remainingWidth);
-                }
+                    // Is it out of flow content, such as a floating element?
+                    if (child.getStyle().isNonFlowContent()) {
 
-                lineStart = shouldCloseLine;
+                        // This may cause the breaker to roll back if the
+                        // floating area is placed such that it intersects the
+                        // current line.
 
-            }
-            // Otherwise it's a component,
-            else {
+                        int prevRemainingWidth = remainingWidth;
+                        remainingWidth -= processOutOfFlowContent(
+                                 c, currentLine, child, remainingWidth, pendingFloats);
+                        // Handle special case where the flow element can be placed
+                        // outside of the current line bounds, so we need to
+                        // recalculate the area we have to work with.
+                        if (remainingWidth < 0) {
+                            // Calculate the new width bounds.
+                            BlockFormattingContext bFContext = c.getBlockFormattingContext();
+                            float floatDistance = bFContext.getFloatDistance(c, currentLine, maxAvailableWidth);
+                            remainingWidth = maxAvailableWidth - (int) Math.ceil(floatDistance);
+                        }
 
-                boolean oldLineStart = lineStart;
-                lineStart = shouldCloseLine;
+                        // If the remaining width changed then we need to roll
+                        // back the breaker,
+                        if (prevRemainingWidth != remainingWidth && !isLastPart) {
 
-                final BlockBox child = breakerRun.getChildNode();
+                            // Reset lineStart because we have at least one
+                            // fragment placed already.
+                            breaker.rollbackToLastIndex(breakerRun, partIndex + 1);
 
-                if (child.getStyle().isNonFlowContent()) {
-                    remainingWidth -= processOutOfFlowContent(
-                             c, currentLine, child, remainingWidth, pendingFloats);
-                    // Preserve lineStart for floating elements,
-                    lineStart = oldLineStart;
-                    // Handle special case where the flow element can be placed
-                    // outside of the current line bounds, so we need to
-                    // recalculate the area we have to work with.
-                    if (remainingWidth <= 0) {
-                        // Calculate the new width bounds.
-                        BlockFormattingContext bFContext = c.getBlockFormattingContext();
-                        float floatDistance = bFContext.getFloatDistance(c, currentLine, maxAvailableWidth);
-                        remainingWidth = maxAvailableWidth - (int) Math.ceil(floatDistance);
-                    }
-                } else if (child.getStyle().isInlineBlock() || child.getStyle().isInlineTable()) {
-                    layoutInlineBlockContent(c, box, child, initialY);
+                            // Break the loop thus placing the line so far,
+                            lineStart = false;
+                            shouldCloseLine = false;
+                            break;
 
-                    if (child.getWidth() > remainingWidth && currentLine.isContainsContent()) {
-                        saveLine(currentLine, c, box, minimumLineHeight,
-                                 maxAvailableWidth, pendingFloats,  hasFirstLinePEs,
-                                 pendingInlineLayers, markerData, contentStart,
-                                 isAlwaysBreak(c, box, breakAtLine, lineOffset));
-                        lineOffset++;
-                        markerData = null;
-                        contentStart = 0;
-                        LineBox previousLine = currentLine;
-                        currentLine = newLine(c, previousLine, box);
-                        currentIB = addOpenInlineBoxes(
-                                   c, currentLine, openInlineBoxes, maxAvailableWidth, iBMap);
-                        remainingWidth = maxAvailableWidth;
-                        remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, currentLine, remainingWidth);
+                        }
 
-                        child.reset(c);
+                    } else if (child.getStyle().isInlineBlock() || child.getStyle().isInlineTable()) {
+
+                        // Lay out the nested box,
                         layoutInlineBlockContent(c, box, child, initialY);
-                        lineStart = false;
+
+                        // Add it to the current line,
+                        if (currentIB == null) {
+                            currentLine.addChildForLayout(c, child);
+                        } else {
+                            currentIB.addInlineChild(c, child);
+                        }
+
+                        currentLine.setContainsContent(true);
+                        currentLine.setContainsBlockLevelContent(true);
+
+                        remainingWidth -= child.getWidth();
+
+                        needFirstLetter = false;
+
+                        if (child.getWidth() == 0) {
+                            zeroWidthInlineBlock = true;
+                        }
                     }
 
-                    if (currentIB == null) {
-                        currentLine.addChildForLayout(c, child);
-                    } else {
-                        currentIB.addInlineChild(c, child);
-                    }
-
-                    currentLine.setContainsContent(true);
-                    currentLine.setContainsBlockLevelContent(true);
-
-                    remainingWidth -= child.getWidth();
-
-//                    if (currentIB != null && currentIB.isStartsHere()) {
-//                        pendingLeftMBP -= currentIB.getStyle().getMarginBorderPadding(
-//                                 c, maxAvailableWidth, CalculatedStyle.LEFT);
-//                    }
-
-                    needFirstLetter = false;
-
-                    if (child.getWidth() == 0) {
-                        zeroWidthInlineBlock = true;
-                    }
                 }
 
+            } // For each Part
+
+            if (shouldCloseLine) {
+                // End of the line, so save the line here,
+                saveLine(currentLine, c, box, minimumLineHeight,
+                         maxAvailableWidth, pendingFloats,
+                         hasFirstLinePEs, pendingInlineLayers, markerData,
+                         contentStart, isAlwaysBreak(c, box, breakAtLine, lineOffset));
+                lineOffset++;
+                markerData = null;
+                contentStart = 0;
+//                if (currentLine.isFirstLine() && hasFirstLinePEs) {
+//                    lbContext.setMaster(TextUtil.transformText(iB.getText(), iB.getStyle()));
+//                }
+                LineBox previousLine = currentLine;
+                currentLine = newLine(c, previousLine, box);
+                currentIB = addOpenInlineBoxes(
+                          c, currentLine, openInlineBoxes,  maxAvailableWidth, iBMap);
+                remainingWidth = maxAvailableWidth;
+                remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, currentLine, remainingWidth);
             }
 
         }
-
-//        currentLine.trimTrailingSpace(c);
-        saveLine(currentLine, c, box, minimumLineHeight,
-                  maxAvailableWidth, pendingFloats, hasFirstLinePEs,
-                  pendingInlineLayers, markerData, contentStart,
-                  isAlwaysBreak(c, box, breakAtLine, lineOffset));
-        if (currentLine.isFirstLine() && currentLine.getHeight() == 0 && markerData != null) {
-            c.setCurrentMarkerData(markerData);
-        }
-        markerData = null;
 
         box.setContentWidth(maxAvailableWidth);
         box.setHeight(currentLine.getY() + currentLine.getHeight());

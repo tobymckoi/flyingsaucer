@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import org.w3c.dom.Node;
+import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.extend.TextRenderer;
 import org.xhtmlrenderer.render.BlockBox;
@@ -40,6 +41,7 @@ public class UnbreakableContent {
 
     private final boolean isText;
     private final List<Fragment> fragments;
+    private float contentHeight = 0;
 
     /**
      * Public constructor.
@@ -63,6 +65,14 @@ public class UnbreakableContent {
     }
 
     /**
+     * Returns the height of this unbreakable content object.
+     * @return 
+     */
+    public float getContentHeight() {
+        return contentHeight;
+    }
+
+    /**
      * Returns true if this content is text, false if this content represents a
      * parent block (such as an image).
      *
@@ -70,6 +80,45 @@ public class UnbreakableContent {
      */
     public boolean isText() {
         return isText;
+    }
+
+    /**
+     * Returns true if this unbreakable contains any break on width fragments.
+     * 
+     * @return 
+     */
+    public boolean isWhitespaceBreakOnWidth() {
+        for (Fragment f : fragments) {
+            CalculatedStyle style = f.getStyle();
+            IdentValue whitespace = style.getWhitespace();
+            if (whitespace == IdentValue.NORMAL ||
+                whitespace == IdentValue.PRE_WRAP ||
+                whitespace == IdentValue.PRE_LINE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if this unbreakable has a style that requires whitespace
+     * to be collapsed. Whitespace collapse is actually preprocessed, but this
+     * check is still necessary to determine if leading space should be
+     * removed from a line.
+     * 
+     * @return 
+     */
+    public boolean isWhitespaceCollapseWhitespace() {
+        for (Fragment f : fragments) {
+            CalculatedStyle style = f.getStyle();
+            IdentValue whitespace = style.getWhitespace();
+            if (whitespace == IdentValue.NORMAL ||
+                whitespace == IdentValue.NOWRAP ||
+                whitespace == IdentValue.PRE_LINE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -108,8 +157,9 @@ public class UnbreakableContent {
      * Calculates the metrics of this styled text.
      *
      * @param c
+     * @param parent
      */
-    public void calculateMetrics(LayoutContext c) {
+    public void calculateMetrics(LayoutContext c, BlockBox parent) {
 
         // If calculating the metrics for text items,
         if (isText) {
@@ -158,7 +208,11 @@ public class UnbreakableContent {
                 }
             }
 
+            float maxHeight = 1f;
             for (Fragment f : fragments) {
+
+                float lineHeight = f.getInlineBox().getStyle().getLineHeight(c);
+                maxHeight = Math.max(lineHeight, maxHeight);
 
                 TextRenderer textRenderer = c.getTextRenderer();
                 FSFont font = f.getStyle().getFSFont(c);
@@ -183,14 +237,27 @@ public class UnbreakableContent {
                 }
 
             }
+            
+            contentHeight = maxHeight;
 
         } // Not a text component,
         else {
 
-            // We can't calculate the width of this component here because the
-            // dimensions may change depending on where it's initially placed. So
-            // we leave the width as the default value (NaN)
+            Fragment blockFragment = fragments.get(0);
+            BlockBox child = blockFragment.getBlockBox();
+            if (!child.getStyle().isNonFlowContent() &&
+                    ( child.getStyle().isInlineBlock() ||
+                      child.getStyle().isInlineTable() )) {
 
+                child.setContainingBlock(parent);
+                child.setContainingLayer(c.getLayer());
+                child.calcDimensions(c);
+
+                int childWidth = child.getContentWidth();
+                blockFragment.setCalculatedWidth(childWidth);
+
+                contentHeight = child.getHeight();
+            }
 
         }
 
@@ -218,9 +285,6 @@ public class UnbreakableContent {
      * @return
      */
     public UnbreakableContent stripLeadingWhitespace() {
-        if (!isText) {
-            throw new IllegalStateException("Not text content");
-        }
         // If it doesn't have any leading whitespace then return this object,
         if (!hasLeadingWhitespace()) {
             return this;
@@ -239,9 +303,6 @@ public class UnbreakableContent {
      * @return
      */
     public UnbreakableContent stripTrailingWhitespace() {
-        if (!isText) {
-            throw new IllegalStateException("Not text content");
-        }
         // If it doesn't have any trailing whitespace then return this object,
         if (!hasTrailingWhitespace()) {
             return this;
@@ -255,7 +316,7 @@ public class UnbreakableContent {
 
     public boolean hasLeadingWhitespace() {
         if (!isText) {
-            throw new IllegalStateException("Not text content");
+            return false;
         }
         for (Fragment f : fragments) {
             if (f.hasLeadingWhitespace()) {
@@ -267,11 +328,26 @@ public class UnbreakableContent {
 
     public boolean hasTrailingWhitespace() {
         if (!isText) {
-            throw new IllegalStateException("Not text content");
+            return false;
         }
         for (Fragment f : fragments) {
             if (f.hasTrailingWhitespace()) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True if this is text content that ends with a new line character.
+     * @return 
+     */
+    public boolean endsWithNL() {
+        if (isText) {
+            int sz = fragments.size();
+            if (sz > 0) {
+                Fragment f = fragments.get(sz - 1);
+                return f.getFragmentString().endsWith("\n");
             }
         }
         return false;
@@ -282,7 +358,7 @@ public class UnbreakableContent {
         private final Styleable styleable;
         private final int start;
         private final int end;
-        private float calculatedWidth = Float.NaN;
+        private float calculatedWidth = 0;
         private int leadingWhitespace;
         private int trailingWhitespace;
         private float calculatedNoLeadingWhitespaceWidth;
@@ -478,6 +554,8 @@ public class UnbreakableContent {
         }
         b.append(" (");
         b.append(getRawWidth());
+        b.append(" x ");
+        b.append(contentHeight);
         b.append(")");
         return b.toString();
     }
