@@ -122,6 +122,18 @@ public class UnbreakableContent {
     }
 
     /**
+     * Updates the fragments in this unbreakable. This is used for inline
+     * modification of fragments (such as setting the first-letter of a block
+     * with a CSS style).
+     * 
+     * @param newFragments 
+     */
+    void updateFragments(List<Fragment> newFragments) {
+        this.fragments.clear();
+        this.fragments.addAll(newFragments);
+    }
+
+    /**
      * Returns the list of all fragments in this object.
      *
      * @return

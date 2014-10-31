@@ -64,7 +64,8 @@ public class NewBreaker {
                 }
                 // Create an UnbreakableContent (non text type)
                 Fragment fragment = new Fragment(s, 0, 0, true, true);
-                UnbreakableContent unbreakable = new UnbreakableContent(false, fragment);
+                UnbreakableContent unbreakable =
+                                    new UnbreakableContent(false, fragment);
 
                 output.add(unbreakable);
 
@@ -188,6 +189,94 @@ public class NewBreaker {
 
         return unbreakables;
 
+    }
+
+    /**
+     * Applies any special element styles to the list of unbreakables (such as
+     * first-letter pseudo element).
+     * 
+     * @param c
+     * @param parent
+     * @param unbreakables
+     */
+    public static void applySpecialStyles(
+                                LayoutContext c, BlockBox parent,
+                                List<UnbreakableContent> unbreakables) {
+        // If we need to apply first letter style,
+        if (c.getFirstLettersTracker().hasStyles()) {
+            // Find the first letter,
+            boolean foundFirstLetter = false;
+            for (UnbreakableContent unbreakable : unbreakables) {
+                // Is it a text fragment?
+                if (unbreakable.isText()) {
+                    // Iterate through the fragments,
+                    List<Fragment> fragments = unbreakable.getFragments();
+                    List<Fragment> newFragments =
+                                        new ArrayList(fragments.size() + 2);
+                    for (int i = 0; i < fragments.size(); ++i) {
+                        Fragment f = fragments.get(i);
+                        String str = f.getFragmentString();
+                        int splitIndex = -1;
+                        String firstLetterString = null;
+                        for (int p = 0; p < str.length(); ++p) {
+                            char ch = str.charAt(p);
+                            if (!Character.isWhitespace(ch)) {
+                                // Found the first non-whitespace character!
+                                // So now we split up the fragment,
+                                splitIndex = p;
+                                firstLetterString = String.valueOf(ch);
+                                break;
+                            }
+                        }
+                        // Ok, found a split,
+                        if (splitIndex != -1) {
+                            Styleable styleable = f.getStyleable();
+                            InlineBox iB = (InlineBox) styleable;
+
+                            // The style for the first letter,
+                            CalculatedStyle fLStyle =
+                                        c.getFirstLettersTracker().deriveAll(iB.getStyle());
+                            // Make a new InlineBox for this letter and set the style,
+                            InlineBox styledLetter =
+                                        new InlineBox(firstLetterString, iB.getTextNode());
+                            styledLetter.setStyle(fLStyle);
+                            // Apply text transform to the single letter,
+                            styledLetter.applyTextTransform();
+
+                            // Split the fragment
+                            Fragment preFragment = new Fragment(styleable,
+                                            f.getStart(),
+                                            f.getStart() + splitIndex,
+                                            f.isStartOfBox(),
+                                            false);
+                            newFragments.add(preFragment);
+
+                            // Insert the styled letter fragment.
+                            Fragment letterFragment =
+                                    new Fragment(styledLetter, 0, 1, true, true);
+                            newFragments.add(letterFragment);
+
+                            Fragment postFragment = new Fragment(styleable,
+                                            f.getStart() + splitIndex + 1,
+                                            f.getEnd(),
+                                            false,
+                                            f.isEndOfBox());
+                            newFragments.add(postFragment);
+                            foundFirstLetter = true;
+                        }
+                        // Go to the next fragment to search for first letter,
+                        else {
+                            newFragments.add(f);
+                        }
+                    }
+                    // Found the first letter, so end unbreakables iteration,
+                    if (foundFirstLetter) {
+                        unbreakable.updateFragments(newFragments);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /**

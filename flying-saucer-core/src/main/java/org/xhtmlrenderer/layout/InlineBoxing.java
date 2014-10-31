@@ -107,13 +107,12 @@ public class InlineBoxing {
         boolean hasFirstLinePEs = false;
         final List<Layer> pendingInlineLayers = new ArrayList<Layer>();
 
+        // Initially apply any 'first line' style to the entire box. This is
+        // later reset after the first line has completed.
         if (c.getFirstLinesTracker().hasStyles()) {
             box.styleText(c, c.getFirstLinesTracker().deriveAll(box.getStyle()));
             hasFirstLinePEs = true;
         }
-
-        boolean needFirstLetter = c.getFirstLettersTracker().hasStyles();
-        boolean zeroWidthInlineBlock = false;
 
         int lineOffset = 0;
 
@@ -121,6 +120,10 @@ public class InlineBoxing {
         // all inline text into individual words.
         List<UnbreakableContent> unbreakables =
                                     NewBreaker.calculateUnbreakables(c, box);
+        // Modify the unbreakables list to apply any special text styles
+        // specified by CSS.
+        NewBreaker.applySpecialStyles(c, box, unbreakables);
+        // Calculate metrics,
         NewBreaker.calculateMetricsOnAll(c, box, unbreakables);
 
         // Work out how to handle white-space. If there are no 'break on width'
@@ -267,46 +270,42 @@ public class InlineBoxing {
 
                     // -----
 
-                    // If the part has text,
-                    if (iBPart.hasTextContent()) {
+                    int startIndex = iBPart.getStart();
+                    int endIndex = isLastPart ?
+                                    iBPart.getTrimmedWhitespaceEnd() : iBPart.getEnd();
 
-                        // Turn into InlineText object,
+                    // Turn into InlineText object,
 
-                        int startIndex = iBPart.getStart();
-                        int endIndex = isLastPart ?
-                                        iBPart.getTrimmedWhitespaceEnd() : iBPart.getEnd();
-                        float widthCalc = iBPart.getWidth();
-                        if (isLastPart) {
-                            widthCalc += breakerRun.getTrailingWhitespaceWidthDifference();
-                        }
-                        int calculatedWidth = Math.round(widthCalc);
+                    float widthCalc = iBPart.getWidth();
+                    if (isLastPart) {
+                        widthCalc += breakerRun.getTrailingWhitespaceWidthDifference();
+                    }
+                    int calculatedWidth = Math.round(widthCalc);
 
 
-                        InlineText inlineText = new InlineText();
-                        inlineText.setMasterText(iB.getText());
-                        inlineText.setTextNode(iB.getTextNode());
-                        inlineText.setSubstring(startIndex, endIndex);
-                        inlineText.setWidth(calculatedWidth);
+                    InlineText inlineText = new InlineText();
+                    inlineText.setMasterText(iB.getText());
+                    inlineText.setTextNode(iB.getTextNode());
+                    inlineText.setSubstring(startIndex, endIndex);
+                    inlineText.setWidth(calculatedWidth);
 
-                        // Put the text in the current line,
+                    // Put the text in the current line,
 
-                        if (iB.isDynamicFunction()) {
-                            inlineText.setFunctionData(new FunctionData(
-                                    iB.getContentFunction(), iB.getFunction()));
-                        }
-//                        inlineText.setTrimmedLeadingSpace(trimmedLeadingSpace);
-                        currentLine.setContainsDynamicFunction(inlineText.isDynamicFunction());
-                        currentIB.addInlineChild(c, inlineText);
-                        currentLine.setContainsContent(true);
-                        remainingWidth -= inlineText.getWidth();
+                    if (iB.isDynamicFunction()) {
+                        inlineText.setFunctionData(new FunctionData(
+                                iB.getContentFunction(), iB.getFunction()));
+                    }
+//                    inlineText.setTrimmedLeadingSpace(trimmedLeadingSpace);
+                    currentLine.setContainsDynamicFunction(inlineText.isDynamicFunction());
+                    currentIB.addInlineChild(c, inlineText);
+                    currentLine.setContainsContent(true);
+                    remainingWidth -= inlineText.getWidth();
 
-                        if (currentIB.isStartsHere()) {
-                            final int marginBorderPadding =
-                                  currentIB.getStyle().getMarginBorderPadding(
-                                      c, maxAvailableWidth, CalculatedStyle.LEFT);
-                            remainingWidth -= marginBorderPadding;
-                        }
-
+                    if (currentIB.isStartsHere()) {
+                        final int marginBorderPadding =
+                              currentIB.getStyle().getMarginBorderPadding(
+                                  c, maxAvailableWidth, CalculatedStyle.LEFT);
+                        remainingWidth -= marginBorderPadding;
                     }
 
                     // -----
@@ -407,11 +406,6 @@ public class InlineBoxing {
 
                         remainingWidth -= child.getWidth();
 
-                        needFirstLetter = false;
-
-                        if (child.getWidth() == 0) {
-                            zeroWidthInlineBlock = true;
-                        }
                     }
 
                 }
