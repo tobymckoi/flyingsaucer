@@ -133,6 +133,12 @@ public class InlineBoxing {
             }
         }
 
+        // Incremented each time text flow is stressed by floating sections.
+        // When this value hits a threshold we push lines out without trying
+        // to navigate floating stressed areas. This prevents the possibility
+        // of infinite loops.
+        int floatStressedSearch = 0;
+
         // Layout the unbreakables into the available width,
         final NewBreaker breaker = new NewBreaker(unbreakables);
         boolean lineStart = true;
@@ -162,9 +168,14 @@ public class InlineBoxing {
             // Get the parts run,
             List<Part> partsList = breakerRun.getPartRun();
 
+            final int partsListSize = partsList.size();
+
             // Does this section push against a floating section? If so we
-            // move the line to after the next floating area,
-            if (breakOnWidth && breaker.isOverflowedLine()) {
+            // move the line to after the next floating area.
+            // Don't try and navigate through float areas if the whole block
+            // shouldn't break on width.
+            if (floatStressedSearch < 50 &&
+                            breakOnWidth && breaker.isOverflowedLine()) {
 
                 // The section dimensions,
                 float runWidth = breakerRun.getWorkingWidth();
@@ -202,6 +213,7 @@ public class InlineBoxing {
                         breaker.rollbackToLastIndex(breakerRun, 0);
 
                         // Repeat the width calculation,
+                        ++floatStressedSearch;
                         continue;
 
                     }
@@ -211,7 +223,7 @@ public class InlineBoxing {
             }
 
             // For each inline part,
-            for (int partIndex = 0; partIndex < partsList.size(); ++partIndex) {
+            for (int partIndex = 0; partIndex < partsListSize; ++partIndex) {
                 Part part = partsList.get(partIndex);
 
                 boolean isLastPart = (partIndex == partsList.size() - 1);
@@ -406,6 +418,9 @@ public class InlineBoxing {
             } // For each Part
 
             if (shouldCloseLine) {
+                // Reset search threshold if we are consuming parts,
+                floatStressedSearch = 0;
+
                 // End of the line, so save the line here,
                 saveLine(currentLine, c, box, minimumLineHeight,
                          maxAvailableWidth, pendingFloats,

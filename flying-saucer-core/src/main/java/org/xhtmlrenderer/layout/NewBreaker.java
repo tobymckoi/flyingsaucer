@@ -264,7 +264,22 @@ public class NewBreaker {
         // Builds a set of style runs,
         StyleRun styleRun = new StyleRun();
 
-        int minWrapPoint = lineStart ? currentIndex + 1 : currentIndex;
+        int minWrapPoint;
+        if (lineStart) {
+            minWrapPoint = currentIndex + 1;
+        }
+        else {
+            minWrapPoint = currentIndex;
+            // If the first unbreakable can't break on width, then set min wrap
+            // point to +1,
+            if (iterator.hasNext()) {
+                if (!iterator.next().isWhitespaceBreakOnWidth()) {
+                    minWrapPoint = currentIndex + 1;
+                }
+                iterator.previous();
+            }
+        }
+        
         lastIndexStart = currentIndex;
         int wrapPoint = currentIndex;
 
@@ -284,45 +299,39 @@ public class NewBreaker {
                 trimFirst = false;
             }
 
-            // If it's a 'noWrapOnWidth' element
-            boolean wrapOnWidth = unbreakable.isWhitespaceBreakOnWidth();
-
-            // If we can wrap,
-            if (wrapOnWidth) {
-                wrapPoint = Math.max(wrapPoint, currentIndex);
-            } // If no wrap,
-            else {
-            }
-
             // Push an unbreakable into the style run,
             styleRun.push(unbreakable);
             ++currentIndex;
 
             // If we need to break,
-            if (wrapPoint >= minWrapPoint
-                    && styleRun.getWorkingWidth(c, maxAvailableWidth) > remainingWidth) {
+            if (wrapPoint >= minWrapPoint) {
+                boolean didOverflow = styleRun.getWorkingWidth(
+                                        c, maxAvailableWidth) > remainingWidth;
 
-                // Pop off elements until we hit the wrap point. Note that this may
-                // pop all the elements if this is not a line start.
-                int toPop = (currentIndex - wrapPoint);
-                for (int i = 0; i < toPop; ++i) {
-                    styleRun.pop();
-                    --currentIndex;
+                if (didOverflow) {
+                    // Pop off elements until we hit the wrap point. Note that this may
+                    // pop all the elements if this is not a line start.
+                    int toPop = currentIndex - wrapPoint;
+                    for (int i = 0; i < toPop; ++i) {
+                        styleRun.pop();
+                        --currentIndex;
+                    }
+
+                    final float styleRunWidth
+                            = styleRun.getWorkingWidth(c, maxAvailableWidth);
+                    if (styleRunWidth > remainingWidth) {
+                        overflowedLine = true;
+                    }
+
+                    // The style run represents the area to return,
+                    stayOpen = false;
+                    styleRun.buildForStatus(false);
+                    return new BreakerRun(styleRun.getSyleBoxList(),
+                            styleRun.getContentIndex(),
+                            styleRun.getMaxHeight(), styleRunWidth,
+                            styleRun.trailingWhitespaceWidthDifference);
+
                 }
-
-                final float styleRunWidth
-                        = styleRun.getWorkingWidth(c, maxAvailableWidth);
-                if (styleRunWidth > remainingWidth) {
-                    overflowedLine = true;
-                }
-
-                // The style run represents the area to return,
-                stayOpen = false;
-                styleRun.buildForStatus(false);
-                return new BreakerRun(styleRun.getSyleBoxList(),
-                        styleRun.getContentIndex(),
-                        styleRun.getMaxHeight(), styleRunWidth,
-                        styleRun.trailingWhitespaceWidthDifference);
 
             }
 
@@ -343,6 +352,16 @@ public class NewBreaker {
                         styleRun.getMaxHeight(), styleRunWidth,
                         styleRun.trailingWhitespaceWidthDifference);
 
+            }
+
+            // If it's a 'noWrapOnWidth' element
+            boolean wrapOnWidth = unbreakable.isWhitespaceBreakOnWidth();
+
+            // If we can wrap,
+            if (wrapOnWidth) {
+                wrapPoint = Math.max(wrapPoint, currentIndex);
+            } // If no wrap,
+            else {
             }
 
             ++count;
