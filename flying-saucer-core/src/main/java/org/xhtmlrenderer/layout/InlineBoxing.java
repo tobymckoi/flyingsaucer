@@ -121,6 +121,7 @@ public class InlineBoxing {
         // all inline text into individual words.
         List<UnbreakableContent> unbreakables =
                                     NewBreaker.calculateUnbreakables(c, box);
+        NewBreaker.calculateMetricsOnAll(c, box, unbreakables);
 
         // Work out how to handle white-space. If there are no 'break on width'
         // unbreakables then it changes layout in some subtle ways. Noteably,
@@ -426,12 +427,21 @@ public class InlineBoxing {
                          maxAvailableWidth, pendingFloats,
                          hasFirstLinePEs, pendingInlineLayers, markerData,
                          contentStart, isAlwaysBreak(c, box, breakAtLine, lineOffset));
+
+                // If there's a first line pseudo element then we need to
+                // recalculate the styles,
+                if (hasFirstLinePEs && currentLine.isFirstLine()) {
+                    c.getFirstLinesTracker().clearStyles();
+                    box.styleText(c);
+                    // Remeasure the unbreakable metrics for the remaining
+                    // layout.
+                    NewBreaker.calculateMetricsOnAll(c, box, unbreakables);
+                }
+                
                 lineOffset++;
                 markerData = null;
                 contentStart = 0;
-//                if (currentLine.isFirstLine() && hasFirstLinePEs) {
-//                    lbContext.setMaster(TextUtil.transformText(iB.getText(), iB.getStyle()));
-//                }
+
                 LineBox previousLine = currentLine;
                 currentLine = newLine(c, previousLine, box);
                 currentIB = addOpenInlineBoxes(
@@ -864,11 +874,6 @@ public class InlineBoxing {
         if (pendingInlineLayers.size() > 0) {
             finishPendingInlineLayers(c, pendingInlineLayers);
             pendingInlineLayers.clear();
-        }
-
-        if (hasFirstLinePCs && current.isFirstLine()) {
-            c.getFirstLinesTracker().clearStyles();
-            block.styleText(c);
         }
 
         if (pendingFloats.size() > 0) {

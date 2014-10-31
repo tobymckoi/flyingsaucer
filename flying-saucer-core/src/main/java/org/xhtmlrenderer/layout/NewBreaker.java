@@ -66,8 +66,6 @@ public class NewBreaker {
                 Fragment fragment = new Fragment(s, 0, 0, true, true);
                 UnbreakableContent unbreakable = new UnbreakableContent(false, fragment);
 
-                unbreakable.calculateMetrics(c, parent);
-
                 output.add(unbreakable);
 
                 first = pos + 1;
@@ -95,6 +93,7 @@ public class NewBreaker {
      * word. Each word may be composed of a series of individual styles.
      *
      * @param c
+     * @param parent
      * @param currentRun
      * @return
      */
@@ -178,9 +177,6 @@ public class NewBreaker {
                 runElementStart = runElementEnd;
             }
 
-            // Calculate the basic metrics (width) of this unbreakable,
-            unbreakable.calculateMetrics(c, parent);
-
             // Add to the unbreakables list,
             unbreakables.add(unbreakable);
 
@@ -192,6 +188,22 @@ public class NewBreaker {
 
         return unbreakables;
 
+    }
+
+    /**
+     * Calculates the metrics on the list of unbreakable content (widths of
+     * each element).
+     * 
+     * @param c
+     * @param parent
+     * @param unbreakables 
+     */
+    public static void calculateMetricsOnAll(
+                             LayoutContext c, BlockBox parent,
+                             List<UnbreakableContent> unbreakables) {
+        for (UnbreakableContent unbreakable : unbreakables) {
+            unbreakable.calculateMetrics(c, parent);
+        }
     }
 
     // -----
