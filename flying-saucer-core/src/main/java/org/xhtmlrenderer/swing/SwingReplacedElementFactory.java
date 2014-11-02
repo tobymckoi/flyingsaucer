@@ -37,20 +37,15 @@ import org.xhtmlrenderer.resource.ImageResource;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.logging.Level;
-import org.xhtmlrenderer.extend.FSImage;
+import org.xhtmlrenderer.layout.BoxLoadInfo;
 
 /**
  * A ReplacedElementFactory where Elements are replaced by Swing components.
  */
 public class SwingReplacedElementFactory implements ReplacedElementFactory {
-    /**
-     * Cache of image components (ReplacedElements) for quick lookup, keyed by Element.
-     */
-    protected Map imageComponents;
+
     /**
      * Cache of XhtmlForms keyed by Element.
      */
@@ -94,7 +89,30 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
         }
 
         if (context.getNamespaceHandler().isImageElement(e)) {
-            return replaceImage(uac, context, e, cssWidth, cssHeight);
+
+            ImageReplacedElement replacedImage = replaceImage(
+                                        uac, context, e, cssWidth, cssHeight);
+
+            // Get the image resource,
+            ImageResource ir = replacedImage.getImageResource();
+
+            // If the image is already loaded, we don't need to relayout,
+            boolean isLoaded = ir.isLoaded();
+
+            // Register the Box with the image, so when the image loads we
+            // know what to repaint.
+            boolean unknownDimensions = (cssWidth == -1 || cssHeight == -1);
+            // Need to relayout if the image isn't loaded and has unknown
+            // dimensions. Otherwise we repaint when the image changes if
+            // loaded or known dimensions.
+            byte loadOp = !isLoaded && unknownDimensions ?
+                                BoxLoadInfo.STATUS_RELAYOUT :
+                                BoxLoadInfo.STATUS_REPAINT;
+            BoxLoadInfo boxLoadInfo = new BoxLoadInfo(box, loadOp);
+            context.registerBoxWithResource(boxLoadInfo, ir.getImageUri());
+
+            return replacedImage;
+
         } else {
             //form components
             Element parentForm = getParentForm(e, context);
@@ -135,8 +153,8 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
      * @param cssHeight Target height of the image @return A ReplacedElement for the image; will not be null.
      * @return
      */
-    protected ReplacedElement replaceImage(UserAgentCallback uac, LayoutContext context, Element elem, int cssWidth, int cssHeight) {
-        ReplacedElement re = null;
+    protected ImageReplacedElement replaceImage(UserAgentCallback uac, LayoutContext context, Element elem, int cssWidth, int cssHeight) {
+        ImageReplacedElement re = null;
         String imageSrc = context.getNamespaceHandler().getImageSourceURI(elem);
         
         if (imageSrc == null || imageSrc.length() == 0) {
@@ -146,44 +164,20 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
             BufferedImage image = ImageUtil.loadEmbeddedBase64Image(imageSrc);
             if (image != null) {
                 re = new ImageReplacedElement(
-                          AWTFSImage.createImage(image), cssWidth, cssHeight);
+                          new ImageResource(imageSrc, AWTFSImage.createImage(image))
+                          , cssWidth, cssHeight);
             }
         } else {
-            // lookup in cache, or instantiate
+            // Instantiate,
             String ruri = uac.resolveURI(imageSrc);
-            re = lookupImageReplacedElement(elem, ruri, cssWidth, cssHeight);
-            if (re == null) {
-                XRLog.load(Level.FINE, "Swing: Image " + ruri + " requested at "+ " to " + cssWidth + ", " + cssHeight);
-                ImageResource imageResource = imageResourceLoader.get(ruri, cssWidth, cssHeight);
-                if (imageResource.isLoaded()) {
-                    FSImage image = (FSImage) imageResource.getImage();
-                    // If no css dimensions then scale native dimension of
-                    // image by dots per pixel,
-                    if (cssWidth == -1 && cssHeight == -1) {
-                       float dpp = context.getDotsPerPixel();
-                       image = image.createScaled(
-                               (int) (image.getWidth() * dpp),
-                               (int) (image.getHeight() * dpp));
-                    }
-                    re = new ImageReplacedElement(image, cssWidth, cssHeight);
-                } else {
-                    re = new DeferredImageReplacedElement(imageResource, repaintListener, cssWidth, cssHeight);
-                }
-                storeImageReplacedElement(elem, re, ruri, cssWidth, cssHeight);
-            }
+            ImageResource imageResource = uac.getImageResource(ruri);
+            Dimension dim = imageResource.calculateSizeFromCSS(
+                                context.getDotsPerPixel(), cssWidth, cssHeight);
+            re = new ImageReplacedElement(imageResource, dim.width, dim.height);
+
         }
         return re;
     }
-
-    private ReplacedElement lookupImageReplacedElement(final Element elem, final String ruri, final int cssWidth, final int cssHeight) {
-        if (imageComponents == null) {
-            return null;
-        }
-        CacheKey key = new CacheKey(elem, ruri, cssWidth, cssHeight);
-        return (ReplacedElement) imageComponents.get(key);
-    }
-
-
 
     /**
      * Returns a ReplacedElement for some element in the stream which should be replaceable, but is not. This might
@@ -193,53 +187,23 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
      * @param cssHeight Target height for the element
      * @return A ReplacedElement to substitute for one that can't be generated.
      */
-    protected ReplacedElement newIrreplaceableImageElement(int cssWidth, int cssHeight) {
+    protected ImageReplacedElement newIrreplaceableImageElement(int cssWidth, int cssHeight) {
         BufferedImage missingImage;
-        ReplacedElement mre;
-        try {
-            // TODO: we can come up with something better; not sure if we should use Alt text, how text should size, etc.
-            missingImage = ImageUtil.createCompatibleBufferedImage(cssWidth, cssHeight, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = missingImage.createGraphics();
-            g.setColor(Color.BLACK);
-            g.setBackground(Color.WHITE);
-            g.setFont(new Font("Serif", Font.PLAIN, 12));
-            g.drawString("Missing", 0, 12);
-            g.dispose();
-            mre = new ImageReplacedElement(AWTFSImage.createImage(missingImage), cssWidth, cssHeight);
-        } catch (Exception e) {
-            mre = new EmptyReplacedElement(
-                    cssWidth < 0 ? 0 : cssWidth,
-                    cssHeight < 0 ? 0 : cssHeight);
-        }
+        ImageReplacedElement mre;
+
+        // TODO: we can come up with something better; not sure if we should use Alt text, how text should size, etc.
+        missingImage = ImageUtil.createCompatibleBufferedImage(cssWidth, cssHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = missingImage.createGraphics();
+        g.setColor(Color.BLACK);
+        g.setBackground(Color.WHITE);
+        g.setFont(new Font("Serif", Font.PLAIN, 12));
+        g.drawString("Missing", 0, 12);
+        g.dispose();
+        ImageResource imageResource =
+                new ImageResource("?", AWTFSImage.createImage(missingImage));
+        mre = new ImageReplacedElement(imageResource, cssWidth, cssHeight);
+
         return mre;
-    }
-
-    /**
-     * Adds a ReplacedElement containing an image to a cache of images for quick lookup.
-     *
-     * @param e   The element under which the image is keyed.
-     * @param cc  The replaced element containing the image, or another ReplacedElement to be used in its place
-     * @param uri
-     * @param cssWidth
-     * @param cssHeight
-     */
-    protected void storeImageReplacedElement(Element e, ReplacedElement cc, String uri, final int cssWidth, final int cssHeight) {
-        if (imageComponents == null) {
-            imageComponents = new HashMap();
-        }
-        CacheKey key = new CacheKey(e, uri, cssWidth, cssHeight);
-        imageComponents.put(key, cc);
-    }
-
-    /**
-     * Retrieves a ReplacedElement for an image from cache, or null if not found.
-     *
-     * @param e   The element by which the image is keyed
-     * @param uri
-     * @return The ReplacedElement for the image, or null if there is none.
-     */
-    protected ReplacedElement lookupImageReplacedElement(Element e, String uri) {
-        return lookupImageReplacedElement(e, uri, -1, -1);
     }
 
     /**
@@ -297,10 +261,6 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
     public void remove(Element e) {
         if (forms != null) {
             forms.remove(e);
-        }
-
-        if (imageComponents != null) {
-            imageComponents.remove(e);
         }
     }
 

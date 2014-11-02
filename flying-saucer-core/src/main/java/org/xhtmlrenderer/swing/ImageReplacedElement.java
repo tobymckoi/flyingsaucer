@@ -24,6 +24,7 @@ import org.xhtmlrenderer.extend.FSImage;
 
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.layout.LayoutContext;
+import org.xhtmlrenderer.resource.ImageResource;
 
 /**
  * An ImageReplacedElement is a {@link ReplacedElement} that contains a {@link java.awt.Image}. It's used as a
@@ -31,9 +32,11 @@ import org.xhtmlrenderer.layout.LayoutContext;
  */
 public class ImageReplacedElement implements ReplacedElement {
 
-    protected FSImage _image;
-    
     private Point _location = new Point(0, 0);
+
+    protected ImageResource _image;
+    protected int _targetWidth;
+    protected int _targetHeight;
 
     protected ImageReplacedElement() {
     }
@@ -48,8 +51,12 @@ public class ImageReplacedElement implements ReplacedElement {
      * @param targetWidth The width we'd like the image to have, in pixels.
      * @param targetHeight The height we'd like the image to have, in pixels.
      */
-    public ImageReplacedElement(FSImage image, int targetWidth, int targetHeight) {
-        _image = image.createScaled(targetWidth, targetHeight);
+    public ImageReplacedElement(ImageResource image, int targetWidth, int targetHeight) {
+        if (image == null) throw new NullPointerException();
+        if (targetWidth < 0 || targetHeight < 0) throw new IllegalStateException();
+        _image = image;
+        _targetWidth = targetWidth;
+        _targetHeight = targetHeight;
     }
 
     /** {@inheritDoc} */
@@ -59,12 +66,12 @@ public class ImageReplacedElement implements ReplacedElement {
 
     /** {@inheritDoc} */
     public int getIntrinsicHeight() {
-        return (int) _image.getHeight();
+        return _targetHeight;
     }
 
     /** {@inheritDoc} */
     public int getIntrinsicWidth() {
-        return (int) _image.getWidth();
+        return _targetWidth;
     }
 
     /** {@inheritDoc} */
@@ -83,11 +90,19 @@ public class ImageReplacedElement implements ReplacedElement {
     }
 
     /**
+     * Returns the ImageResource for this replacement.
+     * @return 
+     */
+    public ImageResource getImageResource() {
+        return _image;
+    }
+
+    /**
      * The image we're replacing.
      * @return see desc
      */
     public FSImage getFSImage() {
-        return _image;
+        return _image.getImage().createScaled(_targetWidth, _targetHeight);
     }
 
 	public int getBaseline() {

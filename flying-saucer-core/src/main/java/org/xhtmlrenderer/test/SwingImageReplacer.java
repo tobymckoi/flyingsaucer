@@ -3,7 +3,6 @@ package org.xhtmlrenderer.test;
 import org.w3c.dom.Element;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.extend.UserAgentCallback;
-import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.util.XRLog;
@@ -16,7 +15,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.logging.Level;
 import java.util.*;
-import java.util.List;
+import org.xhtmlrenderer.resource.ImageResource;
 
 /**
  * @author patrick
@@ -64,6 +63,7 @@ public class SwingImageReplacer extends ElementReplacer {
      * @param elem      The element with the image reference
      * @param cssWidth  Target width of the image
      * @param cssHeight Target height of the image @return A ReplacedElement for the image; will not be null.
+     * @return 
      */
     protected ReplacedElement replaceImage(UserAgentCallback uac, LayoutContext context, Element elem, int cssWidth, int cssHeight) {
         ReplacedElement re = null;
@@ -77,16 +77,9 @@ public class SwingImageReplacer extends ElementReplacer {
                 XRLog.layout(Level.WARNING, "No source provided for img element.");
                 re = newIrreplaceableImageElement(cssWidth, cssHeight);
             } else {
-                //FSImage is here since we need to capture a target H/W
-                //for the image (as opposed to what the actual image size is).
-                FSImage fsImage = uac.getImageResource(imageSrc).getImage();
 
-                if (fsImage != null) {
-                    re = new ImageReplacedElement(fsImage, cssWidth, cssHeight);
-                } else {
-                    // TODO: Should return "broken" image icon, e.g. "not found"
-                    re = newIrreplaceableImageElement(cssWidth, cssHeight);
-                }
+                re = new ImageReplacedElement(uac.getImageResource(imageSrc), cssWidth, cssHeight);
+
             }
             storeImageReplacedElement(elem, re);
         }
@@ -139,7 +132,8 @@ public class SwingImageReplacer extends ElementReplacer {
             g.setFont(new Font("Serif", Font.PLAIN, 12));
             g.drawString("Missing", 0, 12);
             g.dispose();
-            mre = new ImageReplacedElement(AWTFSImage.createImage(missingImage), cssWidth, cssHeight);
+            ImageResource imageResource = new ImageResource("?", AWTFSImage.createImage(missingImage));
+            mre = new ImageReplacedElement(imageResource, cssWidth, cssHeight);
         } catch (Exception e) {
             mre = new EmptyReplacedElement(
                     cssWidth < 0 ? 0 : cssWidth,

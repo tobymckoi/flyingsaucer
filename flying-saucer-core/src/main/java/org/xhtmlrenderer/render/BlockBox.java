@@ -41,6 +41,7 @@ import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.layout.BlockBoxing;
 import org.xhtmlrenderer.layout.BlockFormattingContext;
 import org.xhtmlrenderer.layout.BoxBuilder;
+import org.xhtmlrenderer.layout.BoxLoadInfo;
 import org.xhtmlrenderer.layout.BreakAtLineContext;
 import org.xhtmlrenderer.layout.CounterFunction;
 import org.xhtmlrenderer.layout.FloatManager;
@@ -51,6 +52,7 @@ import org.xhtmlrenderer.layout.PaintingInfo;
 import org.xhtmlrenderer.layout.PersistentBFC;
 import org.xhtmlrenderer.layout.Styleable;
 import org.xhtmlrenderer.newtable.TableRowBox;
+import org.xhtmlrenderer.resource.ImageResource;
 
 /**
  * A block box as defined in the CSS spec.  It also provides a base class for
@@ -343,7 +345,11 @@ public class BlockBox extends Box implements InlinePaintable {
             LayoutContext c, StrutMetrics structMetrics, String image) {
         FSImage img = null;
         if (! image.equals("none")) {
-            img = c.getUac().getImageResource(image).getImage();
+            ImageResource imageResource = c.getUac().getImageResource(image);
+            // Block thread until the image is loaded,
+            // PENDING: Better way to handle this?
+            imageResource.blockUntilLoaded();
+            img = imageResource.getImage();
             if (img != null) {
                 StrutMetrics strutMetrics = structMetrics;
                 if (img.getHeight() > strutMetrics.getAscent()) {
@@ -887,6 +893,37 @@ public class BlockBox extends Box implements InlinePaintable {
 
         if (pushedLayer) {
             c.popLayer();
+        }
+
+        // Find background images and add to the layout context,
+        if (isRoot()) {
+            registerBackgroundImageBoxes(c, this);
+        }
+
+    }
+
+    /**
+     * Registers any background images found with the layout context. This
+     * allows for boxes to be repainted when the image changes (such as an
+     * animation) or an image load progress updates.
+     * 
+     * @param c
+     * @param box 
+     */
+    private void registerBackgroundImageBoxes(LayoutContext c, Box box) {
+        CalculatedStyle style = box.getStyle();
+        if (style.isHasBackground()) {
+            if (! style.isIdent(CSSName.BACKGROUND_IMAGE, IdentValue.NONE)) {
+                String uri = style.getStringProperty(CSSName.BACKGROUND_IMAGE);
+                BoxLoadInfo boxLoadInfo =
+                            new BoxLoadInfo(box, BoxLoadInfo.STATUS_REPAINT);
+                c.registerBoxWithResource(boxLoadInfo, uri);
+            }
+        }
+        // Recurse on all the children,
+        List<Box> children = box.getChildren();
+        for (Box child : children) {
+            registerBackgroundImageBoxes(c, child);
         }
     }
 

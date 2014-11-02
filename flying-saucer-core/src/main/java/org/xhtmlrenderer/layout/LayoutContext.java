@@ -22,6 +22,7 @@ package org.xhtmlrenderer.layout;
 import java.awt.Rectangle;
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -68,21 +69,25 @@ public class LayoutContext implements CssContext {
 
     private int _extraSpaceTop;
     private int _extraSpaceBottom;
-    
+
     private Map _counterContextMap = new HashMap();
-    
+
     private String _pendingPageName;
     private String _pageName;
-    
+
     private int _noPageBreak = 0;
-    
+
     private Layer _rootDocumentLayer;
     private PageBox _page;
-    
+
     private boolean _mayCheckKeepTogether = true;
-    
+
     private BreakAtLineContext _breakAtLineContext;
-    
+
+    // Map of resource URI strings to boxes that contain those resources,
+    private final Map<String, List<BoxLoadInfo>> _resourcesToBoxes =
+                                                                new HashMap();
+
     public TextRenderer getTextRenderer() {
         return _sharedContext.getTextRenderer();
     }
@@ -119,7 +124,7 @@ public class LayoutContext implements CssContext {
         _currentMarkerData = null;
 
         _bfcs = new LinkedList();
-        
+
         if (! keepLayers) {
             _rootLayer = null;
             _layers = new LinkedList();
@@ -137,7 +142,7 @@ public class LayoutContext implements CssContext {
         result.setCurrentMarkerData(_currentMarkerData);
 
         result.setBFCs(_bfcs);
-        
+
         if (isPrint()) {
             result.setPageName(getPageName());
             result.setExtraSpaceBottom(getExtraSpaceBottom());
@@ -155,7 +160,7 @@ public class LayoutContext implements CssContext {
         _currentMarkerData = layoutState.getCurrentMarkerData();
 
         _bfcs = layoutState.getBFCs();
-        
+
         if (isPrint()) {
             setPageName(layoutState.getPageName());
             setExtraSpaceBottom(layoutState.getExtraSpaceBottom());
@@ -170,7 +175,7 @@ public class LayoutContext implements CssContext {
         result.setFirstLetters(_firstLetters.copyOf());
         result.setFirstLines(_firstLines.copyOf());
         result.setCurrentMarkerData(_currentMarkerData);
-        
+
         if (isPrint()) {
             result.setPageName(getPageName());
         }
@@ -183,7 +188,7 @@ public class LayoutContext implements CssContext {
         _firstLetters = layoutState.getFirstLetters();
 
         _currentMarkerData = layoutState.getCurrentMarkerData();
-        
+
         if (isPrint()) {
             setPageName(layoutState.getPageName());
         }
@@ -349,9 +354,65 @@ public class LayoutContext implements CssContext {
         return getTextRenderer().getFSFontMetrics(getFontContext(), font, "");
     }
 
+    /**
+     * Returns a text.BreakIterator used to determine positions to break lines
+     * in a run of text.
+     *
+     * @return
+     */
     public BreakIterator getLineBreaker() {
         // PENDING: Localization?
         return BreakIterator.getLineInstance();
+    }
+
+    /**
+     * Registers the given Box to the resource represented by the given
+     * 'uri' string. There may be multiple boxes associated with a single
+     * uri. This is used for resources that change over time or are
+     * interactive. For example, an image being loaded, or an animated image.
+     * <p>
+     * Associating the box with the URI allows a top level component to
+     * repaint/relayout the regions when they change or are interacted with.
+     *
+     * @param box
+     * @param uri
+     */
+    public void registerBoxWithResource(BoxLoadInfo box, String uri) {
+        List<BoxLoadInfo> boxes = _resourcesToBoxes.get(uri);
+        if (boxes == null) {
+            boxes = new ArrayList(6);
+            _resourcesToBoxes.put(uri, boxes);
+        }
+        boxes.add(box);
+    }
+
+    /**
+     * Unregisters a box with the given 'uri' string. If the box is not
+     * associated with the uri then nothing changes.
+     *
+     * @param box
+     * @param uri
+     */
+    public void unregisterBoxWithResource(BoxLoadInfo box, String uri) {
+        List<BoxLoadInfo> boxes = _resourcesToBoxes.get(uri);
+        if (boxes != null) {
+            boxes.remove(box);
+        }
+    }
+
+    /**
+     * Returns a list of all boxes that have been associated with the given
+     * uri resource. This can be used by the top level panel to determine
+     * repaint regions as a resource is progressively loaded, or for animated
+     * resources.
+     *
+     * @param uri
+     * @return
+     */
+    public List<BoxLoadInfo> getBoxesRegisteredWithResource(String uri) {
+        List<BoxLoadInfo> boxes = _resourcesToBoxes.get(uri);
+        // Copy into a new list and return,
+        return (boxes == null) ? Collections.EMPTY_LIST : new ArrayList(boxes);
     }
 
     public class CounterContext {
@@ -474,7 +535,7 @@ public class LayoutContext implements CssContext {
     public void setPageName(String currentPageName) {
         _pageName = currentPageName;
     }
-    
+
     public int getNoPageBreak() {
         return _noPageBreak;
     }
@@ -482,7 +543,7 @@ public class LayoutContext implements CssContext {
     public void setNoPageBreak(int noPageBreak) {
         _noPageBreak = noPageBreak;
     }
-    
+
     public boolean isPageBreaksAllowed() {
         return _noPageBreak == 0;
     }

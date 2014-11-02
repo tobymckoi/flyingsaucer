@@ -68,8 +68,8 @@ public class ShowDocBookPage {
         frame = new JFrame("Show Sample DocBook XML Rendered with Pure CSS");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        final XHTMLPanel panel = new XHTMLPanel();
-        panel.getSharedContext().setUserAgentCallback(new ResourceLoadingUserAgent());
+        final XHTMLPanel panel = new XHTMLPanel(new ResourceLoadingUserAgent());
+//        panel.getSharedContext().setUserAgentCallback(new ResourceLoadingUserAgent());
         setAntiAlias(panel);
 
         FSScrollPane fsp = new FSScrollPane(panel);

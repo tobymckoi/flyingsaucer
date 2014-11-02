@@ -31,6 +31,7 @@ import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -55,16 +56,20 @@ import org.xhtmlrenderer.css.style.derived.StringValue;
 import org.xhtmlrenderer.event.DocumentListener;
 import org.xhtmlrenderer.extend.FSCanvas;
 import org.xhtmlrenderer.extend.NamespaceHandler;
+import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.extend.UserInterface;
 import org.xhtmlrenderer.layout.BoxBuilder;
+import org.xhtmlrenderer.layout.BoxLoadInfo;
 import org.xhtmlrenderer.layout.Layer;
 import org.xhtmlrenderer.layout.LayoutContext;
+import org.xhtmlrenderer.layout.PaintingInfo;
 import org.xhtmlrenderer.layout.SharedContext;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.Box;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
+import org.xhtmlrenderer.resource.ImageResource;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
 
@@ -210,8 +215,66 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
 
     protected Document doc = null;
 
+    /**
+     * Object that handles the progressive loading of resources.
+     */
+    protected class ResourceLoadHandler implements ImageProgressListener {
+        @Override
+        public void imageCompleted(
+                    final ImageResource imageResource, final boolean resize) {
+            // Go to the AWT event dispatcher thread,
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    if (resize) {
+                        repaintRequested(true);
+                    }
+                    else {
+                        // Repaint the updated areas,
+                        String uri = imageResource.getImageUri();
+                        // The layout context,
+                        LayoutContext loContext = getLayoutContext();
+                        if (loContext != null) {
+                            List<BoxLoadInfo> boxes =
+                                    loContext.getBoxesRegisteredWithResource(uri);
+                            repaintBoxes(boxes);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Repaint the list of boxes given.
+     * 
+     * @param boxes 
+     */
+    private void repaintBoxes(List<BoxLoadInfo> boxes) {
+        // If any of the boxes need a relayout on load then request relayout,
+        for (BoxLoadInfo boxLoadInfo : boxes) {
+            if (boxLoadInfo.getStatusOperation() == BoxLoadInfo.STATUS_RELAYOUT) {
+                repaintRequested(true);
+                return;
+            }
+        }
+        // Repaint individual boxes,
+        for (BoxLoadInfo boxLoadInfo : boxes) {
+            PaintingInfo paintInfo = boxLoadInfo.getBox().getPaintingInfo();
+            Rectangle rect = paintInfo.getAggregateBounds();
+            repaint(rect);
+        }
+    }
+
     protected void init() {
 
+        // If this is a NaiveUserAgent then register 
+        UserAgentCallback uac = getSharedContext().getUac();
+        if (uac instanceof NaiveUserAgent) {
+            ResourceLoadHandler handler = new ResourceLoadHandler();
+            NaiveUserAgent nua = (NaiveUserAgent) uac;
+            nua.addImageProgressListener(handler);
+        }
 
         documentListeners = new HashMap();
         setBackground(Color.white);

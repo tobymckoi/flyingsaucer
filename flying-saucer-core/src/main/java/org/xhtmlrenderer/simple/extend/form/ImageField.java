@@ -23,7 +23,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -37,6 +36,7 @@ import org.xhtmlrenderer.css.style.derived.LengthValue;
 import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
+import org.xhtmlrenderer.resource.ImageResource;
 import org.xhtmlrenderer.simple.extend.XhtmlForm;
 import org.xhtmlrenderer.swing.AWTFSImage;
 import org.xhtmlrenderer.util.XRLog;
@@ -51,7 +51,14 @@ class ImageField extends InputField {
         Image image = null;
 
         if (hasAttribute("src")) {
-            FSImage fsImage = getUserAgentCallback().getImageResource(getAttribute("src")).getImage();
+
+            ImageResource imageResource =
+                    getUserAgentCallback().getImageResource(getAttribute("src"));
+            // Block thread until the image is loaded,
+            // PENDING: Better way to handle this?
+            imageResource.blockUntilLoaded();
+
+            FSImage fsImage = imageResource.getImage();
 
             if (fsImage != null) {
                 image = ((AWTFSImage) fsImage).getImage();

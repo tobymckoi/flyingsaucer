@@ -105,7 +105,7 @@ public class ImageMapReplacedElementFactory extends SwingReplacedElementFactory 
    protected ReplacedElement replaceImageMap(UserAgentCallback uac, LayoutContext context, Element elem, String usemapAttr, int cssWidth, int cssHeight) {
       ReplacedElement re;
       // lookup in cache, or instantiate
-      re = lookupImageReplacedElement(elem, "");
+      re = null;
       if (re == null) {
          Image im = null;
          String imageSrc = context.getNamespaceHandler().getImageSourceURI(elem);
@@ -139,7 +139,6 @@ public class ImageMapReplacedElementFactory extends SwingReplacedElementFactory 
                re = newIrreplaceableImageElement(cssWidth, cssHeight);
             }
          }
-         storeImageReplacedElement(elem, re, "", -1, -1);
       }
       return re;
    }

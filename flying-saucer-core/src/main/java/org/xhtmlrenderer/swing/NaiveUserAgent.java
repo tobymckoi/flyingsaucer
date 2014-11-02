@@ -26,12 +26,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
@@ -63,12 +68,21 @@ import org.xhtmlrenderer.util.XRLog;
 public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
 
     private static final int DEFAULT_IMAGE_CACHE_SIZE = 16;
+
+    private final Object URL_LOCK = new Object();
+
     /**
      * a (simple) LRU cache
      */
     protected LinkedHashMap _imageCache;
     private int _imageCacheCapacity;
     private String _baseURL;
+    private String _cachedDefaultBaseURL;
+
+    private boolean deferredImageLoading = false;
+    private final List<ImageProgressListener> imageProgressListeners = new ArrayList();
+    private final int backgroundImageLoadWorkersCount;
+    private ExecutorService imageLoaderThreadPool = null;
 
     /**
      * Creates a new instance of NaiveUserAgent with a max image cache of 16 images.
@@ -83,11 +97,93 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
      * @param imgCacheSize Number of images to hold in cache before LRU images are released.
      */
     public NaiveUserAgent(final int imgCacheSize) {
+        this(imgCacheSize, 5);
+    }
+
+    /**
+     * Creates a new NaiveUserAgent with a cache of a specific size.
+     *
+     * @param imgCacheSize Number of images to hold in cache before LRU images are released.
+     * @param backgroundImageLoadWorkersCount
+     */
+    public NaiveUserAgent(final int imgCacheSize,
+                          final int backgroundImageLoadWorkersCount) {
         this._imageCacheCapacity = imgCacheSize;
+        this.backgroundImageLoadWorkersCount = backgroundImageLoadWorkersCount;
 
         // note we do *not* override removeEldestEntry() here--users of this class must call shrinkImageCache().
         // that's because we don't know when is a good time to flush the cache
         this._imageCache = new java.util.LinkedHashMap(_imageCacheCapacity, 0.75f, true);
+    }
+
+    /**
+     * When deferred image loading is enabled, image resources loading is
+     * deferred to a background thread and any ImageProgressListener objects
+     * registered are notified when the image is finished loading. This should
+     * result in the panel displaying the HTML to repaint or layout if the
+     * image dimensions has not been specified by CSS.
+     * <p>
+     * When deferred image loading is disabled, this agent will block until
+     * image resources have finished being fully loaded.
+     * <p>
+     * Deferred image loading is disabled by default.
+     * 
+     * @param enabled
+     */
+    public void setDeferredImageLoadingEnabled(boolean enabled) {
+        deferredImageLoading = enabled;
+    }
+
+    /**
+     * Registers an ImageProgressListener that is notified whenever the load
+     * progress of a deferred image changes. See
+     * 'setDeferredImageLoadingEnabled'.
+     * 
+     * @param listener
+     */
+    public void addImageProgressListener(ImageProgressListener listener) {
+        synchronized (imageProgressListeners) {
+            for (ImageProgressListener l : imageProgressListeners) {
+                if (l == listener) {
+                    return;
+                }
+            }
+            imageProgressListeners.add(listener);
+        }
+    }
+
+    /**
+     * Removes an ImageProgressListener previously added by a call to
+     * 'addImageProgressListener'.
+     * 
+     * @param listener
+     */
+    public void removeImageProgressListener(ImageProgressListener listener) {
+        synchronized (imageProgressListeners) {
+            Iterator<ImageProgressListener> it = imageProgressListeners.iterator();
+            while (it.hasNext()) {
+                if (it.next() == listener) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    /**
+     * Notifies that the image resource load has completed and the image has
+     * been set to its loaded version.
+     * 
+     * @param imageResource 
+     */
+    private void fireImageProgressCompleted(ImageResource imageResource) {
+        ImageProgressListener[] listeners;
+        synchronized (imageProgressListeners) {
+            listeners = imageProgressListeners.toArray(
+                    new ImageProgressListener[imageProgressListeners.size()]);
+        }
+        for (ImageProgressListener l : listeners) {
+            l.imageCompleted(imageResource, false);
+        }
     }
 
     /**
@@ -108,6 +204,86 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
      */
     public void clearImageCache() {
         _imageCache.clear();
+    }
+
+    /**
+     * Blocks while loading an image. Throws IOException if loading the image
+     * failed because the uri is invalid, the file was not found, or the image
+     * could not be decoded.
+     * 
+     * @param uri
+     * @return 
+     * @throws java.io.IOException
+     */
+    public BufferedImage loadImage(String uri) throws IOException {
+        InputStream is = resolveAndOpenStream(uri);
+        if (is == null) {
+            throw new IOException("Failed to open stream");
+        }
+        try {
+            BufferedImage img = ImageIO.read(is);
+            if (img == null) {
+                throw new IOException("ImageIO.read() returned null");
+            }
+            return img;
+        } finally {
+            is.close();
+        }
+    }
+
+    /**
+     * A Runnable that loads the given image resource in the background.
+     */
+    protected class LoadImageRunnable implements Runnable {
+        private final ImageResource imageResource;
+
+        public LoadImageRunnable(ImageResource imageResource) {
+            this.imageResource = imageResource;
+        }
+
+        @Override
+        public void run() {
+            String uri = imageResource.getImageUri();
+            try {
+                BufferedImage img = loadImage(uri);
+                imageResource.setImage(AWTFSImage.createImage(img));
+            } catch (FileNotFoundException e) {
+                XRLog.exception("Can't read image file; image at URI '" + uri + "' not found");
+                imageResource.setImage(ImageResource.NOT_FOUND_IMG);
+            } catch (IOException e) {
+                XRLog.exception("Can't read image file; unexpected problem for URI '" + uri + "'", e);
+                imageResource.setImage(ImageResource.NOT_FOUND_IMG);
+            }
+            finally {
+                fireImageProgressCompleted(imageResource);
+            }
+        }
+    }
+
+    /**
+     * Dispatches the loading of the given image to the background image
+     * loader thread.
+     * 
+     * @param ir
+     */
+    public void loadInBackground(ImageResource ir) {
+        if (imageLoaderThreadPool == null) {
+            imageLoaderThreadPool =
+                Executors.newFixedThreadPool(backgroundImageLoadWorkersCount,
+                    new ThreadFactory() {
+                        private final AtomicInteger threadNumber = new AtomicInteger(1);
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            Thread t = new Thread(r);
+                            t.setName("Image Loader-" + threadNumber.getAndIncrement());
+                            t.setDaemon(true);
+                            return t;
+                        }
+                    }
+            );
+        }
+        // Dispatch the image load operation to the thread pool,
+        imageLoaderThreadPool.execute(new LoadImageRunnable(ir));
     }
 
     /**
@@ -162,31 +338,37 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
             ir = (ImageResource) _imageCache.get(uri);
             //TODO: check that cached image is still valid
             if (ir == null) {
-                InputStream is = resolveAndOpenStream(uri);
-                if (is != null) {
+                // Deferred image loading,
+                if (deferredImageLoading) {
+
+                    // Deferred image resource,
+                    ir = new ImageResource(uri, ImageResource.LOADING_IMG);
+
+                    // Loads the given image resource in the background,
+                    loadInBackground(ir);
+
+                }
+                // Do not defer image loading,
+                else {
                     try {
-                        BufferedImage img = ImageIO.read(is);
-                        if (img == null) {
-                            throw new IOException("ImageIO.read() returned null");
-                        }
-                        ir = createImageResource(uri, img);
-                        _imageCache.put(uri, ir);
+
+                        BufferedImage bufferedImage = loadImage(uri);
+                        ir = createImageResource(uri, bufferedImage);
+
                     } catch (FileNotFoundException e) {
                         XRLog.exception("Can't read image file; image at URI '" + uri + "' not found");
                     } catch (IOException e) {
                         XRLog.exception("Can't read image file; unexpected problem for URI '" + uri + "'", e);
-                    } finally {
-                        try {
-                            is.close();
-                        } catch (IOException e) {
-                            // ignore
-                        }
-                    }
+                    }                
                 }
+
+                if (ir == null) {
+                    ir = new ImageResource(uri, ImageResource.NOT_FOUND_IMG);
+                }
+                _imageCache.put(uri, ir);
+
             }
-            if (ir == null) {
-                ir = createImageResource(uri, null);
-            }
+
         }
         return ir;
     }
@@ -271,7 +453,9 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
      * @param url A URI which anchors other, possibly relative URIs.
      */
     public void setBaseURL(String url) {
-        _baseURL = url;
+        synchronized (URL_LOCK) {
+            _baseURL = url;
+        }
     }
 
     /**
@@ -284,33 +468,35 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
      */
     public String resolveURI(String uri) {
         if (uri == null) return null;
+
+        String baseURL = getBaseURL();
+
         String ret = null;
-        if (_baseURL == null) {//first try to set a base URL
-            try {
-                URI result = new URI(uri);
-                if (result.isAbsolute()) setBaseURL(result.toString());
-            } catch (URISyntaxException e) {
-                XRLog.exception("The default NaiveUserAgent could not use the URL as base url: " + uri, e);
-            }
-            if (_baseURL == null) { // still not set -> fallback to current working directory
-                try {
-                    setBaseURL(new File(".").toURI().toURL().toExternalForm());
-                } catch (Exception e1) {
-                    XRLog.exception("The default NaiveUserAgent doesn't know how to resolve the base URL for " + uri);
-                    return null;
-                }
-            }
-        }
         // test if the URI is valid; if not, try to assign the base url as its parent
         try {
             URI result = new URI(uri);
             if (!result.isAbsolute()) {
-                XRLog.load(uri + " is not a URL; may be relative. Testing using parent URL " + _baseURL);
-                result=new URI(_baseURL).resolve(result);
+                // If the baseURL hasn't been set then resolve against the
+                // local directory by default.
+                if (baseURL == null) {
+                    try {
+                        synchronized (URL_LOCK) {
+                            if (_cachedDefaultBaseURL == null) {
+                                _cachedDefaultBaseURL = new File(".").toURI().toURL().toExternalForm();
+                            }
+                            baseURL = _cachedDefaultBaseURL;
+                        }
+                    }
+                    catch (IOException e) {
+                        throw new RuntimeException("Unable to resolve base URL.", e);
+                    }
+                }
+                XRLog.load(uri + " is not a URL; may be relative. Testing using parent URL " + baseURL);
+                result = new URI(baseURL).resolve(result);
             }
             ret = result.toString();
         } catch (URISyntaxException e) {
-            XRLog.exception("The default NaiveUserAgent cannot resolve the URL " + uri + " with base URL " + _baseURL);
+            XRLog.exception("The default NaiveUserAgent cannot resolve the URL " + uri + " with base URL " + baseURL);
         }
         return ret;
     }
@@ -319,7 +505,9 @@ public class NaiveUserAgent implements UserAgentCallback, DocumentListener {
      * Returns the current baseUrl for this class.
      */
     public String getBaseURL() {
-        return _baseURL;
+        synchronized (URL_LOCK) {
+            return _baseURL;
+        }
     }
 
     public void documentStarted() {

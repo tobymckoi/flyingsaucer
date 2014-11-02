@@ -472,6 +472,15 @@ public abstract class BasicPanel extends RootPanel implements FormSubmissionList
         return doc == null ? "" : getSharedContext().getNamespaceHandler().getDocumentTitle(doc);
     }
 
+    /**
+     * Sets the base URL for all documents loaded.
+     * 
+     * @param baseUrl
+     */
+    public void setBaseURL(String baseUrl) {
+        sharedContext.getUac().setBaseURL(baseUrl);
+    }
+
     protected Document loadDocument(final String uri) {
         XMLResource xmlResource = sharedContext.getUac().getXMLResource(uri);
         return xmlResource.getDocument();

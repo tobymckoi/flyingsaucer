@@ -19,8 +19,12 @@
  */
 package org.xhtmlrenderer.resource;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
 import org.xhtmlrenderer.extend.FSImage;
-import org.xhtmlrenderer.swing.MutableFSImage;
 import org.xhtmlrenderer.swing.AWTFSImage;
 import org.xml.sax.InputSource;
 
@@ -28,10 +32,40 @@ import org.xml.sax.InputSource;
  * @author Administrator
  */
 public class ImageResource extends AbstractResource {
+
+    /**
+     * Static images used as place holders for images that are loading or
+     * not found.
+     */
+    public final static FSImage NOT_FOUND_IMG;
+    public final static FSImage LOADING_IMG;
+
+    static {
+        // Create a 10x10 fully blank buffered image,
+        BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+//        g.setComposite(AlphaComposite.Clear);
+        g.setColor(new Color(0, 0, 255, 10));
+        g.fillRect(0, 0, 8, 8);
+        g.dispose();
+        FSImage blankImg = AWTFSImage.createImage(img);
+
+        NOT_FOUND_IMG = blankImg;
+        LOADING_IMG = blankImg;
+    }
+
     private final String _imageUri;
     private FSImage _img;
 
-    //HACK: at least for now, till we know what we want to do here
+    // Lock when setting/accessing the image.
+    private final Object IMG_LOCK = new Object();
+
+    /**
+     * Constructs this ImageResource with an FSImage.
+     *
+     * @param uri
+     * @param img
+     */
     public ImageResource(final String uri, FSImage img) {
         super((InputSource) null);
         _imageUri = uri;
@@ -39,11 +73,37 @@ public class ImageResource extends AbstractResource {
     }
 
     public FSImage getImage() {
-        return _img;
+        synchronized (IMG_LOCK) {
+            return _img;
+        }
     }
 
     public boolean isLoaded() {
-        return _img instanceof MutableFSImage ? ((MutableFSImage) _img).isLoaded() : true;
+        synchronized (IMG_LOCK) {
+            return (_img != LOADING_IMG);
+        }
+    }
+
+    /**
+     * Blocks the current thread until this image is fully available.
+     */
+    public void blockUntilLoaded() {
+        synchronized (IMG_LOCK) {
+            long timeoutStart = System.currentTimeMillis();
+            while (!isLoaded()) {
+                try {
+                    IMG_LOCK.wait(10000);
+                }
+                catch (InterruptedException ex) {
+                    // Ignore?
+                }
+                // Timeout after 30 seconds waiting on image loading,
+                if (System.currentTimeMillis() - timeoutStart > 30000) {
+                    throw new RuntimeException(
+                                    "Timed out waiting for image to load.");
+                }
+            }
+        }
     }
 
     public String getImageUri() {
@@ -51,17 +111,60 @@ public class ImageResource extends AbstractResource {
     }
 
     public boolean hasDimensions(final int width, final int height) {
-        if (isLoaded()) {
-            if (_img instanceof AWTFSImage) {
-                AWTFSImage awtfi = (AWTFSImage) _img;
-                return awtfi.getWidth() == width && awtfi.getHeight() == height;
-            } else {
-                return false;
-            }
+        FSImage image = getImage();
+        if (image != LOADING_IMG) {
+            return false;
+        }
+        if (image instanceof AWTFSImage) {
+            AWTFSImage awtfi = (AWTFSImage) image;
+            return awtfi.getWidth() == width && awtfi.getHeight() == height;
         } else {
             return false;
         }
     }
+
+    public void setImage(FSImage loadedImage) {
+        synchronized (IMG_LOCK) {
+            _img = loadedImage;
+            IMG_LOCK.notifyAll();
+        }
+    }
+
+    /**
+     * Given the dimensions defined by CSS (if any), returns the dimensions
+     * of this image. 'cssWidth' or 'cssHeight' may be -1 if the dimension is
+     * not defined.
+     *
+     * @param dotsPerPixel
+     * @param cssWidth
+     * @param cssHeight
+     * @return
+     */
+    public Dimension calculateSizeFromCSS(
+                            float dotsPerPixel, int cssWidth, int cssHeight) {
+
+        FSImage img = getImage();
+        if (cssWidth == -1 && cssHeight == -1) {
+            return new Dimension( (int) (img.getWidth() * dotsPerPixel),
+                                  (int) (img.getHeight() * dotsPerPixel) );
+        }
+
+        int currentWith = img.getWidth();
+        int currentHeight = img.getHeight();
+        int toWidth = cssWidth;
+        int toHeight = cssHeight;
+
+        if (toWidth == -1) {
+            toWidth = (int)(currentWith * ((double)toHeight / currentHeight));
+        }
+        if (toHeight == -1) {
+            toHeight = (int)(currentHeight * ((double)toWidth / currentWith));
+        }
+
+        return new Dimension(toWidth, toHeight);
+
+    }
+
 }
 
 /*

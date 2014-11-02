@@ -39,6 +39,7 @@ import org.xhtmlrenderer.css.style.derived.LengthValue;
 import org.xhtmlrenderer.css.value.FontSpecification;
 import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.extend.OutputDevice;
+import org.xhtmlrenderer.resource.ImageResource;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.Uu;
 
@@ -169,11 +170,11 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         BorderPainter.paint(edge, sides, style.getBorder(c), c, 0, true);
     }
 
-    private FSImage getBackgroundImage(RenderingContext c, CalculatedStyle style) {
+    private ImageResource getBackgroundImage(RenderingContext c, CalculatedStyle style) {
         if (! style.isIdent(CSSName.BACKGROUND_IMAGE, IdentValue.NONE)) {
             String uri = style.getStringProperty(CSSName.BACKGROUND_IMAGE);
             try {
-                return c.getUac().getImageResource(uri).getImage();
+                return c.getUac().getImageResource(uri);
             } catch (Exception ex) {
                 ex.printStackTrace();
                 Uu.p(ex);
@@ -207,12 +208,18 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
 
         FSColor backgroundColor = style.getBackgroundColor();
-        FSImage backgroundImage = getBackgroundImage(c, style);
+        ImageResource backgroundImage = getBackgroundImage(c, style);
 
         // If the image width or height is zero, then there's nothing to draw.
         // Also prevents infinte loop when trying to tile an image with zero size.
-        if (backgroundImage == null || backgroundImage.getHeight() == 0 || backgroundImage.getWidth() == 0) {
+        if (backgroundImage == null) {
             backgroundImage = null;
+        }
+        else {
+            FSImage fsImage = backgroundImage.getImage();
+            if (fsImage.getWidth() == 0 || fsImage.getHeight() == 0) {
+                backgroundImage = null;
+            }
         }
 
         if ( (backgroundColor == null || backgroundColor == FSRGBColor.TRANSPARENT) &&
@@ -226,6 +233,8 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
 
         if (backgroundImage != null) {
+            FSImage fsImage = backgroundImage.getImage();
+
             Rectangle localBGImageContainer = bgImageContainer;
             if (style.isFixedBackground()) {
                 localBGImageContainer = c.getViewportRectangle();
@@ -243,11 +252,11 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
             clip(backgroundBounds);
 
-            backgroundImage = scaleBackgroundImage(c, style,
-                                      localBGImageContainer, backgroundImage);
+            fsImage = scaleBackgroundImage(c, style,
+                                           localBGImageContainer, fsImage);
 
-            float imageWidth = backgroundImage.getWidth();
-            float imageHeight = backgroundImage.getHeight();
+            float imageWidth = fsImage.getWidth();
+            float imageHeight = fsImage.getHeight();
 
             BackgroundPosition position = style.getBackgroundPosition();
             xoff += calcOffset(
@@ -261,11 +270,11 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             if (! hrepeat && ! vrepeat) {
                 Rectangle imageBounds = new Rectangle(xoff, yoff, (int)imageWidth, (int)imageHeight);
                 if (imageBounds.intersects(backgroundBounds)) {
-                    drawImage(backgroundImage, xoff, yoff);
+                    drawImage(fsImage, xoff, yoff);
                 }
             } else if (hrepeat && vrepeat) {
                 paintTiles(
-                        backgroundImage,
+                        fsImage,
                         adjustTo(backgroundBounds.x, xoff, (int)imageWidth),
                         adjustTo(backgroundBounds.y, yoff, (int)imageHeight),
                         backgroundBounds.x + backgroundBounds.width,
@@ -275,7 +284,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 Rectangle imageBounds = new Rectangle(xoff, yoff, (int)imageWidth, (int)imageHeight);
                 if (imageBounds.intersects(backgroundBounds)) {
                     paintHorizontalBand(
-                            backgroundImage,
+                            fsImage,
                             xoff,
                             yoff,
                             backgroundBounds.x + backgroundBounds.width);
@@ -285,7 +294,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 Rectangle imageBounds = new Rectangle(xoff, yoff, (int)imageWidth, (int)imageHeight);
                 if (imageBounds.intersects(backgroundBounds)) {
                     paintVerticalBand(
-                            backgroundImage,
+                            fsImage,
                             xoff,
                             yoff,
                             backgroundBounds.y + backgroundBounds.height);

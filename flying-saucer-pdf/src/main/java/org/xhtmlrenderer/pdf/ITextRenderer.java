@@ -104,8 +104,8 @@ public class ITextRenderer {
         _outputDevice = new ITextOutputDevice(_dotsPerPoint);
 
         ITextUserAgent userAgent = new ITextUserAgent(_outputDevice);
-        _sharedContext = new SharedContext();
-        _sharedContext.setUserAgentCallback(userAgent);
+        _sharedContext = new SharedContext(userAgent);
+//        _sharedContext.setUserAgentCallback(userAgent);
         _sharedContext.setCss(new StyleReference(userAgent));
         userAgent.setSharedContext(_sharedContext);
         _outputDevice.setSharedContext(_sharedContext);

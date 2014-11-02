@@ -373,6 +373,18 @@ public class SharedContext {
         return uac;
     }
 
+    /**
+     * Logically, UserAgentCallback should be tied with the SharedContext
+     * and never be changed. Unfortunately there's some legacy code in the
+     * 'examples' directory where we need to reset the user agent during
+     * initialization.
+     * <p>
+     * You really want to avoid ever changing the user agent because the
+     * user agent may be handling deferred loading of resources and if it
+     * changes all the listeners and state will need to be handled.
+     * 
+     * @deprecated
+     */
     public void setUserAgentCallback(UserAgentCallback userAgentCallback) {
         StyleReference styleReference = getCss();
         if (styleReference != null) {

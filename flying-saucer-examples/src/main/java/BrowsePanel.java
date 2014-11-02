@@ -62,7 +62,7 @@ public class BrowsePanel {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 // Create a JPanel subclass to render the page
-                panel = new XHTMLPanel();
+                panel = new XHTMLPanel(createUserAgentCallback());
                 setupDocumentListener(panel);
                 setupUserAgentCallback(panel);
 
@@ -83,14 +83,15 @@ public class BrowsePanel {
         });
     }
 
-    private void setupUserAgentCallback(XHTMLPanel panel) {
+    private UserAgentCallback createUserAgentCallback() {
         uac = new DelegatingUserAgent();
+        return uac;
+    }
 
+    private void setupUserAgentCallback(XHTMLPanel panel) {
         ImageResourceLoader irl = new ImageResourceLoader();
         irl.setRepaintListener(panel);
         ((DelegatingUserAgent) uac).setImageResourceLoader(irl);
-        
-        panel.getSharedContext().setUserAgentCallback(uac);
         panel.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(panel, irl));
     }
 

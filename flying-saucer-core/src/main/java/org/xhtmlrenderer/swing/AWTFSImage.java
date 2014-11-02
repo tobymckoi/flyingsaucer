@@ -77,23 +77,11 @@ public abstract class AWTFSImage implements FSImage {
         }
 
         public FSImage createScaled(int width, int height) {
-            if (width > 0 || height > 0) {
-                int currentWith = getWidth();
-                int currentHeight = getHeight();
-                int toWidth = width;
-                int toHeight = height;
-
-                if (toWidth == -1) {
-                    toWidth = (int)(currentWith * ((double)toHeight / currentHeight));
-                }
-
-                if (toHeight == -1) {
-                    toHeight = (int)(currentHeight * ((double)toWidth / currentWith));
-                }
-
-                if (currentWith != toWidth || currentHeight != toHeight) {
-                    return new NewAWTFSImage(img, toWidth, toHeight);
-                }
+            if (width < 0 || height < 0) {
+                throw new IllegalStateException("Negative height or width");
+            }
+            if (getWidth() != width || getHeight() != height) {
+                return new NewAWTFSImage(img, width, height);
             }
             return this;
         }

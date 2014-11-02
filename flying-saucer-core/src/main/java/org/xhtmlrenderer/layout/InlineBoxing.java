@@ -934,15 +934,6 @@ public class InlineBoxing {
     }
 
     /**
-     * Updates the style of the first line with the styles from CSS. This
-     * inherits some styles from the parent block that wouldn't normally be
-     * inherited.
-     *
-     * @param c
-     * @param currentIB
-     */
-
-    /**
      * CSS properties that usually don't get inherited but we copy from the
      * pseudo element style to the first block as an exception.
      */
@@ -956,6 +947,15 @@ public class InlineBoxing {
         CSSName.BACKGROUND_SIZE,
         CSSName.TEXT_DECORATION,
     };
+
+    /**
+     * Updates the style of the first line with the styles from CSS. This
+     * inherits some styles from the parent block that wouldn't normally be
+     * inherited.
+     *
+     * @param c
+     * @param currentIB
+     */
     private static void updateFirstLineStyle(LayoutContext c, InlineLayoutBox currentIB) {
          CalculatedStyle oldStyle = currentIB.getStyle();
          List<CascadedStyle> firstLineStyles = c.getFirstLinesTracker().getStyles();
