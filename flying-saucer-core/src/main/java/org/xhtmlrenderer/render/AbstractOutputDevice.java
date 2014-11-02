@@ -19,6 +19,7 @@
  */
 package org.xhtmlrenderer.render;
 
+import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.util.Iterator;
@@ -365,6 +366,72 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
     }
 
+    /**
+     * Returns a Dimension that is the absolute image size of the given image
+     * with the cssWidth and cssHeight size properties applied to it. The
+     * CSS properties may be -1 indicating the size is not specified in which
+     * case the returned scale is deduced using the process below.
+     * <p>
+     * In the case no width/height property is provided, the native image is
+     * scaled by dots per pixel. In the case where only one dimension is
+     * available, the dimension that's not available is scaled by the same
+     * factor as the available dimension scale.
+     * 
+     * @param img
+     * @param dotsPerPixel
+     * @param cssWidth
+     * @param cssHeight
+     * @return 
+     */
+    public static Dimension calculateAbsoluteImageSize(
+                FSImage img, float dotsPerPixel, int cssWidth, int cssHeight) {
+
+        if (cssWidth == -1 && cssHeight == -1) {
+            return new Dimension( (int) (img.getWidth() * dotsPerPixel),
+                                  (int) (img.getHeight() * dotsPerPixel) );
+        }
+
+        int currentWith = img.getWidth();
+        int currentHeight = img.getHeight();
+        int toWidth = cssWidth;
+        int toHeight = cssHeight;
+
+        if (toWidth == -1) {
+            toWidth = (int)(currentWith * ((double)toHeight / currentHeight));
+        }
+        if (toHeight == -1) {
+            toHeight = (int)(currentHeight * ((double)toWidth / currentWith));
+        }
+
+        return new Dimension(toWidth, toHeight);
+
+    }
+
+    /**
+     * Given an image and width/height property, returns a scaled version of
+     * the image. The width and/or height property may be -1 indicating the
+     * size is not specified.
+     * <p>
+     * In the case no width/height property is provided the native image is
+     * scaled by dots per pixel. In the case where only one dimension is
+     * available, the dimension that's not available is scaled by the same
+     * factor as the available dimensions scale.
+     * 
+     * @param c
+     * @param img
+     * @param width
+     * @param height
+     * @return 
+     */
+    public static FSImage resolveImageScale(
+                            CssContext c, FSImage img, int width, int height) {
+
+        Dimension dim = calculateAbsoluteImageSize(
+                                    img, c.getDotsPerPixel(), width, height);
+        return img.createScaled(dim.width, dim.height);
+
+    }
+
     private FSImage scaleBackgroundImage(CssContext c, CalculatedStyle style, Rectangle backgroundContainer, FSImage image) {
         BackgroundSize backgroundSize = style.getBackgroundSize();
 
@@ -373,22 +440,22 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 int testHeight = (int)((double)image.getHeight() * backgroundContainer.width / image.getWidth());
                 if (backgroundSize.isContain()) {
                     if (testHeight > backgroundContainer.height) {
-                        image = image.createScaled(-1, backgroundContainer.height);
+                        image = resolveImageScale(c, image, -1, backgroundContainer.height);
                     } else {
-                        image = image.createScaled(backgroundContainer.width, -1);
+                        image = resolveImageScale(c, image, backgroundContainer.width, -1);
                     }
                 } else if (backgroundSize.isCover()) {
                     if (testHeight > backgroundContainer.height) {
-                        image = image.createScaled(backgroundContainer.width, -1);
+                        image = resolveImageScale(c, image, backgroundContainer.width, -1);
                     } else {
-                        image = image.createScaled(-1, backgroundContainer.height);
+                        image = resolveImageScale(c, image, -1, backgroundContainer.height);
                     }
                 }
             } else {
                 int scaledWidth = calcBackgroundSizeLength(c, style, backgroundSize.getWidth(), backgroundContainer.width);
                 int scaledHeight = calcBackgroundSizeLength(c, style, backgroundSize.getHeight(), backgroundContainer.height);
 
-                image = image.createScaled(scaledWidth, scaledHeight);
+                image = resolveImageScale(c, image, scaledWidth, scaledHeight);
             }
         }
         else {

@@ -450,10 +450,19 @@ public abstract class Box implements Styleable {
     }
 
     private void paintRootElementBackground(RenderingContext c, PaintingInfo pI) {
+
         Dimension marginCorner = pI.getOuterMarginCorner();
-        Rectangle canvasBounds = new Rectangle(0, 0, marginCorner.width, marginCorner.height);
-        canvasBounds.add(c.getViewportRectangle());
-        c.getOutputDevice().paintBackground(c, getStyle(), canvasBounds, canvasBounds, null);
+
+        // The viewport bounds,
+        Rectangle viewportRectangle = c.getViewportRectangle();
+        viewportRectangle.x = -viewportRectangle.x;
+        Rectangle viewportBounds = new Rectangle(c.getViewportRectangle());
+        viewportBounds.x = 0;
+        viewportBounds.y = 0;
+        viewportBounds.height = Math.max(viewportRectangle.height, marginCorner.height);
+        // Cap canvas bounds to viewport,
+        c.getOutputDevice().paintBackground(c, getStyle(), viewportRectangle, viewportBounds, null);
+
     }
 
     public Layer getContainingLayer() {

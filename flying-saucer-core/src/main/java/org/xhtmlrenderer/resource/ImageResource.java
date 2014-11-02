@@ -25,6 +25,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import org.xhtmlrenderer.extend.FSImage;
+import org.xhtmlrenderer.render.AbstractOutputDevice;
 import org.xhtmlrenderer.swing.AWTFSImage;
 import org.xml.sax.InputSource;
 
@@ -144,24 +145,7 @@ public class ImageResource extends AbstractResource {
                             float dotsPerPixel, int cssWidth, int cssHeight) {
 
         FSImage img = getImage();
-        if (cssWidth == -1 && cssHeight == -1) {
-            return new Dimension( (int) (img.getWidth() * dotsPerPixel),
-                                  (int) (img.getHeight() * dotsPerPixel) );
-        }
-
-        int currentWith = img.getWidth();
-        int currentHeight = img.getHeight();
-        int toWidth = cssWidth;
-        int toHeight = cssHeight;
-
-        if (toWidth == -1) {
-            toWidth = (int)(currentWith * ((double)toHeight / currentHeight));
-        }
-        if (toHeight == -1) {
-            toHeight = (int)(currentHeight * ((double)toWidth / currentWith));
-        }
-
-        return new Dimension(toWidth, toHeight);
+        return AbstractOutputDevice.calculateAbsoluteImageSize(img, dotsPerPixel, cssWidth, cssHeight);
 
     }
 
