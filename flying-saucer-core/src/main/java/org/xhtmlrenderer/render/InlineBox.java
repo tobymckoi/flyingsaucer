@@ -243,6 +243,7 @@ public class InlineBox implements Styleable {
 
         String text = getText(trimLeadingSpace);
         BreakIterator breakIterator = c.getLineBreaker();
+        breakIterator.setText(text);
 
         // Breaker should be used
         while ( (current = breakIterator.next()) != BreakIterator.DONE) {

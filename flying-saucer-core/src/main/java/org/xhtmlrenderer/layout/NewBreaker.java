@@ -110,7 +110,7 @@ public class NewBreaker {
             // Yes, so append the text to a string and mark the fragment.
             final InlineBox iB = (InlineBox) styleable;
             String fragment;
-        // This is a prediction of the content of a dynamic function, used for
+            // This is a prediction of the content of a dynamic function, used for
             // layout.
             if (iB.isDynamicFunction()) {
                 fragment = iB.getContentFunction().getLayoutReplacementText();
@@ -127,6 +127,7 @@ public class NewBreaker {
         final BreakIterator iter = c.getLineBreaker();
         iter.setText(collate.toString());
 
+        final int lastCollateIndex = collate.length();
         // For each word,
         int wordStart = 0;
         int wordEnd = iter.next();
@@ -148,8 +149,10 @@ public class NewBreaker {
 
                 boolean includeFragment;
                 if (runElementStart == runElementEnd) {
+                    // If this is a run entry that contains no text content
+                    // we include the fragment on the last word only.
                     includeFragment
-                            = runElementStart == collate.length()
+                        = (wordEnd == lastCollateIndex && runElementStart == lastCollateIndex)
                             || (runElementStart >= wordStart && runElementStart < wordEnd);
                 } else {
                     includeFragment = (wordEnd > runElementStart && wordStart < runElementEnd);

@@ -42,17 +42,29 @@ public class ImageResource extends AbstractResource {
     public final static FSImage LOADING_IMG;
 
     static {
-        // Create a 10x10 fully blank buffered image,
-        BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-//        g.setComposite(AlphaComposite.Clear);
-        g.setColor(new Color(0, 0, 255, 10));
-        g.fillRect(0, 0, 8, 8);
-        g.dispose();
-        FSImage blankImg = AWTFSImage.createImage(img);
+        {
+            // Create a 10x10 fully blank buffered image,
+            BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = img.createGraphics();
+    //        g.setComposite(AlphaComposite.Clear);
+            g.setColor(new Color(0, 0, 255, 10));
+            g.fillRect(0, 0, 8, 8);
+            g.dispose();
+            FSImage blankImg = AWTFSImage.createImage(img);
+            LOADING_IMG = blankImg;
+        }
 
-        NOT_FOUND_IMG = blankImg;
-        LOADING_IMG = blankImg;
+        {
+            // Create a 10x10 fully blank buffered image,
+            BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = img.createGraphics();
+            g.setColor(new Color(255, 0, 0, 30));
+            g.fillRect(0, 0, 8, 8);
+            g.dispose();
+            FSImage blankImg = AWTFSImage.createImage(img);
+            NOT_FOUND_IMG = blankImg;
+        }
+
     }
 
     private final String _imageUri;

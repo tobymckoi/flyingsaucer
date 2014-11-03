@@ -96,10 +96,11 @@ public class InlineText {
         _start = start;
         _end = end;
         
-        if (_end > 0 && _masterText.charAt(_end-1) == WhitespaceStripper.EOLC) {
+        if ((_end - _start) > 0 && _masterText.charAt(_end-1) == WhitespaceStripper.EOLC) {
             _containedLF = true;
             _end--;
         }
+
     }
 
     public String getMasterText() {

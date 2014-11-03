@@ -350,7 +350,7 @@ public class BlockBox extends Box implements InlinePaintable {
             // PENDING: Better way to handle this?
             imageResource.blockUntilLoaded();
             img = imageResource.getImage();
-            if (img != null) {
+            if (img != ImageResource.NOT_FOUND_IMG) {
                 StrutMetrics strutMetrics = structMetrics;
                 if (img.getHeight() > strutMetrics.getAscent()) {
                     img = img.createScaled(-1, (int) strutMetrics.getAscent());

@@ -30,6 +30,7 @@ import javax.xml.transform.sax.SAXSource;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import org.xhtmlrenderer.swing.NaiveUserAgent;
 
 
 /**
@@ -41,7 +42,7 @@ import java.util.ArrayList;
  * events (like a RootPanel subclass).
  *  
  */
-public class PanelManager extends DelegatingUserAgent {
+public class PanelManager extends NaiveUserAgent {
     private int index = -1;
     private ArrayList history = new ArrayList();
 

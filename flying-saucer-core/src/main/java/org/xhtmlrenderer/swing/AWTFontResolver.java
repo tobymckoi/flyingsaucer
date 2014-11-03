@@ -67,6 +67,8 @@ public class AWTFontResolver implements FontResolver {
      * Enables kerning for all new font instances created. If the font has
      * kerning enabled by system default, there is currently no way to disable
      * it. Default is false (don't enable kerning).
+     * 
+     * @param enabled
      */
     public void setKerning(boolean enabled) {
         kerning_enabled = enabled;
@@ -76,6 +78,8 @@ public class AWTFontResolver implements FontResolver {
      * Enables ligatures for all new font instances created. If the font has
      * ligatures enabled by system default, there is currently no way to
      * disable it. Default is false (don't enable ligatures).
+     * 
+     * @param enabled
      */
     public void setLigatures(boolean enabled) {
         ligatures_enabled = enabled;

@@ -299,7 +299,7 @@ public class BrowserActions {
 
         PanelManager uac = new PanelManager();
         XHTMLPanel panel = new XHTMLPanel(uac);
-        uac.setRepaintListener(panel);
+//        uac.setRepaintListener(panel);
         panel.setOpaque(false);
 
         panel.setDocument("demo:/demos/about.xhtml");

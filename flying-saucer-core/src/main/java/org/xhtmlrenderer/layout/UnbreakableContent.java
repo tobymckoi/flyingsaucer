@@ -381,6 +381,9 @@ public class UnbreakableContent {
         public Fragment(Styleable styleable, int start, int end,
                 boolean startOfBox, boolean endOfBox) {
 
+            // Asset,
+            if (end < start) throw new IllegalStateException("end < start");
+
             this.styleable = styleable;
             this.start = start;
             this.end = end;
