@@ -86,12 +86,6 @@ public class FloatManager {
             moveFloatBelow(cssCtx, bfc, current, getFloats(direction));
         }
 
-        if (overlaps(cssCtx, bfc, current, getOpposingFloats(direction))) {
-            moveAllTheWayOver(current, direction);
-            moveFloatBelow(cssCtx, bfc, current, getFloats(direction));
-            moveFloatBelow(cssCtx, bfc, current, getOpposingFloats(direction));
-        }
-
         if (current.getStyle().isCleared()) {
             if (current.getStyle().isClearLeft() && direction == LEFT) {
                 moveAllTheWayOver(current, LEFT);
@@ -100,6 +94,13 @@ public class FloatManager {
             }
             moveFloatBelow(cssCtx, bfc, current, getFloats(direction));
         }
+
+        if (overlaps(cssCtx, bfc, current, getOpposingFloats(direction))) {
+            moveAllTheWayOver(current, direction);
+            moveFloatBelow(cssCtx, bfc, current, getFloats(direction));
+            moveFloatBelow(cssCtx, bfc, current, getOpposingFloats(direction));
+        }
+
     }
 
     private List getFloats(int direction) {
