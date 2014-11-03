@@ -20,7 +20,6 @@
 package org.xhtmlrenderer.demo.browser;
 
 import org.xhtmlrenderer.resource.XMLResource;
-import org.xhtmlrenderer.swing.DelegatingUserAgent;
 import org.xhtmlrenderer.util.Uu;
 import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.util.GeneralUtil;

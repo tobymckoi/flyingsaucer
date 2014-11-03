@@ -23,8 +23,6 @@ import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
 import org.xhtmlrenderer.simple.XHTMLPanel;
-import org.xhtmlrenderer.swing.DelegatingUserAgent;
-import org.xhtmlrenderer.swing.ImageResourceLoader;
 import org.xhtmlrenderer.swing.SwingReplacedElementFactory;
 import org.xhtmlrenderer.util.GeneralUtil;
 
@@ -34,6 +32,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import org.xhtmlrenderer.swing.NaiveUserAgent;
 
 /**
  * This example shows the most basic use of Flying Saucer, to
@@ -84,7 +83,7 @@ public class BrowsePanel {
     }
 
     private UserAgentCallback createUserAgentCallback() {
-        uac = new DelegatingUserAgent();
+        uac = new NaiveUserAgent();
         return uac;
     }
 
@@ -93,7 +92,7 @@ public class BrowsePanel {
 //        irl.setRepaintListener(panel);
 //        ((DelegatingUserAgent) uac).setImageResourceLoader(irl);
 //        panel.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(panel, irl));
-        panel.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(panel));
+        panel.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory());
     }
 
     private void setupDocumentListener(final XHTMLPanel panel) {

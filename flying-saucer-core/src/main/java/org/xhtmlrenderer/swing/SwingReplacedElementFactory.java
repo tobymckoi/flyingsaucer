@@ -53,29 +53,10 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
 
     private FormSubmissionListener formSubmissionListener;
 
-    protected final RepaintListener repaintListener;
-
-//    private ImageResourceLoader imageResourceLoader;
-
 
     public SwingReplacedElementFactory() {
-        this(ImageResourceLoader.NO_OP_REPAINT_LISTENER);
-    }
-
-    public SwingReplacedElementFactory(RepaintListener repaintListener) {
-        this.repaintListener = repaintListener;
         this.formSubmissionListener = new DefaultFormSubmissionListener();
     }
-    
-//    public SwingReplacedElementFactory(RepaintListener repaintListener) {
-//        this(repaintListener, new ImageResourceLoader());
-//    }
-//
-//    public SwingReplacedElementFactory(final RepaintListener listener, final ImageResourceLoader irl) {
-//        this.repaintListener = listener;
-//        this.imageResourceLoader = irl;
-//        this.formSubmissionListener = new DefaultFormSubmissionListener();
-//    }
 
     /**
      * {@inheritDoc}

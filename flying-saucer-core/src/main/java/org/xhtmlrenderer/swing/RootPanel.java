@@ -74,7 +74,7 @@ import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
 
 
-public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCanvas, RepaintListener {
+public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCanvas {
     static final long serialVersionUID = 1L;
 
     private Box rootBox = null;

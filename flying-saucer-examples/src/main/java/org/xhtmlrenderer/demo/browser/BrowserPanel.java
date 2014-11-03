@@ -27,7 +27,6 @@ import org.xhtmlrenderer.pdf.PDFCreationListener;
 import org.xhtmlrenderer.pdf.util.XHtmlMetaToPdfInfoAdapter;
 import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
-import org.xhtmlrenderer.swing.ImageResourceLoader;
 import org.xhtmlrenderer.swing.ScalableXHTMLPanel;
 import org.xhtmlrenderer.swing.SwingReplacedElementFactory;
 import org.xhtmlrenderer.util.GeneralUtil;
@@ -164,13 +163,14 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 
 
 		manager = new PanelManager();
+                manager.setDeferredImageLoadingEnabled(true);
         view = new ScalableXHTMLPanel(manager);
 //        manager.setRepaintListener(view);
 //        ImageResourceLoader irl = new ImageResourceLoader();
 //        irl.setRepaintListener(view);
 //        manager.setImageResourceLoader(irl);
 //        view.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(view, irl));
-        view.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(view));
+        view.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory());
         view.addDocumentListener(manager);
         view.setCenteredPagedView(true);
         view.setBackground(Color.LIGHT_GRAY);

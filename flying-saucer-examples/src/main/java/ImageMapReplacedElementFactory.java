@@ -66,7 +66,7 @@ public class ImageMapReplacedElementFactory extends SwingReplacedElementFactory 
    private static final String POLYGON_SHAPE = "polygon";
 
    public ImageMapReplacedElementFactory(ImageMapListener listener) {
-       super(null);
+       super();
        if (null == listener) {
          throw new IllegalArgumentException("listener required");
       }
