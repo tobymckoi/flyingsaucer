@@ -63,7 +63,7 @@ public class LineBox extends Box implements InlinePaintable {
     private int _paintingTop;
     private int _paintingHeight;
 
-    private List _nonFlowContent;
+    private List<BlockBox> _nonFlowContent;
 
     private MarkerData _markerData;
 
@@ -76,6 +76,21 @@ public class LineBox extends Box implements InlinePaintable {
     private JustificationInfo _justificationInfo;
 
     public LineBox() {
+    }
+
+    /**
+     * Recursively perform box operation on this box, the children boxes and
+     * any inline boxes.
+     * 
+     * @param op 
+     */
+    @Override
+    public void performBoxOperation(final BoxOperation op) {
+        super.performBoxOperation(op);
+        List<BlockBox> nonFlowContent = getNonFlowContent();
+        for (BlockBox child : nonFlowContent) {
+            child.performBoxOperation(op);
+        }
     }
 
     public String dump(LayoutContext c, String indent, int which) {
@@ -373,7 +388,7 @@ public class LineBox extends Box implements InlinePaintable {
         }
     }
 
-    public List getNonFlowContent() {
+    public List<BlockBox> getNonFlowContent() {
         return _nonFlowContent == null ? Collections.EMPTY_LIST : _nonFlowContent;
     }
 

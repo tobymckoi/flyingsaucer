@@ -75,7 +75,7 @@ public abstract class Box implements Styleable {
 
     private Box _parent;
 
-    private List _boxes;
+    private List<Box> _boxes;
 
     /**
      * Keeps track of the start of childrens containing block.
@@ -99,6 +99,17 @@ public abstract class Box implements Styleable {
     private boolean _anonymous;
 
     protected Box() {
+    }
+
+    /**
+     * Performs an operation on this box and all children of this box.
+     * @param op 
+     */
+    public void performBoxOperation(final BoxOperation op) {
+        op.execute(this);
+        for (Box child : (List<Box>) getChildren()) {
+            child.performBoxOperation(op);
+        }
     }
 
     public abstract String dump(LayoutContext c, String indent, int which);

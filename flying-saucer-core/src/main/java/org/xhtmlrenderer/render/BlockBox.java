@@ -185,6 +185,27 @@ public class BlockBox extends Box implements InlinePaintable {
         }
     }
 
+//    /**
+//     * Recursively perform box operation on this box, the children boxes and
+//     * any inline boxes.
+//     * 
+//     * @param op 
+//     */
+//    @Override
+//    public void performBoxOperation(BoxOperation op) {
+//        super.performBoxOperation(op);
+//        List inlineContent = getInlineContent();
+//        if (inlineContent != null) {
+//            Iterator inlineBox = inlineContent.iterator();
+//            while (inlineBox.hasNext()) {
+//                Object ob = inlineBox.next();
+//                if (ob instanceof Box) {
+//                    ((Box) ob).performBoxOperation(op);
+//                }
+//            }
+//        }
+//    }
+
     public String dump(LayoutContext c, String indent, int which) {
         StringBuffer result = new StringBuffer(indent);
 
@@ -897,7 +918,7 @@ public class BlockBox extends Box implements InlinePaintable {
 
         // Find background images and add to the layout context,
         if (isRoot()) {
-            registerBackgroundImageBoxes(c, this);
+            performBoxOperation(new RegisterBackgroundImageBoxes(c));
         }
 
     }
@@ -910,20 +931,28 @@ public class BlockBox extends Box implements InlinePaintable {
      * @param c
      * @param box 
      */
-    private void registerBackgroundImageBoxes(LayoutContext c, Box box) {
-        CalculatedStyle style = box.getStyle();
-        if (style.isHasBackground()) {
-            if (! style.isIdent(CSSName.BACKGROUND_IMAGE, IdentValue.NONE)) {
-                String uri = style.getStringProperty(CSSName.BACKGROUND_IMAGE);
-                BoxLoadInfo boxLoadInfo =
-                            new BoxLoadInfo(box, BoxLoadInfo.STATUS_REPAINT);
-                c.registerBoxWithResource(boxLoadInfo, uri);
-            }
+    private static class RegisterBackgroundImageBoxes implements BoxOperation {
+
+        private final LayoutContext layoutContext;
+
+        RegisterBackgroundImageBoxes(LayoutContext c) {
+            this.layoutContext = c;
         }
-        // Recurse on all the children,
-        List<Box> children = box.getChildren();
-        for (Box child : children) {
-            registerBackgroundImageBoxes(c, child);
+
+        @Override
+        public void execute(Box box) {
+            CalculatedStyle style = box.getStyle();
+            if (style.isHasBackground()) {
+                if (! style.isIdent(CSSName.BACKGROUND_IMAGE, IdentValue.NONE)) {
+                    String uri = style.getStringProperty(CSSName.BACKGROUND_IMAGE);
+                    uri = layoutContext.getUac().resolveURI(uri);
+                    if (uri != null) {
+                        BoxLoadInfo boxLoadInfo =
+                                    new BoxLoadInfo(box, BoxLoadInfo.STATUS_REPAINT);
+                        layoutContext.registerBoxWithResource(boxLoadInfo, uri);
+                    }
+                }
+            }
         }
     }
 

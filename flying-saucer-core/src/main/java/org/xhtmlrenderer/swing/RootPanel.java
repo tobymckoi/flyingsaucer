@@ -261,8 +261,14 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
         // Repaint individual boxes,
         for (BoxLoadInfo boxLoadInfo : boxes) {
             PaintingInfo paintInfo = boxLoadInfo.getBox().getPaintingInfo();
-            Rectangle rect = paintInfo.getAggregateBounds();
-            repaint(rect);
+            if (paintInfo != null) {
+                Rectangle rect = paintInfo.getAggregateBounds();
+                repaint(rect);
+            }
+            else {
+                // Repaint the whole window,
+                repaintRequested(false);
+            }
         }
     }
 
