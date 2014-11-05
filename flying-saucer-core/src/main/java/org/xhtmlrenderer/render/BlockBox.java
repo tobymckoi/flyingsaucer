@@ -1827,6 +1827,10 @@ public class BlockBox extends Box implements InlinePaintable {
         styleText(c, getStyle());
     }
 
+    /**
+     * This method is used by InlineBoxing to style 'first-line' and
+     * 'first-letter' pseudo elements.
+     */
     // FIXME Should be expanded into generic restyle facility
     public void styleText(LayoutContext c, CalculatedStyle style) {
         if (getChildrenContentType() == CONTENT_INLINE) {

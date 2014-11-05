@@ -426,7 +426,7 @@ public class Matcher {
                 if (elementStyling != null) {
                     propList.addAll(elementStyling.getPropertyDeclarations());
                 }
-                if (propList.size() == 0)
+                if (propList.isEmpty())
                     cs = CascadedStyle.emptyCascadedStyle;
                 else {
                     cs = new CascadedStyle(propList.iterator());

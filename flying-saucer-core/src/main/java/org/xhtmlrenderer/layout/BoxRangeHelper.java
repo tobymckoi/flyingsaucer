@@ -27,20 +27,21 @@ import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.util.XRRuntimeException;
 
 public class BoxRangeHelper {
-    private LinkedList _clipRegionStack = new LinkedList();
+
+    private final LinkedList<BoxRangeData> _clipRegionStack = new LinkedList();
     
-    private OutputDevice _outputDevice;
-    private List _rangeList;
+    private final OutputDevice _outputDevice;
+    private final List<BoxRangeData> _rangeList;
     
     private int _rangeIndex = 0;
     private BoxRangeData _current = null;
     
-    public BoxRangeHelper(OutputDevice outputDevice, List rangeList) {
+    public BoxRangeHelper(OutputDevice outputDevice, List<BoxRangeData> rangeList) {
         _outputDevice = outputDevice;
         _rangeList = rangeList;
         
         if (rangeList.size() > 0) {
-            _current = (BoxRangeData)rangeList.get(0);
+            _current = rangeList.get(0);
         }
     }
     
@@ -60,14 +61,14 @@ public class BoxRangeHelper {
             if (_rangeIndex == _rangeList.size() - 1) {
                 _current = null;
             } else {
-                _current = (BoxRangeData)_rangeList.get(++_rangeIndex);
+                _current = _rangeList.get(++_rangeIndex);
             }
         }
     }
     
     public void popClipRegions(RenderingContext c, int contentIndex) {
         while (_clipRegionStack.size() > 0) {
-            BoxRangeData data = (BoxRangeData)_clipRegionStack.getLast();
+            BoxRangeData data = _clipRegionStack.getLast();
             if (data.getRange().getEnd() == contentIndex) {
                 _outputDevice.setClip(data.getClip());
                 _clipRegionStack.removeLast();
