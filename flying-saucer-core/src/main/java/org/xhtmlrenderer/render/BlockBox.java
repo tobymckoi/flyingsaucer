@@ -373,9 +373,22 @@ public class BlockBox extends Box implements InlinePaintable {
             img = imageResource.getImage();
             if (img != ImageResource.NOT_FOUND_IMG) {
                 StrutMetrics strutMetrics = structMetrics;
+
+                // Scale the image dimensions by dots per pixel,
+                int targetWid = (int) (img.getWidth() * c.getDotsPerPixel());
+                int targetHei = (int) (img.getHeight() * c.getDotsPerPixel());
+
+                // If the marker is larger than the ascent then scale it to
+                // the ascent.
                 if (img.getHeight() > strutMetrics.getAscent()) {
-                    img = img.createScaled(-1, (int) strutMetrics.getAscent());
+                    targetWid = -1;
+                    targetHei = (int) strutMetrics.getAscent();
                 }
+
+                // Scale the image to absolute size.
+                img = AbstractOutputDevice.resolveImageScale(
+                                                c, img, targetWid, targetHei);
+
                 MarkerData.ImageMarker result = new MarkerData.ImageMarker();
                 result.setImage(img);
                 result.setLayoutWidth(img.getWidth() * 2);

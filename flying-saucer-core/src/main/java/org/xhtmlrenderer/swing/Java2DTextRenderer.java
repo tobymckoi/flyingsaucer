@@ -398,6 +398,7 @@ public class Java2DTextRenderer implements TextRenderer {
 
     @Override
     public void setFractionalMetrics(Boolean enabled) {
+        Object oldHint = fractionalFontMetricsHint;
         if (enabled == null) {
             if("true".equals(Configuration.valueFor("xr.text.fractional-font-metrics", "false"))) {
                 fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_ON;
@@ -410,6 +411,9 @@ public class Java2DTextRenderer implements TextRenderer {
         }
         else {
             fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_OFF;
+        }
+        if (!fractionalFontMetricsHint.equals(oldHint)) {
+            clearTextMeasurementCache();
         }
     }
 

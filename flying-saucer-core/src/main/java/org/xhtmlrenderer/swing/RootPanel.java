@@ -289,6 +289,15 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
 
     }
 
+    public void resetBoxAndLayout() {
+        setRootBox(null);
+        getSharedContext().reset();
+        getSharedContext().getCss().setDocumentContext(getSharedContext(), getSharedContext().getNamespaceHandler(), doc, this);
+        // Clear the elementPane of any swing components we replaced,
+        elementPane.removeAll();
+        relayout();
+    }
+
     boolean layoutInProgress = false;
 
     public RenderingContext newRenderingContext(Graphics2D g) {

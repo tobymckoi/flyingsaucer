@@ -21,6 +21,8 @@ package org.xhtmlrenderer.demo.browser;
 
 import org.xhtmlrenderer.demo.browser.actions.ZoomAction;
 import org.xhtmlrenderer.swing.*;
+import org.xhtmlrenderer.extend.TextRenderer;
+import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.Uu;
 
@@ -33,7 +35,6 @@ import java.io.*;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
-import org.xhtmlrenderer.extend.TextRenderer;
 
 /**
  * Description of the Class
@@ -136,7 +137,7 @@ public class BrowserMenuBar extends JMenuBar {
      * Description of the Method
      */
     public void createLayout() {
-        final ScalableXHTMLPanel panel = root.panel.view;
+        final XHTMLPanel panel = root.panel.view;
 
         file.add(root.actions.open_file);
         file.add(new JSeparator());
@@ -315,7 +316,7 @@ public class BrowserMenuBar extends JMenuBar {
             TextRenderer textRenderer =
                         root.panel.view.getSharedContext().getTextRenderer();
             textRenderer.setFractionalMetrics(Boolean.valueOf(b.isSelected()));
-            root.panel.view.repaintRequested(true);
+            root.panel.view.resetBoxAndLayout();
         }
         
     }
@@ -332,7 +333,7 @@ public class BrowserMenuBar extends JMenuBar {
             TextRenderer textRenderer =
                         root.panel.view.getSharedContext().getTextRenderer();
             textRenderer.setKerning(Boolean.valueOf(b.isSelected()));
-            root.panel.view.repaintRequested(true);
+            root.panel.view.resetBoxAndLayout();
         }
         
     }
@@ -349,7 +350,7 @@ public class BrowserMenuBar extends JMenuBar {
             TextRenderer textRenderer =
                         root.panel.view.getSharedContext().getTextRenderer();
             textRenderer.setLigatures(Boolean.valueOf(b.isSelected()));
-            root.panel.view.repaintRequested(true);
+            root.panel.view.resetBoxAndLayout();
         }
         
     }
@@ -385,19 +386,22 @@ public class BrowserMenuBar extends JMenuBar {
     }
 
     private ScaleFactor[] initializeScales() {
-        ScaleFactor[] scales = new ScaleFactor[11];
+//        ScaleFactor[] scales = new ScaleFactor[11];
+        ScaleFactor[] scales = new ScaleFactor[10];
         int i = 0;
-        scales[i++] = new ScaleFactor(1.0d, "Normal (100%)");
-        scales[i++] = new ScaleFactor(2.0d, "200%");
-        scales[i++] = new ScaleFactor(1.5d, "150%");
+        scales[i++] = new ScaleFactor(2.0d,  "200%");
+        scales[i++] = new ScaleFactor(1.75d, "175%");
+        scales[i++] = new ScaleFactor(1.5d,  "150%");
+        scales[i++] = new ScaleFactor(1.25d, "125%");
+        scales[i++] = new ScaleFactor(1.0d,  "Normal (100%)");
         scales[i++] = new ScaleFactor(0.85d, "85%");
         scales[i++] = new ScaleFactor(0.75d, "75%");
-        scales[i++] = new ScaleFactor(0.5d, "50%");
+        scales[i++] = new ScaleFactor(0.5d,  "50%");
         scales[i++] = new ScaleFactor(0.33d, "33%");
         scales[i++] = new ScaleFactor(0.25d, "25%");
-        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_WIDTH, "Page width");
-        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_HEIGHT, "Page height");
-        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_WHOLE, "Whole page");
+//        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_WIDTH, "Page width");
+//        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_HEIGHT, "Page height");
+//        scales[i++] = new ScaleFactor(ScaleFactor.PAGE_WHOLE, "Whole page");
         return scales;
     }
 

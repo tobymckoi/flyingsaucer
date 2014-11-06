@@ -27,7 +27,7 @@ import org.xhtmlrenderer.pdf.PDFCreationListener;
 import org.xhtmlrenderer.pdf.util.XHtmlMetaToPdfInfoAdapter;
 import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
-import org.xhtmlrenderer.swing.ScalableXHTMLPanel;
+import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.swing.SwingReplacedElementFactory;
 import org.xhtmlrenderer.util.GeneralUtil;
 import org.xhtmlrenderer.util.Uu;
@@ -100,7 +100,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 	/**
 	 * Description of the Field
 	 */
-	public ScalableXHTMLPanel view;
+	public XHTMLPanel view;
 	/**
 	 * Description of the Field
 	 */
@@ -164,7 +164,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 
 		manager = new PanelManager();
                 manager.setDeferredImageLoadingEnabled(true);
-        view = new ScalableXHTMLPanel(manager);
+        view = new XHTMLPanel(manager);
 //        manager.setRepaintListener(view);
 //        ImageResourceLoader irl = new ImageResourceLoader();
 //        irl.setRepaintListener(view);
