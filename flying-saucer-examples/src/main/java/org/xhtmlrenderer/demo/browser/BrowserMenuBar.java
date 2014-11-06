@@ -33,6 +33,7 @@ import java.io.*;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
+import org.xhtmlrenderer.extend.TextRenderer;
 
 /**
  * Description of the Class
@@ -189,6 +190,19 @@ public class BrowserMenuBar extends JMenuBar {
 
         add(demos);
 
+        JMenu anti = new JMenu("Anti Aliasing");
+        ButtonGroup anti_level = new ButtonGroup();
+        addAALevel(anti, anti_level, "None", -1);
+        addAALevel(anti, anti_level, "Low", 25).setSelected(true);
+        addAALevel(anti, anti_level, "Medium", 12);
+        addAALevel(anti, anti_level, "High", 0);
+        debug.add(anti);
+
+        debug.add(new JCheckBoxMenuItem(new FontFractionalMetricsAction()));
+        debug.add(new JCheckBoxMenuItem(new FontKerningAction()));
+        debug.add(new JCheckBoxMenuItem(new FontLigaturesAction()));
+        debug.addSeparator();
+
         JMenu debugShow = new JMenu("Show");
         debug.add(debugShow);
         debugShow.setMnemonic('S');
@@ -197,15 +211,6 @@ public class BrowserMenuBar extends JMenuBar {
         debugShow.add(new JCheckBoxMenuItem(new LineBoxOutlinesAction()));
         debugShow.add(new JCheckBoxMenuItem(new InlineBoxesAction()));
         debugShow.add(new JCheckBoxMenuItem(new FontMetricsAction()));
-
-        JMenu anti = new JMenu("Anti Aliasing");
-        ButtonGroup anti_level = new ButtonGroup();
-        addLevel(anti, anti_level, "None", -1);
-        addLevel(anti, anti_level, "Low", 25).setSelected(true);
-        addLevel(anti, anti_level, "Medium", 12);
-        addLevel(anti, anti_level, "High", 0);
-        debug.add(anti);
-
 
         debug.add(new ShowDOMInspectorAction());
         debug.add(new AbstractAction("Validation Console") {
@@ -291,13 +296,63 @@ public class BrowserMenuBar extends JMenuBar {
         }
     }
 
-    private JRadioButtonMenuItem addLevel(JMenu menu, ButtonGroup group, String title, int level) {
+    private JRadioButtonMenuItem addAALevel(JMenu menu, ButtonGroup group, String title, int level) {
         JRadioButtonMenuItem item = new JRadioButtonMenuItem(new AntiAliasedAction(title, level));
         group.add(item);
         menu.add(item);
         return item;
     }
 
+    class FontFractionalMetricsAction extends AbstractAction {
+
+        public FontFractionalMetricsAction() {
+            super("Fractional Metrics");
+            putValue(MNEMONIC_KEY, new Integer(KeyEvent.VK_F));
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            JCheckBoxMenuItem b = (JCheckBoxMenuItem) e.getSource();
+            TextRenderer textRenderer =
+                        root.panel.view.getSharedContext().getTextRenderer();
+            textRenderer.setFractionalMetrics(Boolean.valueOf(b.isSelected()));
+            root.panel.view.repaintRequested(true);
+        }
+        
+    }
+
+    class FontKerningAction extends AbstractAction {
+
+        public FontKerningAction() {
+            super("Kerning");
+            putValue(MNEMONIC_KEY, new Integer(KeyEvent.VK_K));
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            JCheckBoxMenuItem b = (JCheckBoxMenuItem) e.getSource();
+            TextRenderer textRenderer =
+                        root.panel.view.getSharedContext().getTextRenderer();
+            textRenderer.setKerning(Boolean.valueOf(b.isSelected()));
+            root.panel.view.repaintRequested(true);
+        }
+        
+    }
+
+    class FontLigaturesAction extends AbstractAction {
+
+        public FontLigaturesAction() {
+            super("Ligatures");
+            putValue(MNEMONIC_KEY, new Integer(KeyEvent.VK_L));
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            JCheckBoxMenuItem b = (JCheckBoxMenuItem) e.getSource();
+            TextRenderer textRenderer =
+                        root.panel.view.getSharedContext().getTextRenderer();
+            textRenderer.setLigatures(Boolean.valueOf(b.isSelected()));
+            root.panel.view.repaintRequested(true);
+        }
+        
+    }
 
     /**
      * Description of the Method

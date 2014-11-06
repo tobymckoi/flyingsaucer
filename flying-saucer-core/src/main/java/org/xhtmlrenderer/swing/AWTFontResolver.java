@@ -50,39 +50,11 @@ public class AWTFontResolver implements FontResolver {
     // Overridden font names,
     private final Map<String, Font> overriden_fonts_hash = new HashMap();
 
-    // True if fonts should be created with kerning enabled,
-    private boolean kerning_enabled = false;
-    
-    // True if fonts should be created with ligatures enabled,
-    private boolean ligatures_enabled = false;
-
     /**
      * Constructor for the FontResolverTest object
      */
     public AWTFontResolver() {
         init();
-    }
-
-    /**
-     * Enables kerning for all new font instances created. If the font has
-     * kerning enabled by system default, there is currently no way to disable
-     * it. Default is false (don't enable kerning).
-     * 
-     * @param enabled
-     */
-    public void setKerning(boolean enabled) {
-        kerning_enabled = enabled;
-    }
-
-    /**
-     * Enables ligatures for all new font instances created. If the font has
-     * ligatures enabled by system default, there is currently no way to
-     * disable it. Default is false (don't enable ligatures).
-     * 
-     * @param enabled
-     */
-    public void setLigatures(boolean enabled) {
-        ligatures_enabled = enabled;
     }
 
     private void init() {
@@ -120,15 +92,17 @@ public class AWTFontResolver implements FontResolver {
      * @param weight   PARAM
      * @param style    PARAM
      * @param variant  PARAM
+     * @param kerning
+     * @param ligatures
      * @return Returns
      */
-    public FSFont resolveFont(SharedContext ctx, String[] families, float size, IdentValue weight, IdentValue style, IdentValue variant) {
+    public FSFont resolveFont(SharedContext ctx, String[] families, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
         //Uu.p("familes = ");
         //Uu.p(families);
         // for each font family
         if (families != null) {
             for (int i = 0; i < families.length; i++) {
-                Font font = resolveFont(ctx, families[i], size, weight, style, variant);
+                Font font = resolveFont(ctx, families[i], size, weight, style, variant, kerning, ligatures);
                 if (font != null) {
                     return new AWTFSFont(font);
                 }
@@ -142,8 +116,8 @@ public class AWTFontResolver implements FontResolver {
             family = "Serif";
         }
 
-        Font fnt = createFont(ctx, family, size, weight, style, variant);
-        instance_hash.put(getFontInstanceHashName(ctx, family, size, weight, style, variant), fnt);
+        Font fnt = createFont(ctx, family, size, weight, style, variant, kerning, ligatures);
+        instance_hash.put(getFontInstanceHashName(ctx, family, size, weight, style, variant, kerning, ligatures), fnt);
         //Uu.p("subbing in base sans : " + fnt);
         return new AWTFSFont(fnt);
     }
@@ -157,9 +131,11 @@ public class AWTFontResolver implements FontResolver {
      * @param weight    PARAM
      * @param style     PARAM
      * @param variant   PARAM
+     * @param kerning
+     * @param ligatures
      * @return Returns
      */
-    protected Font createFont(SharedContext ctx, String fontFamily, float size, IdentValue weight, IdentValue style, IdentValue variant) {
+    protected Font createFont(SharedContext ctx, String fontFamily, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
 
         Object tattr_weight = TextAttribute.WEIGHT_REGULAR;
         Object tattr_posture = TextAttribute.POSTURE_REGULAR;
@@ -215,10 +191,10 @@ public class AWTFontResolver implements FontResolver {
         fontAttrs.put(TextAttribute.SIZE, size);
         fontAttrs.put(TextAttribute.WEIGHT, tattr_weight);
         fontAttrs.put(TextAttribute.POSTURE, tattr_posture);
-        if (kerning_enabled) {
+        if (Boolean.TRUE.equals(kerning)) {
             fontAttrs.put(TextAttribute.KERNING, TextAttribute.KERNING_ON);
         }
-        if (ligatures_enabled) {
+        if (Boolean.TRUE.equals(ligatures)) {
             fontAttrs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
         }
 
@@ -241,9 +217,11 @@ public class AWTFontResolver implements FontResolver {
      * @param weight  PARAM
      * @param style   PARAM
      * @param variant PARAM
+     * @param kerning
+     * @param ligatures
      * @return Returns
      */
-    protected Font resolveFont(SharedContext ctx, String font, float size, IdentValue weight, IdentValue style, IdentValue variant) {
+    protected Font resolveFont(SharedContext ctx, String font, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
         //Uu.p("here");
         // strip off the "s if they are there
         if (font.startsWith("\"")) {
@@ -269,7 +247,7 @@ public class AWTFontResolver implements FontResolver {
         if (font.equals("SansSerif") && style == IdentValue.ITALIC) font = "Serif";
 
         // assemble a font instance hash name
-        String font_instance_name = getFontInstanceHashName(ctx, font, size, weight, style, variant);
+        String font_instance_name = getFontInstanceHashName(ctx, font, size, weight, style, variant, kerning, ligatures);
         //Uu.p("looking for font: " + font_instance_name);
         // check if the font instance exists in the hash table
         if (instance_hash.containsKey(font_instance_name)) {
@@ -288,7 +266,7 @@ public class AWTFontResolver implements FontResolver {
         }
 
         // now that we have a root font, we need to create the correct version of it
-        Font fnt = createFont(ctx, font, size, weight, style, variant);
+        Font fnt = createFont(ctx, font, size, weight, style, variant, kerning, ligatures);
 
         // add the font to the hash so we don't have to do this again
         instance_hash.put(font_instance_name, fnt);
@@ -313,15 +291,17 @@ public class AWTFontResolver implements FontResolver {
      * @param weight  PARAM
      * @param style   PARAM
      * @param variant PARAM @return The fontInstanceHashName value
+     * @param kerning
+     * @param ligatures
      * @return 
      */
-    protected static String getFontInstanceHashName(SharedContext ctx, String name, float size, IdentValue weight, IdentValue style, IdentValue variant) {
-        return name + "-" + (size * ctx.getTextRenderer().getFontScale()) + "-" + weight + "-" + style + "-" + variant;
+    protected static String getFontInstanceHashName(SharedContext ctx, String name, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
+        return name + "-" + (size * ctx.getTextRenderer().getFontScale()) + "-" + weight + "-" + style + "-" + variant + "-" + kerning + "-" + ligatures;
     }
 
     @Override
     public FSFont resolveFont(SharedContext renderingContext, FontSpecification spec) {
-        return resolveFont(renderingContext, spec.families, spec.size, spec.fontWeight, spec.fontStyle, spec.variant);
+        return resolveFont(renderingContext, spec.getFamilies(), spec.getSize(), spec.getFontWeight(), spec.getFontStyle(), spec.getVariant(), spec.isKerning(), spec.isLigatures());
     }
 }
 

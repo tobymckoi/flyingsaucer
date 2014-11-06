@@ -130,4 +130,27 @@ public class SWTTextRenderer implements TextRenderer {
         throw new UnsupportedOperationException();
     }
 
+    public void setFractionalMetrics(Boolean enabled) {
+        // no-op, can we support?
+    }
+
+    public Boolean getFractionalMetrics() {
+        return null;
+    }
+
+    public void setKerning(Boolean enabled) {
+        // Use font kerning default settings,
+    }
+
+    public Boolean getKerning() {
+        return null;
+    }
+
+    public void setLigatures(Boolean enabled) {
+        // Use font ligature default settings,
+    }
+
+    public Boolean getLigatures() {
+        return null;
+    }
 }

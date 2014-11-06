@@ -115,4 +115,28 @@ public class ITextTextRenderer implements TextRenderer {
     public void drawGlyphVector(OutputDevice outputDevice, FSGlyphVector vector, float x, float y) {
         throw new UnsupportedOperationException();
     }
+
+    public void setFractionalMetrics(Boolean enabled) {
+        // no-op, pdf doesn't use font metrics (does it?)
+    }
+
+    public Boolean getFractionalMetrics() {
+        return null;
+    }
+
+    public void setKerning(Boolean enabled) {
+        // Use font kerning default settings,
+    }
+
+    public Boolean getKerning() {
+        return null;
+    }
+
+    public void setLigatures(Boolean enabled) {
+        // Use font ligature default settings,
+    }
+
+    public Boolean getLigatures() {
+        return null;
+    }
 }

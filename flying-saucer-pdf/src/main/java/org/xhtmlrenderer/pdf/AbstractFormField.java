@@ -149,7 +149,7 @@ public abstract class AbstractFormField implements ITextReplacedElement {
             if (cssHeight != -1) {
                 setWidth(cssHeight);
             } else {
-                setWidth((int) (box.getStyle().getFont(c).size * FONT_SIZE_ADJUSTMENT));
+                setWidth((int) (box.getStyle().getFont(c).getSize() * FONT_SIZE_ADJUSTMENT));
             }
         }
 
@@ -159,7 +159,7 @@ public abstract class AbstractFormField implements ITextReplacedElement {
             if (cssWidth != -1) {
                 setHeight(cssWidth);
             } else {
-                setHeight((int) (box.getStyle().getFont(c).size * FONT_SIZE_ADJUSTMENT));
+                setHeight((int) (box.getStyle().getFont(c).getSize() * FONT_SIZE_ADJUSTMENT));
             }
         }
     }

@@ -372,36 +372,39 @@ public class CalculatedStyle {
 
     public FontSpecification getFont(CssContext ctx) {
         if (_font == null) {
-            _font = new FontSpecification();
 
-            _font.families = valueByName(CSSName.FONT_FAMILY).asStringArray();
+            String[] families = valueByName(CSSName.FONT_FAMILY).asStringArray();
+            float size;
 
             FSDerivedValue fontSize = valueByName(CSSName.FONT_SIZE);
             if (fontSize instanceof IdentValue) {
                 PropertyValue replacement;
                 IdentValue resolved = resolveAbsoluteFontSize();
                 if (resolved != null) {
-                    replacement = FontSizeHelper.resolveAbsoluteFontSize(resolved, _font.families);
+                    replacement = FontSizeHelper.resolveAbsoluteFontSize(resolved, families);
                 } else {
                     replacement = FontSizeHelper.getDefaultRelativeFontSize((IdentValue) fontSize);
                 }
-                _font.size = LengthValue.calcFloatProportionalValue(
+                size = LengthValue.calcFloatProportionalValue(
                         this, CSSName.FONT_SIZE, replacement.getCssText(),
                         replacement.getFloatValue(), replacement.getPrimitiveType(), 0, ctx);
             } else {
-                _font.size = getFloatPropertyProportionalTo(CSSName.FONT_SIZE, 0, ctx);
+                size = getFloatPropertyProportionalTo(CSSName.FONT_SIZE, 0, ctx);
             }
 
-            _font.fontWeight = getIdent(CSSName.FONT_WEIGHT);
+            IdentValue fontWeight = getIdent(CSSName.FONT_WEIGHT);
 
-            _font.fontStyle = getIdent(CSSName.FONT_STYLE);
-            _font.variant = getIdent(CSSName.FONT_VARIANT);
+            IdentValue fontStyle = getIdent(CSSName.FONT_STYLE);
+            IdentValue variant = getIdent(CSSName.FONT_VARIANT);
+
+            _font = new FontSpecification(families, size, fontWeight, fontStyle, variant);
+
         }
         return _font;
     }
 
     public FontSpecification getFontSpecification() {
-    return _font;
+        return _font;
     }
 
     private IdentValue resolveAbsoluteFontSize() {
@@ -453,7 +456,7 @@ public class CalculatedStyle {
     public float getLineHeight(CssContext ctx) {
         if (! _lineHeightResolved) {
             if (isIdent(CSSName.LINE_HEIGHT, IdentValue.NORMAL)) {
-                float lineHeight1 = getFont(ctx).size * 1.1f;
+                float lineHeight1 = getFont(ctx).getSize() * 1.1f;
                 // Make sure rasterized characters will (probably) fit inside
                 // the line box
                 FSFontMetrics metrics = getFSFontMetrics(ctx);
@@ -464,7 +467,7 @@ public class CalculatedStyle {
                 _lineHeight = getFloatPropertyProportionalHeight(CSSName.LINE_HEIGHT, 0, ctx);
             } else {
                 //must be a number
-                _lineHeight = getFont(ctx).size * valueByName(CSSName.LINE_HEIGHT).asFloat();
+                _lineHeight = getFont(ctx).getSize() * valueByName(CSSName.LINE_HEIGHT).asFloat();
             }
             _lineHeightResolved = true;
         }

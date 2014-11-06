@@ -79,5 +79,55 @@ public interface TextRenderer {
      * @param level no-op
      */
     public void setSmoothingLevel(int level);
+
+    /**
+     * Sets whether Fractional Metrics is enabled or not. If this is given
+     * 'null' (default) then the configuration default is used.
+     * 
+     * @param enabled
+     */
+    public void setFractionalMetrics(Boolean enabled);
+
+    /**
+     * Returns the current Fractional Metrics setting.
+     * 
+     * @return 
+     */
+    public Boolean getFractionalMetrics();
+
+    /**
+     * Sets whether font kerning is enabled by default. If this is given 'null'
+     * (default) then the system default is used. Note that font kerning may
+     * be enabled by CSS or by system default, in which case this value is
+     * ignored.
+     * 
+     * @param enabled
+     */
+    public void setKerning(Boolean enabled);
+
+    /**
+     * Returns the current font kerning default setting.
+     * 
+     * @return 
+     */
+    public Boolean getKerning();
+
+    /**
+     * Sets whether font ligatures are enabled by default. If this is given
+     * 'null' (default) then the system default is used. Note that font
+     * ligatures may be enabled by CSS or by system default, in which case
+     * this value is ignored.
+     * 
+     * @param enabled
+     */
+    public void setLigatures(Boolean enabled);
+
+    /**
+     * Returns the current font ligatures setting.
+     * 
+     * @return 
+     */
+    public Boolean getLigatures();
+
 }
 

@@ -76,7 +76,7 @@ public class ITextFontResolver implements FontResolver {
     }
 
     public FSFont resolveFont(SharedContext renderingContext, FontSpecification spec) {
-        return resolveFont(renderingContext, spec.families, spec.size, spec.fontWeight, spec.fontStyle, spec.variant);
+        return resolveFont(renderingContext, spec.getFamilies(), spec.getSize(), spec.getFontWeight(), spec.getFontStyle(), spec.getVariant());
     }
 
     public void flushCache() {

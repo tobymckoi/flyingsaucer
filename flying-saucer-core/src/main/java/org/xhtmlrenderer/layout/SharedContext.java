@@ -427,6 +427,10 @@ public class SharedContext {
     }
 
     public FSFont getFont(FontSpecification spec) {
+        // Apply kerning and ligature system defaults if defined,
+        TextRenderer textRenderer = getTextRenderer();
+        spec = spec.deriveWithKerningAndLigatures(
+                        textRenderer.getKerning(), textRenderer.getLigatures());
         return getFontResolver().resolveFont(this, spec);
     }
 

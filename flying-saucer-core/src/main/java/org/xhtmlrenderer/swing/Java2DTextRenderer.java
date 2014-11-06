@@ -51,6 +51,8 @@ public class Java2DTextRenderer implements TextRenderer {
     protected float threshold;
     protected Object antiAliasRenderingHint;
     protected Object fractionalFontMetricsHint;
+    protected Boolean defaultKerningHint = null;
+    protected Boolean defaultLigaturesHint = null;
 
     protected Map<CachedTextKey, Float> textWidthCache = new WeakHashMap(1024);
 
@@ -63,12 +65,7 @@ public class Java2DTextRenderer implements TextRenderer {
         Object aaHint = Configuration.valueFromClassConstant("xr.text.aa-rendering-hint", dummy);
         if (aaHint == dummy) {
             try {
-                Map map;
-                // we should be able to look up the "recommended" AA settings (that correspond to the user's
-                // desktop preferences and machine capabilities
-                // see: http://java.sun.com/javase/6/docs/api/java/awt/doc-files/DesktopProperties.html
-                Toolkit tk = Toolkit.getDefaultToolkit();
-                map = (Map) (tk.getDesktopProperty("awt.font.desktophints"));
+                Map map = getSystemDefaultRenderingHints();
                 antiAliasRenderingHint = map.get(RenderingHints.KEY_TEXT_ANTIALIASING);
             } catch (Exception e) {
                 // conceivably could get an exception in a webstart environment? not sure
@@ -82,6 +79,26 @@ public class Java2DTextRenderer implements TextRenderer {
         } else {
             fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_OFF;
         }
+    }
+
+    /**
+     * Returns the system default rendering hints.
+     * 
+     * @return 
+     */
+    private static Map getSystemDefaultRenderingHints() {
+        // we should be able to look up the "recommended" AA settings (that correspond to the user's
+        // desktop preferences and machine capabilities
+        // see: http://java.sun.com/javase/6/docs/api/java/awt/doc-files/DesktopProperties.html
+        Toolkit tk = Toolkit.getDefaultToolkit();
+        return (Map) (tk.getDesktopProperty("awt.font.desktophints"));
+    }
+
+    /**
+     * Clears the text measurement cache.
+     */
+    public void clearTextMeasurementCache() {
+        textWidthCache.clear();
     }
 
     /** {@inheritDoc} */
@@ -377,6 +394,51 @@ public class Java2DTextRenderer implements TextRenderer {
         Graphics2D graphics = ((Java2DOutputDevice)outputDevice).getGraphics();
         Font awtFont = ((AWTFSFont)font).getAWTFont();
         return getGlyphVector(graphics, awtFont, text);
+    }
+
+    @Override
+    public void setFractionalMetrics(Boolean enabled) {
+        if (enabled == null) {
+            if("true".equals(Configuration.valueFor("xr.text.fractional-font-metrics", "false"))) {
+                fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_ON;
+            } else {
+                fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_OFF;
+            }
+        }
+        else if (enabled.equals(Boolean.TRUE)) {
+            fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_ON;
+        }
+        else {
+            fractionalFontMetricsHint = RenderingHints.VALUE_FRACTIONALMETRICS_OFF;
+        }
+    }
+
+    @Override
+    public Boolean getFractionalMetrics() {
+        return Boolean.valueOf(fractionalFontMetricsHint.equals(
+                                   RenderingHints.VALUE_FRACTIONALMETRICS_ON));
+    }
+
+    @Override
+    public void setKerning(Boolean enabled) {
+        defaultKerningHint = enabled;
+        clearTextMeasurementCache();
+    }
+
+    @Override
+    public Boolean getKerning() {
+        return defaultKerningHint;
+    }
+
+    @Override
+    public void setLigatures(Boolean enabled) {
+        defaultLigaturesHint = enabled;
+        clearTextMeasurementCache();
+    }
+
+    @Override
+    public Boolean getLigatures() {
+        return defaultLigaturesHint;
     }
 
     // -----

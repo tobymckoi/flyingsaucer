@@ -503,7 +503,7 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
         float c = (float) mx[2];
         FontSpecification fontSpec = getFontSpecification();
         if (fontSpec != null) {
-            int need = ITextFontResolver.convertWeightToInt(fontSpec.fontWeight);
+            int need = ITextFontResolver.convertWeightToInt(fontSpec.getFontWeight());
             int have = desc.getWeight();
             if (need > have) {
                 cb.setTextRenderingMode(PdfContentByte.TEXT_RENDER_MODE_FILL_STROKE);
@@ -511,7 +511,7 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
                 cb.setLineWidth(lineWidth);
                 resetMode = true;
             }
-            if ((fontSpec.fontStyle == IdentValue.ITALIC) && (desc.getStyle() != IdentValue.ITALIC)) {
+            if ((fontSpec.getFontStyle() == IdentValue.ITALIC) && (desc.getStyle() != IdentValue.ITALIC)) {
                 b = 0f;
                 c = 0.21256f;
             }
