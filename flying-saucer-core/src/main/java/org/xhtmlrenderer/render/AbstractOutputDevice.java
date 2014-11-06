@@ -255,6 +255,12 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
             fsImage = scaleBackgroundImage(c, style,
                                            localBGImageContainer, fsImage);
+            if (fsImage.getWidth() < 1) {
+                fsImage = fsImage.createScaled(1, fsImage.getHeight());
+            }
+            if (fsImage.getHeight() < 1) {
+                fsImage = fsImage.createScaled(fsImage.getWidth(), 1);
+            }
 
             float imageWidth = fsImage.getWidth();
             float imageHeight = fsImage.getHeight();
