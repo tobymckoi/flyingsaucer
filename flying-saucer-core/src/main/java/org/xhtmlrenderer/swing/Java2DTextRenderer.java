@@ -26,6 +26,7 @@ import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.font.GlyphVector;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -212,18 +213,21 @@ public class Java2DTextRenderer implements TextRenderer {
     }
 
     public int getWidth(FontContext fc, FSFont font, String string) {
+        if (string == null || string.length() == 0) {
+            return 0;
+        }
+
         Object fracHint = null;
         Graphics2D graphics = ((Java2DFontContext)fc).getGraphics();
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
         Font awtFont = ((AWTFSFont)font).getAWTFont();
         int width = 0;
+        Rectangle2D fmSwingBounds = graphics.getFontMetrics(awtFont).getStringBounds(string, graphics);
         if(fractionalFontMetricsHint == RenderingHints.VALUE_FRACTIONALMETRICS_ON) {
-            width = (int)Math.round(
-                    graphics.getFontMetrics(awtFont).getStringBounds(string, graphics).getWidth());
+            width = (int)Math.round(fmSwingBounds.getWidth());
         } else {
-            width = (int)Math.ceil(
-                    graphics.getFontMetrics(awtFont).getStringBounds(string, graphics).getWidth());
+            width = (int)Math.ceil(fmSwingBounds.getWidth());
         }
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
         return width;
