@@ -472,7 +472,7 @@ public abstract class Box implements Styleable {
         viewportBounds.y = 0;
         viewportBounds.height = Math.max(viewportRectangle.height, marginCorner.height);
         // Cap canvas bounds to viewport,
-        c.getOutputDevice().paintBackground(c, getStyle(), viewportRectangle, viewportBounds, null);
+        c.getOutputDevice().paintBackground(c, getStyle(), viewportRectangle, viewportBounds, BorderPropertySet.EMPTY_BORDER);
 
     }
 
