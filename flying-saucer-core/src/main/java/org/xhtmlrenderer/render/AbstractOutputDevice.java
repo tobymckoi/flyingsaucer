@@ -231,7 +231,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         Shape borderBounds = BorderPainter.generateBorderBounds(backgroundBounds, border, false);
 
         Shape oldclip = getClip();
-        clip(borderBounds);
+        setClip(borderBounds);
         
         if (backgroundColor != null && backgroundColor != FSRGBColor.TRANSPARENT) {
             setColor(backgroundColor);
@@ -254,17 +254,10 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 yoff += (int)border.top();
             }
 
-            fsImage = scaleBackgroundImage(c, style,
-                                           localBGImageContainer, fsImage);
-            if (fsImage.getWidth() < 1) {
-                fsImage = fsImage.createScaled(1, fsImage.getHeight());
-            }
-            if (fsImage.getHeight() < 1) {
-                fsImage = fsImage.createScaled(fsImage.getWidth(), 1);
-            }
+            scaleBackgroundImage(c, style, localBGImageContainer, backgroundImage);
 
-            float imageWidth = fsImage.getWidth();
-            float imageHeight = fsImage.getHeight();
+            float imageWidth = backgroundImage.getWidth();
+            float imageHeight = backgroundImage.getHeight();
 
             BackgroundPosition position = style.getBackgroundPosition();
             xoff += calcOffset(
