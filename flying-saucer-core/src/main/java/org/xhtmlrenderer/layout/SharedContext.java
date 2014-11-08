@@ -24,12 +24,12 @@ import java.awt.HeadlessException;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.context.StyleReference;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.EmptyStyle;
@@ -624,13 +624,9 @@ public class SharedContext {
         getCss().removeStyle(e);
         getReplacedElementFactory().remove(e);
 
-        if (e.hasChildNodes()) {
-            NodeList children = e.getChildNodes();
-            for (int i = 0; i < children.getLength(); i++) {
-                Node child = children.item(i);
-                if (child.getNodeType() == Node.ELEMENT_NODE) {
-                    removeElementReferences((Element)child);
-                }
+        for (Node child : e.getChildNodes()) {
+            if (child instanceof Element) {
+                removeElementReferences((Element)child);
             }
         }
     }

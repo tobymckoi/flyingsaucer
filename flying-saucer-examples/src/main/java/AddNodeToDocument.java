@@ -18,8 +18,8 @@
  * }}}
  */
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.simple.FSScrollPane;
 import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.simple.extend.XhtmlNamespaceHandler;

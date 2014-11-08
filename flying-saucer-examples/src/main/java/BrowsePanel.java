@@ -17,7 +17,7 @@
  */
 
 
-import org.w3c.dom.Document;
+import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.event.DefaultDocumentListener;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.resource.XMLResource;

@@ -36,8 +36,10 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.xhtmlrenderer.dom.AttributeSet;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.ElementSet;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.simple.extend.XhtmlForm;
@@ -92,19 +94,20 @@ class SelectField extends FormField {
     }
     
     protected FormFieldState loadOriginalState() {
-        ArrayList list = new ArrayList();
+        ArrayList selectedItemsList = new ArrayList();
         
-        NodeList options = getElement().getElementsByTagName("option");
+        ElementSet options = getElement().getElementsByTagName("option");
 
-        for (int i = 0; i < options.getLength(); i++) {
-            Element option = (Element) options.item(i);
-
-            if (option.hasAttribute("selected") && option.getAttribute("selected").equalsIgnoreCase("selected")) {
-                list.add(new Integer(i));
+        int i = 0;
+        for (Element option : options) {
+            AttributeSet attributes = option.getAttributes();
+            if (attributes.hasAttribute("selected") && option.getAttribute("selected").equalsIgnoreCase("selected")) {
+                selectedItemsList.add(new Integer(i));
             }
+            ++i;
         }
 
-        return FormFieldState.fromList(list);
+        return FormFieldState.fromList(selectedItemsList);
     }
     
     protected void applyOriginalState() {
@@ -164,28 +167,25 @@ class SelectField extends FormField {
     }
 
     private void addChildren(List list, Element e, int indent) {
-        NodeList children = e.getChildNodes();
-        
-        for (int i = 0; i < children.getLength(); i++) {
-            if (!(children.item(i) instanceof Element)) continue;
-            Element child = (Element) children.item(i);
-            
+        for (Node child : e.getChildNodes()) {
+            if (!(child instanceof Element)) continue;
+
             if ("option".equals(child.getNodeName())) {
                 // option tag, add it
-                String optionText = XhtmlForm.collectText(child);
+                String optionText = XhtmlForm.collectText((Element) child);
                 String optionValue = optionText;
-                
-                if (child.hasAttribute("value")) {
+
+                if (child.getAttributes().hasAttribute("value")) {
                     optionValue = child.getAttribute("value");
                 }
 
                 list.add(new NameValuePair(optionText, optionValue, indent));
-                
+
             } else if ("optgroup".equals(child.getNodeName())) {
                 // optgroup tag, append heading and indent children
                 String titleText = child.getAttribute("label");
                 list.add(new NameValuePair(titleText, null, indent));
-                addChildren(list, child, indent+1);
+                addChildren(list, (Element) child, indent+1);
             }
         }
     }

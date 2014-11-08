@@ -11,7 +11,7 @@ import org.xhtmlrenderer.css.constants.CSSName;
 import org.xhtmlrenderer.simple.extend.XhtmlForm;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;

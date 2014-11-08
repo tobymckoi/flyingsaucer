@@ -28,10 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.Text;
 import org.w3c.dom.css.CSSPrimitiveValue;
 import org.xhtmlrenderer.css.constants.CSSName;
 import org.xhtmlrenderer.css.constants.IdentValue;
@@ -47,6 +43,12 @@ import org.xhtmlrenderer.css.sheet.StylesheetInfo;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.EmptyStyle;
 import org.xhtmlrenderer.css.style.FSDerivedValue;
+import org.xhtmlrenderer.dom.CharacterData;
+import org.xhtmlrenderer.dom.DataNode;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.newtable.TableBox;
 import org.xhtmlrenderer.newtable.TableCellBox;
 import org.xhtmlrenderer.newtable.TableColumn;
@@ -1026,10 +1028,9 @@ public class BoxBuilder {
     private static void addColumns(LayoutContext c, TableBox table, TableColumn parent) {
         SharedContext sharedContext = c.getSharedContext();
 
-        Node working = parent.getElement().getFirstChild();
         boolean found = false;
-        while (working != null) {
-            if (working.getNodeType() == Node.ELEMENT_NODE) {
+        for (final Node working : parent.getElement().getChildNodes()) {
+            if (working instanceof Element) {
                 Element element = (Element) working;
                 CalculatedStyle style = sharedContext.getStyle(element);
 
@@ -1040,7 +1041,6 @@ public class BoxBuilder {
                     table.addStyleColumn(col);
                 }
             }
-            working = working.getNextSibling();
         }
         if (! found) {
             table.addStyleColumn(parent);
@@ -1057,7 +1057,7 @@ public class BoxBuilder {
     }
 
     private static InlineBox createInlineBox(
-            String text, Element parent, CalculatedStyle parentStyle, Text node) {
+            String text, Element parent, CalculatedStyle parentStyle, TextNode node) {
         InlineBox result = new InlineBox(text, node);
 
         if (parentStyle.isInline() && ! (parent.getParentNode() instanceof Document)) {
@@ -1081,131 +1081,129 @@ public class BoxBuilder {
 
         insertGeneratedContent(c, parent, parentStyle, "before", children, info);
 
-        Node working = parent.getFirstChild();
         boolean needStartText = inline;
         boolean needEndText = inline;
-        if (working != null) {
-            InlineBox previousIB = null;
-            do {
-                Styleable child = null;
-                short nodeType = working.getNodeType();
-                if (nodeType == Node.ELEMENT_NODE) {
-                    Element element = (Element) working;
-                    CalculatedStyle style = sharedContext.getStyle(element);
 
-                    if (style.isDisplayNone()) {
-                        continue;
+        InlineBox previousIB = null;
+        for (final Node working : parent.getChildNodes()) {
+            Styleable child = null;
+            if (working instanceof Element) {
+                Element element = (Element) working;
+                CalculatedStyle style = sharedContext.getStyle(element);
+
+                if (style.isDisplayNone()) {
+                    continue;
+                }
+
+                c.resolveCounters(style);
+
+                if (style.isIdent(CSSName.DISPLAY, IdentValue.TABLE_COLUMN)
+                        || style.isIdent(CSSName.DISPLAY, IdentValue.TABLE_COLUMN_GROUP)) {
+                    if ((blockParent != null) &&
+                            (blockParent.getStyle().isTable() || blockParent.getStyle().isInlineTable())) {
+                        TableBox table = (TableBox) blockParent;
+                        addColumnOrColumnGroup(c, table, element, style);
                     }
 
-                    c.resolveCounters(style);
+                    continue;
+                }
 
-                    if (style.isIdent(CSSName.DISPLAY, IdentValue.TABLE_COLUMN)
-                            || style.isIdent(CSSName.DISPLAY, IdentValue.TABLE_COLUMN_GROUP)) {
-                        if ((blockParent != null) &&
-                                (blockParent.getStyle().isTable() || blockParent.getStyle().isInlineTable())) {
-                            TableBox table = (TableBox) blockParent;
-                            addColumnOrColumnGroup(c, table, element, style);
-                        }
-
-                        continue;
+                if (style.isInline()) {
+                    if (needStartText) {
+                        needStartText = false;
+                        InlineBox iB = createInlineBox("", parent, parentStyle, null);
+                        iB.setStartsHere(true);
+                        iB.setEndsHere(false);
+                        children.add(iB);
+                        previousIB = iB;
                     }
-
-                    if (style.isInline()) {
-                        if (needStartText) {
-                            needStartText = false;
-                            InlineBox iB = createInlineBox("", parent, parentStyle, null);
-                            iB.setStartsHere(true);
-                            iB.setEndsHere(false);
-                            children.add(iB);
-                            previousIB = iB;
+                    createChildren(c, null, element, children, info, true);
+                    if (inline) {
+                        if (previousIB != null) {
+                            previousIB.setEndsHere(false);
                         }
-                        createChildren(c, null, element, children, info, true);
-                        if (inline) {
-                            if (previousIB != null) {
-                                previousIB.setEndsHere(false);
-                            }
-                            needEndText = true;
-                        }
-                    } else {
-                        child = createBlockBox(style, info, false);
-                        child.setStyle(style);
-                        child.setElement(element);
-                        if (style.isListItem()) {
-                            BlockBox block = (BlockBox) child;
-                            block.setListCounter(c.getCounterContext(style).getCurrentCounterValue("list-item"));
-                        }
-
-                        if (style.isTable() || style.isInlineTable()) {
-                            TableBox table = (TableBox) child;
-                            table.ensureChildren(c);
-
-                            child = reorderTableContent(c, table);
-                        }
-
-                        if (!info.isContainsBlockLevelContent()
-                                && !style.isLayedOutInInlineContext()) {
-                            info.setContainsBlockLevelContent(true);
-                        }
-
+                        needEndText = true;
+                    }
+                } else {
+                    child = createBlockBox(style, info, false);
+                    child.setStyle(style);
+                    child.setElement(element);
+                    if (style.isListItem()) {
                         BlockBox block = (BlockBox) child;
-                        if (block.getStyle().mayHaveFirstLine()) {
-                            block.setFirstLineStyle(c.getCss().getPseudoElementStyle(element,
-                                    "first-line"));
-                        }
-                        if (block.getStyle().mayHaveFirstLetter()) {
-                            block.setFirstLetterStyle(c.getCss().getPseudoElementStyle(element,
-                                    "first-letter"));
-                        }
-                        //I think we need to do this to evaluate counters correctly
-                        block.ensureChildren(c);
+                        block.setListCounter(c.getCounterContext(style).getCurrentCounterValue("list-item"));
                     }
-                } else if (nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE) {
-                    needStartText = false;
-                    needEndText = false;
 
-                    Text textNode = (Text)working;
+                    if (style.isTable() || style.isInlineTable()) {
+                        TableBox table = (TableBox) child;
+                        table.ensureChildren(c);
 
-                    /*
-                    StringBuffer text = new StringBuffer(textNode.getData());
+                        child = reorderTableContent(c, table);
+                    }
 
-                    Node maybeText = textNode;
-                    while (true) {
-                        maybeText = textNode.getNextSibling();
-                        if (maybeText != null) {
-                            short maybeNodeType = maybeText.getNodeType();
-                            if (maybeNodeType == Node.TEXT_NODE ||
-                                    maybeNodeType == Node.CDATA_SECTION_NODE) {
-                                textNode = (Text)maybeText;
-                                text.append(textNode.getData());
-                            } else {
-                                break;
-                            }
+                    if (!info.isContainsBlockLevelContent()
+                            && !style.isLayedOutInInlineContext()) {
+                        info.setContainsBlockLevelContent(true);
+                    }
+
+                    BlockBox block = (BlockBox) child;
+                    if (block.getStyle().mayHaveFirstLine()) {
+                        block.setFirstLineStyle(c.getCss().getPseudoElementStyle(element,
+                                "first-line"));
+                    }
+                    if (block.getStyle().mayHaveFirstLetter()) {
+                        block.setFirstLetterStyle(c.getCss().getPseudoElementStyle(element,
+                                "first-letter"));
+                    }
+                    //I think we need to do this to evaluate counters correctly
+                    block.ensureChildren(c);
+                }
+            } else if (working instanceof TextNode || working instanceof DataNode) {
+                needStartText = false;
+                needEndText = false;
+
+                TextNode textNode = (TextNode)working;
+
+                /*
+                StringBuffer text = new StringBuffer(textNode.getData());
+
+                Node maybeText = textNode;
+                while (true) {
+                    maybeText = textNode.getNextSibling();
+                    if (maybeText != null) {
+                        short maybeNodeType = maybeText.getNodeType();
+                        if (maybeNodeType == Node.TEXT_NODE ||
+                                maybeNodeType == Node.CDATA_SECTION_NODE) {
+                            textNode = (Text)maybeText;
+                            text.append(textNode.getData());
                         } else {
                             break;
                         }
-                    }
-
-                    working = textNode;
-                    child = createInlineBox(text.toString(), parent, parentStyle, textNode);
-                    */
-
-                    child = createInlineBox(textNode.getData(), parent, parentStyle, textNode);
-
-                    InlineBox iB = (InlineBox) child;
-                    iB.setEndsHere(true);
-                    if (previousIB == null) {
-                        iB.setStartsHere(true);
                     } else {
-                        previousIB.setEndsHere(false);
+                        break;
                     }
-                    previousIB = iB;
                 }
 
-                if (child != null) {
-                    children.add(child);
+                working = textNode;
+                child = createInlineBox(text.toString(), parent, parentStyle, textNode);
+                */
+
+                child = createInlineBox(textNode.getData(), parent, parentStyle, textNode);
+
+                InlineBox iB = (InlineBox) child;
+                iB.setEndsHere(true);
+                if (previousIB == null) {
+                    iB.setStartsHere(true);
+                } else {
+                    previousIB.setEndsHere(false);
                 }
-            } while ((working = working.getNextSibling()) != null);
+                previousIB = iB;
+            }
+
+            if (child != null) {
+                children.add(child);
+            }
         }
+
         if (needStartText || needEndText) {
             InlineBox iB = createInlineBox("", parent, parentStyle, null);
             iB.setStartsHere(needStartText);

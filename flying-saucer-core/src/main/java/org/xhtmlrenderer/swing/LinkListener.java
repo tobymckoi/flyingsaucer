@@ -19,10 +19,8 @@
  */
 package org.xhtmlrenderer.swing;
 
-import java.awt.event.MouseEvent;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.render.Box;
 
 
@@ -72,7 +70,7 @@ public class LinkListener extends DefaultFSMouseListener {
     private String findLink(BasicPanel panel, Element e) {
         String uri = null;
 
-        for (Node node = e; node.getNodeType() == Node.ELEMENT_NODE; node = node.getParentNode()) {
+        for (Node node = e; node instanceof Element; node = node.getParentNode()) {
             uri = panel.getSharedContext().getNamespaceHandler().getLinkUri((Element) node);
 
             if (uri != null) {

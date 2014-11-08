@@ -19,8 +19,8 @@
  */
 package org.xhtmlrenderer.layout;
 
-import org.w3c.dom.Element;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
+import org.xhtmlrenderer.dom.Element;
 
 /**
  * All objects appearing the layout tree must implement this interface.  It

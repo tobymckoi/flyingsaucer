@@ -41,9 +41,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.context.StyleReference;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.extend.NamespaceHandler;
@@ -431,30 +431,29 @@ public class ITextRenderer {
             return null;
         }
 
-        try {
-            TransformerFactory factory = TransformerFactory.newInstance();
-            Transformer transformer = factory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            StringWriter output = new StringWriter();
-            transformer.transform(new DOMSource(target), new StreamResult(output));
-
-            return output.toString();
-        } catch (TransformerConfigurationException e) {
-            // Things must be in pretty bad shape to get here so
-            // rethrow as runtime exception
-            throw new RuntimeException(e);
-        } catch (TransformerException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            TransformerFactory factory = TransformerFactory.newInstance();
+//            Transformer transformer = factory.newTransformer();
+//            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+//            StringWriter output = new StringWriter();
+//            transformer.transform(new DOMSource(target), new StreamResult(output));
+//
+//            return output.toString();
+//        } catch (TransformerConfigurationException e) {
+//            // Things must be in pretty bad shape to get here so
+//            // rethrow as runtime exception
+//            throw new RuntimeException(e);
+//        } catch (TransformerException e) {
+//            throw new RuntimeException(e);
+//        }
+        throw new UnsupportedOperationException("TODO");
     }
 
     private static Element getFirstChildElement(Element element) {
-        Node n = element.getFirstChild();
-        while (n != null) {
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
+        for (final Node n : element.getChildNodes()) {
+            if (n instanceof Element) {
                 return (Element) n;
             }
-            n = n.getNextSibling();
         }
         return null;
     }

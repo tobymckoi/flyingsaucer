@@ -21,30 +21,27 @@
 package org.xhtmlrenderer.util;
 
 import java.io.File;
-import java.io.StringReader;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.w3c.dom.Document;
-import org.xml.sax.InputSource;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.FSW3CDomBuilder;
 
 /**
  * Booch utility class for XML processing using DOM
  */
 public class XMLUtil {
 
-    public static Document documentFromString(final String documentContents)
-        throws Exception {
-
-        return createDocumentBuilder().parse(new InputSource(new StringReader(documentContents)));
-    }
-
     public static Document documentFromFile(final String filename)
         throws Exception {
 
-        return createDocumentBuilder().parse(new File(filename).toURI().toURL().openStream());
+        throw new UnsupportedOperationException("Not supported!");
+//        org.w3c.dom.Document w3Doc = createDocumentBuilder().parse(new File(filename).toURI().toURL().openStream());
+//        FSW3CDomBuilder builder = new FSW3CDomBuilder(w3Doc);
+//
+//        return builder.build();
     }
 
     private static DocumentBuilder createDocumentBuilder()

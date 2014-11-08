@@ -21,7 +21,7 @@ package org.xhtmlrenderer.pdf;
 
 import java.awt.Point;
 
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.css.parser.FSCMYKColor;
 import org.xhtmlrenderer.css.parser.FSColor;
 import org.xhtmlrenderer.css.parser.FSRGBColor;

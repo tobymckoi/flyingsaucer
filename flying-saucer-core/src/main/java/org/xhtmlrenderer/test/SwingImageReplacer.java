@@ -1,6 +1,6 @@
 package org.xhtmlrenderer.test;
 
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.layout.LayoutContext;

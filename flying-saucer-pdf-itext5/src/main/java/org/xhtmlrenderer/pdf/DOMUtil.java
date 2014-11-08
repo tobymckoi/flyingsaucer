@@ -22,16 +22,14 @@ package org.xhtmlrenderer.pdf;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 
 public class DOMUtil {
     public static Element getChild(Element parent, String name) {
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node n = (Node)children.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
+        for (final Node n : parent.getChildNodes()) {
+            if (n instanceof Element) {
                 Element elem = (Element)n;
                 if (elem.getTagName().equals(name)) {
                     return elem;
@@ -43,10 +41,8 @@ public class DOMUtil {
     
     public static List getChildren(Element parent, String name) {
         List result = new ArrayList();
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node n = (Node)children.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
+        for (final Node n : parent.getChildNodes()) {
+            if (n instanceof Element) {
                 Element elem = (Element)n;
                 if (elem.getTagName().equals(name)) {
                     result.add(elem);
@@ -75,13 +71,11 @@ public class DOMUtil {
      * @return a String with the text content of an element (may be an empty string but will not be null).
      */
     public static void getText(Element parent, StringBuilder sb) {
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node n = (Node)children.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
+        for (final Node n : parent.getChildNodes()) {
+            if (n instanceof Element) {
             	getText((Element)n, sb);
-            } else if (n.getNodeType() == Node.TEXT_NODE) {
-                sb.append(n.getNodeValue());
+            } else if (n instanceof TextNode) {
+                sb.append(((TextNode) n).getData());
             }
         }
     }

@@ -25,8 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.extend.ReplacedElementFactory;
@@ -91,7 +91,7 @@ public class ITextReplacedElementFactory implements ReplacedElementFactory {
         } else if (nodeName.equals("bookmark")) {
             // HACK Add box as named anchor and return placeholder
             BookmarkElement result = new BookmarkElement();
-            if (e.hasAttribute("name")) {
+            if (e.getAttributes().hasAttribute("name")) {
                 String name = e.getAttribute("name");
                 c.addBoxId(name, box);
                 result.setAnchorName(name);
@@ -102,21 +102,21 @@ public class ITextReplacedElementFactory implements ReplacedElementFactory {
         return null;
     }
 
-    private boolean isTextarea(Element e) {
-        if (!e.getNodeName().equals("textarea")) {
-            return false;
-        }
-
-        Node n = e.getFirstChild();
-        while (n != null) {
-            short nodeType = n.getNodeType();
-            if (nodeType != Node.TEXT_NODE && nodeType != Node.CDATA_SECTION_NODE) {
-                return false;
-            }
-        }
-
-        return true;
-    }
+//    private boolean isTextarea(Element e) {
+//        if (!e.getNodeName().equals("textarea")) {
+//            return false;
+//        }
+//
+//        Node n = e.getFirstChild();
+//        while (n != null) {
+//            short nodeType = n.getNodeType();
+//            if (nodeType != Node.TEXT_NODE && nodeType != Node.CDATA_SECTION_NODE) {
+//                return false;
+//            }
+//        }
+//
+//        return true;
+//    }
 
     private void saveResult(Element e, RadioButtonFormField result) {
         _radioButtonsByElem.put(e, result);

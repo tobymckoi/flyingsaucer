@@ -23,9 +23,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import org.w3c.dom.Node;
 import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.extend.TextRenderer;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.FSFont;
@@ -418,7 +418,7 @@ public class UnbreakableContent {
             return getStyleable().getStyle();
         }
 
-        public Node getTextNode() {
+        public TextNode getTextNode() {
             return getInlineBox().getTextNode();
         }
 

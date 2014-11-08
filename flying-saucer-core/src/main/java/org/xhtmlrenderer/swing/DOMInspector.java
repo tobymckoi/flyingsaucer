@@ -19,13 +19,15 @@
  */
 package org.xhtmlrenderer.swing;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.w3c.dom.css.CSSPrimitiveValue;
 import org.xhtmlrenderer.context.StyleReference;
 import org.xhtmlrenderer.css.constants.ValueConstants;
+import org.xhtmlrenderer.dom.AttributeSet;
+import org.xhtmlrenderer.dom.CommentData;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.layout.SharedContext;
 
 import javax.swing.*;
@@ -291,8 +293,8 @@ class ElementPropertiesPanel extends JPanel {
      * @throws Exception Throws
      */
     private TableModel tableModel(Node node) {
-        if (node.getNodeType() != Node.ELEMENT_NODE) {
-            Toolkit.getDefaultToolkit().beep();
+        if (!(node instanceof Element)) {
+//            Toolkit.getDefaultToolkit().beep();
             return _defaultTableModel;
         }
         Map props = _sr.getCascadedPropertiesMap((Element) node);
@@ -550,10 +552,9 @@ class DOMTreeModel implements TreeModel {
 
     private void setRoot(String rootNodeName) {
         Node tempRoot = doc.getDocumentElement();
-        NodeList nl = tempRoot.getChildNodes();
-        for (int i = 0; i < nl.getLength(); i++) {
-            if (nl.item(i).getNodeName().toLowerCase().equals(rootNodeName)) {
-                this.root = nl.item(i);
+        for (Node n : tempRoot.getChildNodes()) {
+            if (n.getNodeName().toLowerCase().equals(rootNodeName)) {
+                this.root = n;
             }
         }
     }
@@ -698,7 +699,7 @@ class DOMTreeModel implements TreeModel {
 
         Node node = (Node) nd;
 
-        return !node.hasChildNodes();
+        return node.getChildNodes().isEmpty();
     }
 
     // only adds displayable nodes--not stupid DOM text filler nodes
@@ -713,12 +714,10 @@ class DOMTreeModel implements TreeModel {
         if (children == null) {
             children = new ArrayList();
             this.displayableNodes.put(parent, children);
-            NodeList nl = parent.getChildNodes();
-            for (int i = 0, len = nl.getLength(); i < len; i++) {
-                Node child = nl.item(i);
-                if (child.getNodeType() == Node.ELEMENT_NODE ||
-                        child.getNodeType() == Node.COMMENT_NODE ||
-                        (child.getNodeType() == Node.TEXT_NODE && (child.getNodeValue().trim().length() > 0))) {
+            for (Node child : parent.getChildNodes()) {
+                if (child instanceof Element ||
+                        child instanceof CommentData ||
+                        (child instanceof TextNode && (((TextNode) child).getData().trim().length() > 0))) {
                     children.add(child);
                 }
             }
@@ -758,29 +757,31 @@ class DOMTreeCellRenderer extends DefaultTreeCellRenderer {
 
         Node node = (Node) value;
 
-        if (node.getNodeType() == Node.ELEMENT_NODE) {
+        if (node instanceof Element) {
 
             String cls = "";
-            if (node.hasAttributes()) {
-                Node cn = node.getAttributes().getNamedItem("class");
-                if (cn != null) {
-                    cls = " class='" + cn.getNodeValue() + "'";
-                }
+            AttributeSet attributes = node.getAttributes();
+            String classValue = attributes.getValue("class");
+            if (classValue != null) {
+                cls = " class='" + classValue + "'";
             }
             value = "<" + node.getNodeName() + cls + ">";
 
         }
 
-        if (node.getNodeType() == Node.TEXT_NODE) {
+        if (node instanceof TextNode) {
 
-            if (node.getNodeValue().trim().length() > 0) {
-                value = "\"" + node.getNodeValue() + "\"";
+            TextNode textNode = (TextNode) node;
+            String textContent = textNode.getData();
+            if (textContent.trim().length() > 0) {
+                value = "\"" + textContent + "\"";
             }
         }
 
-        if (node.getNodeType() == Node.COMMENT_NODE) {
+        if (node instanceof CommentData) {
 
-            value = "<!-- " + node.getNodeValue() + " -->";
+            CommentData commentNode = (CommentData) node;
+            value = "<!-- " + commentNode.getData() + " -->";
 
         }
 

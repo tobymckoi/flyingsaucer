@@ -1,6 +1,6 @@
 package org.xhtmlrenderer.simple.extend;
 
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.extend.ReplacedElementFactory;
 import org.xhtmlrenderer.extend.UserAgentCallback;

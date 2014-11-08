@@ -23,6 +23,7 @@ package org.xhtmlrenderer.simple.extend;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.AbstractButton;
@@ -30,9 +31,11 @@ import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.Text;
+import org.xhtmlrenderer.dom.CharacterData;
+import org.xhtmlrenderer.dom.DataNode;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
@@ -175,15 +178,11 @@ public class XhtmlForm {
 
     public static String collectText(Element e) {
         StringBuffer result = new StringBuffer();
-        Node node = e.getFirstChild();
-        if (node != null) {
-            do {
-                short nodeType = node.getNodeType();
-                if (nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE) {
-                    Text text = (Text) node;
-                    result.append(text.getData());
-                }
-            } while ((node = node.getNextSibling()) != null);
+        for (final Node node : e.getChildNodes()) {
+            if (node instanceof TextNode || node instanceof DataNode) {
+                CharacterData text = (CharacterData) node;
+                result.append(text.getData());
+            }
         }
         return result.toString().trim();
     }

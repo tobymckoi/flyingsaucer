@@ -21,8 +21,8 @@ package org.xhtmlrenderer.swt;
 
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.render.Box;
 
 /**
@@ -72,7 +72,7 @@ public class LinkListener implements MouseListener {
     protected String findLink(Element e) {
         String uri = null;
 
-        for (Node node = e; node.getNodeType() == Node.ELEMENT_NODE; node = node
+        for (Node node = e; node instanceof Element; node = node
             .getParentNode()) {
             uri = _parent.getSharedContext().getNamespaceHandler().getLinkUri(
                 (Element) node);

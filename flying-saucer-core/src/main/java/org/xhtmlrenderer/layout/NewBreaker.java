@@ -132,6 +132,12 @@ public class NewBreaker {
         int wordStart = 0;
         int wordEnd = iter.next();
 
+        // If there aren't any words then set 'wordEnd' to zero so we handle
+        // the empty fragments.
+        if (wordEnd == BreakIterator.DONE) {
+            wordEnd = 0;
+        }
+
         // Force at least one unbreakable to be output if there's no string content
         // but there are indexes,
         boolean forceOne = !runIndexes.isEmpty();
@@ -383,7 +389,7 @@ public class NewBreaker {
                 iterator.previous();
             }
         }
-        
+
         lastIndexStart = currentIndex;
         int wrapPoint = currentIndex;
 

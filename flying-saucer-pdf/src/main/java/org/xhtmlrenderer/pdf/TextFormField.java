@@ -21,8 +21,8 @@ package org.xhtmlrenderer.pdf;
 
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.pdf.*;
-import org.w3c.dom.Element;
 import org.xhtmlrenderer.css.parser.FSColor;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.RenderingContext;

@@ -24,8 +24,8 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 
 import org.eclipse.swt.widgets.Composite;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.extend.ReplacedElementFactory;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.simple.xhtml.XhtmlForm;

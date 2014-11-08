@@ -19,8 +19,8 @@
  */
 package org.xhtmlrenderer.newtable;
 
-import org.w3c.dom.Element;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.layout.Styleable;
 
 /**

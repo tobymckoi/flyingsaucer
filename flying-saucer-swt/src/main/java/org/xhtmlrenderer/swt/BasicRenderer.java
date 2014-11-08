@@ -39,8 +39,8 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.derived.RectPropertySet;
 import org.xhtmlrenderer.event.DocumentListener;
@@ -917,7 +917,7 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
 
     private Element _focus_element = null;
 
-    public boolean isHover(org.w3c.dom.Element e) {
+    public boolean isHover(org.xhtmlrenderer.dom.Element e) {
         if (e == _hovered_element) {
             return true;
         }
@@ -932,7 +932,7 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
         _hovered_element = hovered_element;
     }
 
-    public boolean isActive(org.w3c.dom.Element e) {
+    public boolean isActive(org.xhtmlrenderer.dom.Element e) {
         if (e == _active_element) {
             return true;
         }
@@ -947,7 +947,7 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
         _active_element = active_element;
     }
 
-    public boolean isFocus(org.w3c.dom.Element e) {
+    public boolean isFocus(org.xhtmlrenderer.dom.Element e) {
         if (e == _focus_element) {
             return true;
         }

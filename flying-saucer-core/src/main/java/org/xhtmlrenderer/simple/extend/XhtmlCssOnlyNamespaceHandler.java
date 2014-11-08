@@ -27,14 +27,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.CharacterData;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
 import org.xhtmlrenderer.css.extend.StylesheetFactory;
 import org.xhtmlrenderer.css.sheet.Stylesheet;
 import org.xhtmlrenderer.css.sheet.StylesheetInfo;
+import org.xhtmlrenderer.dom.CharacterData;
+import org.xhtmlrenderer.dom.DataNode;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.simple.NoNamespaceHandler;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
@@ -70,7 +71,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param e PARAM
      * @return The class value
      */
-    public String getClass(org.w3c.dom.Element e) {
+    public String getClass(Element e) {
         return e.getAttribute("class");
     }
 
@@ -80,7 +81,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param e PARAM
      * @return The iD value
      */
-    public String getID(org.w3c.dom.Element e) {
+    public String getID(Element e) {
         String result = e.getAttribute("id").trim();
         return result.length() == 0 ? null : result;
     }
@@ -115,7 +116,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param e PARAM
      * @return The elementStyling value
      */
-    public String getElementStyling(org.w3c.dom.Element e) {
+    public String getElementStyling(Element e) {
         StringBuffer style = new StringBuffer();
         if (e.getNodeName().equals("td") || e.getNodeName().equals("th")) {
             String s;
@@ -170,9 +171,9 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param e PARAM
      * @return The linkUri value
      */
-    public String getLinkUri(org.w3c.dom.Element e) {
+    public String getLinkUri(Element e) {
         String href = null;
-        if (e.getNodeName().equalsIgnoreCase("a") && e.hasAttribute("href")) {
+        if (e.getNodeName().equalsIgnoreCase("a") && e.getAttributes().hasAttribute("href")) {
             href = e.getAttribute("href");
         }
         return href;
@@ -180,7 +181,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
 
     public String getAnchorName(Element e) {
         if (e != null && e.getNodeName().equalsIgnoreCase("a") &&
-                e.hasAttribute("name")) {
+                e.getAttributes().hasAttribute("name")) {
             return e.getAttribute("name");
         }
         return null;
@@ -188,14 +189,14 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
 
     private static String readTextContent(Element element) {
         StringBuffer result = new StringBuffer();
-        Node current = element.getFirstChild();
-        while (current != null) {
-            short nodeType = current.getNodeType();
-            if (nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE) {
-                Text t = (Text)current;
+        for (final Node current : element.getChildNodes()) {
+            if (current instanceof TextNode) {
+                TextNode t = (TextNode) current;
                 result.append(t.getData());
+            } else if (current instanceof DataNode) {
+                DataNode d = (DataNode) current;
+                result.append(d.getData());
             }
-            current = current.getNextSibling();
         }
         return result.toString();
     }
@@ -227,7 +228,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param doc the document to search for a title
      * @return The document's title, or "" if none found
      */
-    public String getDocumentTitle(org.w3c.dom.Document doc) {
+    public String getDocumentTitle(Document doc) {
         String title = "";
 
         Element html = doc.getDocumentElement();
@@ -243,10 +244,8 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
     }
 
     private Element findFirstChild(Element parent, String targetName) {
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node n = children.item(i);
-            if (n.getNodeType() == Node.ELEMENT_NODE && n.getNodeName().equals(targetName)) {
+        for (Node n : parent.getChildNodes()) {
+            if (n instanceof Element && n.getNodeName().equals(targetName)) {
                 return (Element)n;
             }
         }
@@ -266,12 +265,10 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         info.setOrigin(StylesheetInfo.AUTHOR);
 
         StringBuffer buf = new StringBuffer();
-        Node current = style.getFirstChild();
-        while (current != null) {
+        for (final Node current : style.getChildNodes()) {
             if (current instanceof CharacterData) {
                 buf.append(((CharacterData)current).getData());
             }
-            current = current.getNextSibling();
         }
 
         String css = buf.toString().trim();
@@ -326,7 +323,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * @param doc PARAM
      * @return The stylesheetLinks value
      */
-    public StylesheetInfo[] getStylesheets(org.w3c.dom.Document doc) {
+    public StylesheetInfo[] getStylesheets(Document doc) {
         List result = new ArrayList();
         //get the processing-instructions (actually for XmlDocuments)
         result.addAll(Arrays.asList(super.getStylesheets(doc)));
@@ -335,9 +332,8 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         Element html = doc.getDocumentElement();
         Element head = findFirstChild(html, "head");
         if (head != null) {
-            Node current = head.getFirstChild();
-            while (current != null) {
-                if (current.getNodeType() == Node.ELEMENT_NODE) {
+            for (final Node current : head.getChildNodes()) {
+                if (current instanceof Element) {
                     Element elem = (Element)current;
                     StylesheetInfo info = null;
                     String elemName = elem.getLocalName();
@@ -354,7 +350,6 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
                         result.add(info);
                     }
                 }
-                current = current.getNextSibling();
             }
         }
 
@@ -422,7 +417,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         return stream;
     }
 
-    private Map getMetaInfo(org.w3c.dom.Document doc) {
+    private Map getMetaInfo(Document doc) {
         if(this._metadata != null) {
             return this._metadata;
         }
@@ -432,9 +427,8 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         Element html = doc.getDocumentElement();
         Element head = findFirstChild(html, "head");
         if (head != null) {
-            Node current = head.getFirstChild();
-            while (current != null) {
-                if (current.getNodeType() == Node.ELEMENT_NODE) {
+            for (final Node current : head.getChildNodes()) {
+                if (current instanceof Element) {
                     Element elem = (Element)current;
                     String elemName = elem.getLocalName();
                     if (elemName == null)
@@ -450,14 +444,13 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
                         }
                     }
                 }
-                current = current.getNextSibling();
             }
         }
 
         return metadata;
     }
 
-    public String getLang(org.w3c.dom.Element e) {
+    public String getLang(Element e) {
         String lang = e.getAttribute("lang");
         if(lang.equals("")) {
             lang = (String) this.getMetaInfo(e.getOwnerDocument()).get("Content-Language");

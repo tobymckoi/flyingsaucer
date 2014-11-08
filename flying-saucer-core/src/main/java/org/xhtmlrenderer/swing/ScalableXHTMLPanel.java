@@ -26,7 +26,7 @@ import java.awt.print.PrinterGraphics;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-import org.w3c.dom.Document;
+import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.layout.Layer;
 import org.xhtmlrenderer.layout.PaintingInfo;

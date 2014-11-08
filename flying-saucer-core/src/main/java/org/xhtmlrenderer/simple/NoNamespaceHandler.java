@@ -26,15 +26,15 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.w3c.dom.Attr;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.ProcessingInstruction;
 import org.xhtmlrenderer.css.extend.StylesheetFactory;
 import org.xhtmlrenderer.css.extend.TreeResolver;
 import org.xhtmlrenderer.css.sheet.StylesheetInfo;
+import org.xhtmlrenderer.dom.Attribute;
+import org.xhtmlrenderer.dom.AttributeSet;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.ProcessingInstruction;
 import org.xhtmlrenderer.extend.NamespaceHandler;
 
 /**
@@ -50,7 +50,7 @@ public class NoNamespaceHandler implements NamespaceHandler {
         return _namespace;
     }
 
-    public String getAttributeValue(org.w3c.dom.Element e, String attrName) {
+    public String getAttributeValue(Element e, String attrName) {
         return e.getAttribute(attrName);
     }
     
@@ -61,15 +61,12 @@ public class NoNamespaceHandler implements NamespaceHandler {
             if (e.getLocalName() == null) { // No namespaces
                 return e.getAttribute(attrName);
             } else {
-                NamedNodeMap attrs = e.getAttributes();
-                int l = attrs.getLength();
-                for (int i = 0; i < l; i++) {
-                    Attr attr = (Attr)attrs.item(i);
+                AttributeSet attrs = e.getAttributes();
+                for (Attribute attr : attrs.entrySet()) {
                     if (attrName.equals(attr.getLocalName())) {
                         return attr.getValue();
                     }
                 }
-                
                 return "";
             }
         } else {
@@ -77,19 +74,19 @@ public class NoNamespaceHandler implements NamespaceHandler {
         }
     }
 
-    public String getClass(org.w3c.dom.Element e) {
+    public String getClass(Element e) {
         return null;
     }
 
-    public String getID(org.w3c.dom.Element e) {
+    public String getID(Element e) {
         return null;
     }
 
-    public String getLang(org.w3c.dom.Element e) {
+    public String getLang(Element e) {
         return e.getAttribute("lang");
     }
 
-    public String getElementStyling(org.w3c.dom.Element e) {
+    public String getElementStyling(Element e) {
         return null;
     }
 
@@ -97,11 +94,11 @@ public class NoNamespaceHandler implements NamespaceHandler {
         return null;
     }
 
-    public String getLinkUri(org.w3c.dom.Element e) {
+    public String getLinkUri(Element e) {
         return null;
     }
 
-    public String getDocumentTitle(org.w3c.dom.Document doc) {
+    public String getDocumentTitle(Document doc) {
         return null;
     }
     
@@ -127,14 +124,12 @@ public class NoNamespaceHandler implements NamespaceHandler {
     private Pattern _alternatePattern = Pattern.compile("alternate\\s?=\\s?");
     private Pattern _mediaPattern = Pattern.compile("media\\s?=\\s?");
 
-    public StylesheetInfo[] getStylesheets(org.w3c.dom.Document doc) {
+    public StylesheetInfo[] getStylesheets(Document doc) {
         List list = new ArrayList();
         //get the processing-instructions (actually for XmlDocuments)
         //type and href are required to be set
-        NodeList nl = doc.getChildNodes();
-        for (int i = 0, len = nl.getLength(); i < len; i++) {
-            Node node = nl.item(i);
-            if (node.getNodeType() != Node.PROCESSING_INSTRUCTION_NODE) continue;
+        for (Node node : doc.getChildNodes()) {
+            if (!(node instanceof ProcessingInstruction)) continue;
             ProcessingInstruction piNode = (ProcessingInstruction) node;
             if (!piNode.getTarget().equals("xml-stylesheet")) continue;
             StylesheetInfo info;

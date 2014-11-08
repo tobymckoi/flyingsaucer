@@ -23,10 +23,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.w3c.dom.Attr;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.Text;
+import org.xhtmlrenderer.dom.Attribute;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.css.parser.FSColor;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;
@@ -38,6 +38,7 @@ import com.itextpdf.text.pdf.PdfAppearance;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfFormField;
 import com.itextpdf.text.pdf.PdfWriter;
+import org.xhtmlrenderer.dom.DataNode;
 
 public class SelectFormField extends AbstractFormField {
     private static final String FIELD_TYPE = "Select";
@@ -118,15 +119,14 @@ public class SelectFormField extends AbstractFormField {
     
     private List readOptions(Element e) {
         List result = new ArrayList();
-        
-        Node n = e.getFirstChild();
-        while (n != null) {
-            if (n.getNodeType() == Node.ELEMENT_NODE && n.getNodeName().equalsIgnoreCase("option")) {
+
+        for (final Node n : e.getChildNodes()) {
+            if (n instanceof Element && n.getNodeName().equalsIgnoreCase("option")) {
                 Element optionElem = (Element)n;
                 
                 
                 String label = collectText(optionElem);
-                Attr valueAttr = optionElem.getAttributeNode("value");
+                Attribute valueAttr = optionElem.getAttributes().getAttribute("value");
                 String value;
                 if (valueAttr == null) {
                     value = label;
@@ -144,8 +144,6 @@ public class SelectFormField extends AbstractFormField {
                     result.add(option);
                 }
             }
-            
-            n = n.getNextSibling();
         }
         
         return result;
@@ -153,17 +151,14 @@ public class SelectFormField extends AbstractFormField {
     
     private String collectText(Element e) {
         StringBuffer result = new StringBuffer();
-        
-        Node n = e.getFirstChild();
-        while (n != null) {
-            short nodeType = n.getNodeType();
-            if (nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE) {
-                Text t = (Text)n;
+
+        for (Node n : e.getChildNodes()) {
+            if (n instanceof TextNode || n instanceof DataNode) {
+                TextNode t = (TextNode) n;
                 result.append(t.getData());
             }
-            n = n.getNextSibling();
         }
-        
+
         return result.length() > 0 ? result.toString() : null;
     }
 

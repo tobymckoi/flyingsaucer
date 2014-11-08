@@ -21,7 +21,7 @@ package org.xhtmlrenderer.pdf;
 
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.*;
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.css.parser.FSColor;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.render.BlockBox;

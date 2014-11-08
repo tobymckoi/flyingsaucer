@@ -22,7 +22,7 @@ import org.xhtmlrenderer.pdf.ITextOutputDevice;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xhtmlrenderer.pdf.ITextUserAgent;
 import org.xhtmlrenderer.resource.XMLResource;
-import org.w3c.dom.Document;
+import org.xhtmlrenderer.dom.Document;
 import org.xml.sax.InputSource;
 
 import java.io.*;

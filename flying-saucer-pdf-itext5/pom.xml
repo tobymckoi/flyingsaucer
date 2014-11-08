@@ -15,8 +15,20 @@
 
   <name>Flying Saucer PDF Rendering (iText 5.x)</name>
   <description>Flying Saucer is a CSS 2.1 renderer written in Java.  This artifact supports PDF output with iText 5.x.</description>
-
-  <dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
     <dependency>
       <groupId>com.itextpdf</groupId>
       <artifactId>itextpdf</artifactId>

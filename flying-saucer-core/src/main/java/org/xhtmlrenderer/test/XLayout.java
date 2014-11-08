@@ -19,7 +19,7 @@
  */
 package org.xhtmlrenderer.test;
 
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.layout.LayoutContext;
 
 import java.awt.Dimension;

@@ -32,7 +32,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.sax.SAXSource;
 
-import org.w3c.dom.Document;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.FSW3CDomBuilder;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.util.XRRuntimeException;
@@ -160,7 +161,7 @@ public class XMLResource extends AbstractResource {
 
     private static class XMLResourceBuilder {
         XMLResource createXMLResource(XMLResource target) {
-            Source input = null;
+            SAXSource input = null;
             DOMResult output = null;
             TransformerFactory xformFactory = null;
             Transformer idTransform = null;
@@ -185,12 +186,15 @@ public class XMLResource extends AbstractResource {
                         "Failed on configuring SAX to DOM transformer.", ex);
             }
 
-            try {
-                idTransform.transform(input, output);
-            } catch (Exception ex) {
-                throw new XRRuntimeException(
-                        "Can't load the XML resource (using TRaX transformer). " + ex.getMessage(), ex);
-            }
+//            try {
+//                idTransform.transform(input, output);
+//            } catch (Exception ex) {
+//                throw new XRRuntimeException(
+//                        "Can't load the XML resource (using TRaX transformer). " + ex.getMessage(), ex);
+//            }
+
+            FSW3CDomBuilder builder = new FSW3CDomBuilder(input);
+            Document fsDocument = builder.build();
 
             long end = System.currentTimeMillis();
 
@@ -198,7 +202,7 @@ public class XMLResource extends AbstractResource {
 
             XRLog.load("Loaded document in ~" + target.getElapsedLoadTime() + "ms");
 
-            target.setDocument((Document) output.getNode());
+            target.setDocument(fsDocument);
             return target;
         }
 

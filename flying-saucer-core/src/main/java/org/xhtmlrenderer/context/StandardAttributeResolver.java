@@ -19,8 +19,8 @@
  */
 package org.xhtmlrenderer.context;
 
-import org.w3c.dom.Element;
 import org.xhtmlrenderer.css.extend.AttributeResolver;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.extend.NamespaceHandler;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.extend.UserInterface;

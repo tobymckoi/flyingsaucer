@@ -25,9 +25,9 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Control;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.ElementSet;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.resource.ImageResource;
@@ -54,9 +54,9 @@ public class SWTButtonControl extends SWTXhtmlControl {
         button.setText(bc.getLabel());
         if (bc.isExtended()) {
             // when defined with <button>, allow the first image to be used
-            NodeList images = bc.getElement().getElementsByTagName("img");
-            if (images.getLength() > 0) {
-                Element img = (Element) images.item(0);
+            ElementSet images = bc.getElement().getElementsByTagName("img");
+            if (!images.isEmpty()) {
+                Element img = (Element) images.get(0);
                 String uri = c.getNamespaceHandler().getImageSourceURI(img);
                 ImageResource res = uac.getImageResource(uri);
                 SWTFSImage fsi = (SWTFSImage) res.getImage();

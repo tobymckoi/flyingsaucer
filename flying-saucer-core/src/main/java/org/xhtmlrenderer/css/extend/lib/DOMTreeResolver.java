@@ -19,10 +19,12 @@
  */
 package org.xhtmlrenderer.css.extend.lib;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import java.util.ListIterator;
+
 import org.xhtmlrenderer.css.extend.TreeResolver;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.NodeList;
 
 /**
  * @author scott
@@ -31,17 +33,17 @@ import org.xhtmlrenderer.css.extend.TreeResolver;
  */
 public class DOMTreeResolver implements TreeResolver {
     public Object getParentElement(Object element) {
-        Node parent = ((org.w3c.dom.Element) element).getParentNode();
-        if (parent.getNodeType() != Node.ELEMENT_NODE) parent = null;
+        Node parent = ((Element) element).getParentNode();
+        if (!(parent instanceof Element)) parent = null;
         return parent;
     }
 
     public Object getPreviousSiblingElement(Object element) {
         Node sibling = ((Element) element).getPreviousSibling();
-        while (sibling != null && sibling.getNodeType() != Node.ELEMENT_NODE) {
+        while (sibling != null && !(sibling instanceof Element)) {
             sibling = sibling.getPreviousSibling();
         }
-        if (sibling == null || sibling.getNodeType() != Node.ELEMENT_NODE) {
+        if (sibling == null || !(sibling instanceof Element)) {
             return null;
         }
         return sibling;
@@ -54,21 +56,26 @@ public class DOMTreeResolver implements TreeResolver {
     }
 
     public boolean isFirstChildElement(Object element) {
-        org.w3c.dom.Node parent = ((org.w3c.dom.Element) element).getParentNode();
-        Node currentChild = parent.getFirstChild();
-        while (currentChild != null && currentChild.getNodeType() != Node.ELEMENT_NODE) {
-            currentChild = currentChild.getNextSibling();
+        Node parent = ((Element) element).getParentNode();
+        for (Node cc : parent.getChildNodes()) {
+            if (cc instanceof Element && cc == element) {
+                return true;
+            }
         }
-        return currentChild == element;
+        return false;
     }
 
     public boolean isLastChildElement(Object element) {
-        org.w3c.dom.Node parent = ((org.w3c.dom.Element) element).getParentNode();
-        Node currentChild = parent.getLastChild();
-        while (currentChild != null && currentChild.getNodeType() != Node.ELEMENT_NODE) {
-            currentChild = currentChild.getPreviousSibling();
+        Node parent = ((Element) element).getParentNode();
+        NodeList children = parent.getChildNodes();
+        ListIterator<Node> it = children.listIterator(children.size());
+        while (it.hasPrevious()) {
+            Node cc = it.previous();
+            if (cc instanceof Element && cc == element) {
+                return true;
+            }
         }
-        return currentChild == element;
+        return false;
     }
 
     public boolean matchesElement(Object element, String namespaceURI, String name) {
@@ -92,22 +99,19 @@ public class DOMTreeResolver implements TreeResolver {
     }
     
     public int getPositionOfElement(Object element) {
-        org.w3c.dom.Node parent = ((org.w3c.dom.Element) element).getParentNode();
-        NodeList nl = parent.getChildNodes();
+        Node parent = ((Element) element).getParentNode();
 
         int elt_count = 0;
-        int i = 0;
-        while (i < nl.getLength()) {
-            if (nl.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                if(nl.item(i) == element) {
+        for (Node n : parent.getChildNodes()) {
+            if (n instanceof Element) {
+                if (n == element) {
                     return elt_count;
                 } else {
                     elt_count++;
                 }
             }
-            i++;
         }
-        
+
         //should not happen
         return -1;
     }

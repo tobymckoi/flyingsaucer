@@ -20,13 +20,12 @@ package org.xhtmlrenderer.render;
 
 import java.text.BreakIterator;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Text;
 import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.extend.ContentFunction;
 import org.xhtmlrenderer.css.parser.FSFunction;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
-import org.xhtmlrenderer.layout.Breaker;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.layout.Styleable;
 import org.xhtmlrenderer.layout.TextUtil;
@@ -69,9 +68,9 @@ public class InlineBox implements Styleable {
 
     private String _pseudoElementOrClass;
 
-    private final Text _textNode;
+    private final TextNode _textNode;
 
-    public InlineBox(String text, Text textNode) {
+    public InlineBox(String text, TextNode textNode) {
         _text = text;
         _originalText = text;
         _textNode = textNode;
@@ -479,7 +478,7 @@ public class InlineBox implements Styleable {
         _originalText = "";
     }
 
-    public Text getTextNode() {
+    public TextNode getTextNode() {
         return this._textNode;
     }
 }

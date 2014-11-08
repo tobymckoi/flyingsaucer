@@ -18,8 +18,8 @@
  */
 package org.xhtmlrenderer.simple.xhtml;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.simple.extend.XhtmlCssOnlyNamespaceHandler;
 
 
@@ -220,11 +220,11 @@ public class XhtmlNamespaceHandler extends XhtmlCssOnlyNamespaceHandler {
     private Element findTable(Element cell) {
         Node n = cell.getParentNode();
         Element next;
-        if (n.getNodeType() == Node.ELEMENT_NODE) {
+        if (n instanceof Element) {
             next = (Element)n;
             if (next.getNodeName().equals("tr")) {
                 n = next.getParentNode();
-                if (n.getNodeType() == Node.ELEMENT_NODE) {
+                if (n instanceof Element) {
                     next = (Element)n;
                     String name = next.getNodeName();
                     if (name.equals("table")) {
@@ -233,7 +233,7 @@ public class XhtmlNamespaceHandler extends XhtmlCssOnlyNamespaceHandler {
                     
                     if (name.equals("tbody") || name.equals("tfoot") || name.equals("thead")) {
                         n = next.getParentNode();
-                        if (n.getNodeType() == Node.ELEMENT_NODE) {
+                        if (n instanceof Element) {
                             next =(Element)n;
                             if (next.getNodeName().equals("table")) {
                                 return next;

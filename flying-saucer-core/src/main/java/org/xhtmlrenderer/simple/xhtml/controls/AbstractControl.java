@@ -23,9 +23,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.Text;
+import org.xhtmlrenderer.dom.CharacterData;
+import org.xhtmlrenderer.dom.DataNode;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.simple.xhtml.FormControl;
 import org.xhtmlrenderer.simple.xhtml.FormControlListener;
 import org.xhtmlrenderer.simple.xhtml.FormListener;
@@ -170,14 +172,10 @@ public abstract class AbstractControl implements FormControl {
 
     public static String collectText(Element e) {
         StringBuffer result = new StringBuffer();
-        Node node = e.getFirstChild();
-        if (node != null) {
-            do {
-                if (node.getNodeType() == Node.TEXT_NODE) {
-                    Text text = (Text) node;
-                    result.append(text.getData());
-                }
-            } while ((node = node.getNextSibling()) != null);
+        for (Node node : e.getChildNodes()) {
+            if (node instanceof TextNode || node instanceof DataNode) {
+                result.append(((CharacterData) node).getData());
+            }
         }
         return result.toString().trim();
     }

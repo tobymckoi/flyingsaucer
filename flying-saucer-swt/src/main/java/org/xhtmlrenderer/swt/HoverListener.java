@@ -23,9 +23,9 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.xhtmlrenderer.context.StyleReference;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.layout.PaintingInfo;
 import org.xhtmlrenderer.render.Box;
@@ -135,7 +135,7 @@ public class HoverListener implements MouseMoveListener {
 
         while (element != null && !style.isHoverStyled(element)) {
             Node node = element.getParentNode();
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
+            if (node instanceof Element) {
                 element = (Element) node;
             } else {
                 element = null;

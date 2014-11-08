@@ -24,9 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.simple.xhtml.XhtmlForm;
 
 public class SelectControl extends AbstractControl {
@@ -68,10 +67,9 @@ public class SelectControl extends AbstractControl {
     }
 
     private void traverseOptions(Element e, String prefix) {
-        NodeList children = e.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            if (children.item(i).getNodeType() == Node.ELEMENT_NODE) {
-                Element child = (Element) children.item(i);
+        for (Node n : e.getChildNodes()) {
+            if (n instanceof Element) {
+                Element child = (Element) n;
                 if (child.getNodeName().equalsIgnoreCase("optgroup")) {
                     traverseOptions(child, prefix + child.getAttribute("label")
                             + " ");

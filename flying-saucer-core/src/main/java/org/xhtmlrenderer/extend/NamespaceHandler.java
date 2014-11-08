@@ -19,10 +19,10 @@
  */
 package org.xhtmlrenderer.extend;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.xhtmlrenderer.css.extend.StylesheetFactory;
 import org.xhtmlrenderer.css.sheet.StylesheetInfo;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 
 /**
  * Provides knowledge specific to a certain document type, like resolving
@@ -63,9 +63,9 @@ public interface NamespaceHandler {
      * @param attrName PARAM
      * @return The attributeValue value
      */
-    String getAttributeValue(org.w3c.dom.Element e, String attrName);
+    String getAttributeValue(Element e, String attrName);
     
-    String getAttributeValue(org.w3c.dom.Element e, String namespaceURI, String attrName);
+    String getAttributeValue(Element e, String namespaceURI, String attrName);
 
     /**
      * may return null
@@ -73,7 +73,7 @@ public interface NamespaceHandler {
      * @param e PARAM
      * @return The class value
      */
-    String getClass(org.w3c.dom.Element e);
+    String getClass(Element e);
 
     /**
      * may return null
@@ -81,7 +81,7 @@ public interface NamespaceHandler {
      * @param e PARAM
      * @return The iD value
      */
-    String getID(org.w3c.dom.Element e);
+    String getID(Element e);
 
     /**
      * may return null
@@ -89,7 +89,7 @@ public interface NamespaceHandler {
      * @param e PARAM
      * @return The elementStyling value (style attribute)
      */
-    String getElementStyling(org.w3c.dom.Element e);
+    String getElementStyling(Element e);
 
     /**
      * may return null
@@ -97,7 +97,7 @@ public interface NamespaceHandler {
      * @param e
      * @return The corresponding css properties for styling that is obtained in other ways.
      */
-    String getNonCssStyling(org.w3c.dom.Element e);
+    String getNonCssStyling(Element e);
 
     /**
      * may return null
@@ -105,7 +105,7 @@ public interface NamespaceHandler {
      * @param e PARAM
      * @return The lang value
      */
-    String getLang(org.w3c.dom.Element e);
+    String getLang(Element e);
 
     /**
      * should return null if element is not a link
@@ -113,7 +113,7 @@ public interface NamespaceHandler {
      * @param e PARAM
      * @return The linkUri value
      */
-    String getLinkUri(org.w3c.dom.Element e);
+    String getLinkUri(Element e);
 
     /**
      * 
@@ -138,7 +138,7 @@ public interface NamespaceHandler {
     /**
      * For an element where isImageElement returns true, retrieves the URI associated with that Image, as
      * reported by the element; makes no guarrantee that the URI is correct, complete or points to anything in
-     * particular. For elements where {@link #isImageElement(org.w3c.dom.Element)} returns false, this method may
+     * particular. For elements where {@link #isImageElement(Element)} returns false, this method may
      * return false, and may also return false if the Element is not correctly formed and contains no URI; check the
      * return value carefully.
      * 

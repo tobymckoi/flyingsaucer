@@ -1,10 +1,10 @@
 package org.xhtmlrenderer.test;
 
 import org.xhtmlrenderer.layout.LayoutContext;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.render.BlockBox;
-import org.w3c.dom.Element;
 
 /**
  * @author patrick

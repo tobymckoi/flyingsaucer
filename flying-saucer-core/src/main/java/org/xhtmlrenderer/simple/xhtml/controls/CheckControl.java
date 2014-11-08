@@ -21,7 +21,7 @@ package org.xhtmlrenderer.simple.xhtml.controls;
 
 import java.util.Iterator;
 
-import org.w3c.dom.Element;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.simple.xhtml.FormControl;
 import org.xhtmlrenderer.simple.xhtml.XhtmlForm;
 

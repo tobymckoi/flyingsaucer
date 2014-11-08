@@ -42,8 +42,6 @@ import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.css.CSSPrimitiveValue;
 import org.xhtmlrenderer.css.constants.CSSName;
 import org.xhtmlrenderer.css.constants.IdentValue;
@@ -53,6 +51,8 @@ import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.derived.ColorValue;
 import org.xhtmlrenderer.css.style.derived.LengthValue;
 import org.xhtmlrenderer.css.style.derived.StringValue;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.event.DocumentListener;
 import org.xhtmlrenderer.extend.FSCanvas;
 import org.xhtmlrenderer.extend.NamespaceHandler;
@@ -595,21 +595,24 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
 
     public Element focus_element = null;
 
-    public boolean isHover(org.w3c.dom.Element e) {
+    @Override
+    public boolean isHover(org.xhtmlrenderer.dom.Element e) {
         if (e == hovered_element) {
             return true;
         }
         return false;
     }
 
-    public boolean isActive(org.w3c.dom.Element e) {
+    @Override
+    public boolean isActive(org.xhtmlrenderer.dom.Element e) {
         if (e == active_element) {
             return true;
         }
         return false;
     }
 
-    public boolean isFocus(org.w3c.dom.Element e) {
+    @Override
+    public boolean isFocus(org.xhtmlrenderer.dom.Element e) {
         if (e == focus_element) {
             return true;
         }

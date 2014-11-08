@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 
-import org.w3c.dom.Document;
+import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.layout.SharedContext;
 import org.xhtmlrenderer.render.RenderingContext;

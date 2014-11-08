@@ -1,5 +1,8 @@
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import org.xhtmlrenderer.simple.NoNamespaceHandler;
 
 import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.util.XMLUtil;
@@ -36,7 +39,7 @@ public class QuotingExample extends JFrame {
         
         XHTMLPanel xr = new XHTMLPanel();
         try {
-            xr.setDocument(XMLUtil.documentFromString(DOCUMENT));
+            xr.setDocumentFromString(DOCUMENT, "", new NoNamespaceHandler());
         } catch (Exception e) {
             throw new ExceptionInInitializerError(e);
         }
