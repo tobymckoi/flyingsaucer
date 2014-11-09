@@ -444,24 +444,7 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
             setPreferredSize(intrinsic_size);
             revalidate();
 
-            // if doc is shorter than viewport
-            // then stretch canvas to fill viewport exactly
-            // then adjust the body element accordingly
             if (enclosingScrollPane != null) {
-                if (intrinsic_size.height < enclosingScrollPane.getViewport().getHeight()) {
-                    //Uu.p("int height is less than viewport height");
-                    // XXX Not threadsafe
-                    if (enclosingScrollPane.getViewport().getHeight() != this.getHeight()) {
-                        this.setPreferredSize(new Dimension(
-                                intrinsic_size.width, enclosingScrollPane.getViewport().getHeight()));
-                        this.revalidate();
-                    }
-                    //Uu.p("need to do the body hack");
-                    if (root != null && ! c.isPrint()) {
-                        intrinsic_size.height = root.getHeight();
-                    }
-                }
-
                 // turn on simple scrolling mode if there's any fixed elements
                 if (root.getLayer().containsFixedContent()) {
                     // Uu.p("is fixed");
@@ -577,17 +560,6 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
       return elementPane;
     }
 
-//    /**
-//     * @return a CellRendererPane suitable for drawing components in (with CellRendererPane.paintComponent)
-//     */
-//    public CellRendererPane getCellRendererPane() {
-//        if (cellRendererPane == null || cellRendererPane.getParent() != this) {
-//            cellRendererPane = new CellRendererPane();
-//            this.add(cellRendererPane);
-//        }
-//
-//        return cellRendererPane;
-//    }
 
 
     /*
@@ -623,29 +595,12 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
         return false;
     }
 
-//    public void componentHidden(ComponentEvent e) {
-//    }
-//
-//    public void componentMoved(ComponentEvent e) {
-//    }
-//
-//    public void componentResized(ComponentEvent e) {
-//        Uu.p("componentResized() " + this.getSize());
-//        Uu.p("viewport = " + enclosingScrollPane.getViewport().getSize());
-//        if (! getSharedContext().isPrint() && isExtentsHaveChanged()) {
-//            relayout();
-//        }
-//    }
-
     protected void relayout() {
         if (doc != null) {
             setNeedRelayout(true);
             repaint();
         }
     }
-
-//    public void componentShown(ComponentEvent e) {
-//    }
 
     public double getLayoutWidth() {
         if (enclosingScrollPane != null) {
@@ -809,16 +764,17 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
 
     @Override
     public boolean getScrollableTracksViewportWidth() {
+        // If the last layout successfully filled the desired width then
+        // viewport should match the component size.
         return viewportMatchWidth;
     }
 
     @Override
     public boolean getScrollableTracksViewportHeight() {
-        Container parent = SwingUtilities.getUnwrappedParent(this);
-        if (parent instanceof JViewport) {
-            return parent.getHeight() > getPreferredSize().height;
-        }
-        return false;
+        // If the last layout height of this component is <= the viewport
+        // height then we make the viewport height match the component size.
+        int viewportHeight = enclosingScrollPane.getViewport().getHeight();
+        return getPreferredSize().height <= viewportHeight;
     }
 
 }
