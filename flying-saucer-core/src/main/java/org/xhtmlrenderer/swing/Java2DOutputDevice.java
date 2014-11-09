@@ -24,6 +24,7 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.RenderingHints.Key;
@@ -41,7 +42,6 @@ import org.xhtmlrenderer.extend.OutputDevice;
 import org.xhtmlrenderer.extend.ReplacedElement;
 import org.xhtmlrenderer.render.AbstractOutputDevice;
 import org.xhtmlrenderer.render.BlockBox;
-import org.xhtmlrenderer.render.BorderPainter;
 import org.xhtmlrenderer.render.FSFont;
 import org.xhtmlrenderer.render.InlineLayoutBox;
 import org.xhtmlrenderer.render.InlineText;
@@ -58,8 +58,21 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     public Java2DOutputDevice(BufferedImage outputImage) {
         this(outputImage.createGraphics());
     }
-    
-    
+
+
+    /**
+     * Enabled anti-aliased shapes on this graphics context by default. This
+     * is the default anti-aliasing setting for this context. Anti-aliasing
+     * can still be enabled or disabled by a callee setting the rendering hint.
+     * 
+     * @param enabled 
+     */
+    public void setAntiAliasedShapesByDefault(boolean enabled) {
+        _graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        enabled ? RenderingHints.VALUE_ANTIALIAS_ON :
+                                  RenderingHints.VALUE_ANTIALIAS_OFF);
+    }
+
     public void drawSelection(RenderingContext c, InlineText inlineText) {
         if (inlineText.isSelected()) {
             InlineLayoutBox iB = inlineText.getParent();

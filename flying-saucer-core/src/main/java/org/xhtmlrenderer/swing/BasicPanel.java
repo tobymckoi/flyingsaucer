@@ -84,6 +84,9 @@ public abstract class BasicPanel extends RootPanel implements FormSubmissionList
 
     public BasicPanel(UserAgentCallback uac) {
         sharedContext = new SharedContext(uac);
+        // TODO: Make this into a configured property
+        sharedContext.setAntiAliasingShapes(true);
+
         mouseTracker = new MouseTracker(this);
         formSubmissionListener = new FormSubmissionListener() {
             public void submit(String query) {

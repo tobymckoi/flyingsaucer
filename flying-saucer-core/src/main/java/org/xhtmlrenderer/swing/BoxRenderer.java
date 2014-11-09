@@ -239,6 +239,7 @@ public class BoxRenderer {
 			height = this.height == -1 ? root.getHeight() : this.height;
 			BufferedImage outputImage = createBufferedImage(this.width, height);
 			outputDevice = new Java2DOutputDevice(outputImage);
+                        outputDevice.setAntiAliasedShapesByDefault(sharedContext.isAntiAliasingShapes());
 			Graphics2D newG = (Graphics2D) outputImage.getGraphics();
             try {
                 if ( renderingHints != null ) {
@@ -319,12 +320,14 @@ public class BoxRenderer {
 	private void init(float dotsPerPoint, int dotsPerPixel) {
 		this.dotsPerPoint = dotsPerPoint;
 
+		UserAgentCallback userAgent = new NaiveUserAgent();
+                sharedContext = newSharedContext(dotsPerPixel, userAgent);
+
 		BufferedImage outputImage = ImageUtil.createCompatibleBufferedImage(DEFAULT_DOTS_PER_POINT, DEFAULT_DOTS_PER_POINT);
 		outputDevice = new Java2DOutputDevice(outputImage);
+                outputDevice.setAntiAliasedShapesByDefault(sharedContext.isAntiAliasingShapes());
 
-		UserAgentCallback userAgent = new NaiveUserAgent();
-        sharedContext = newSharedContext(dotsPerPixel, userAgent);
-        layoutContext = newLayoutContext();
+                layoutContext = newLayoutContext();
 	}
 
     private SharedContext newSharedContext(int dotsPerPixel, UserAgentCallback userAgent) {

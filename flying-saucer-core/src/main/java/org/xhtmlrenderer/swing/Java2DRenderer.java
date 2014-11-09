@@ -282,6 +282,7 @@ public class Java2DRenderer {
 
 			height = this.height == -1 ? root.getHeight() : this.height;
 			outputImage = createBufferedImage(this.width, height);
+                        outputDevice.setAntiAliasedShapesByDefault(sharedContext.isAntiAliasingShapes());
 			outputDevice = new Java2DOutputDevice(outputImage);
 			Graphics2D newG = (Graphics2D) outputImage.getGraphics();
 			if ( renderingHints != null ) {
@@ -362,11 +363,12 @@ public class Java2DRenderer {
 	private void init(float dotsPerPoint, int dotsPerPixel) {
 		this.dotsPerPoint = dotsPerPoint;
 
-		outputImage = ImageUtil.createCompatibleBufferedImage(DEFAULT_DOTS_PER_POINT, DEFAULT_DOTS_PER_POINT);
-		outputDevice = new Java2DOutputDevice(outputImage);
-
 		UserAgentCallback userAgent = new NaiveUserAgent();
 		sharedContext = new SharedContext(userAgent);
+
+		outputImage = ImageUtil.createCompatibleBufferedImage(DEFAULT_DOTS_PER_POINT, DEFAULT_DOTS_PER_POINT);
+		outputDevice = new Java2DOutputDevice(outputImage);
+                outputDevice.setAntiAliasedShapesByDefault(sharedContext.isAntiAliasingShapes());
 
 		AWTFontResolver fontResolver = new AWTFontResolver();
 		sharedContext.setFontResolver(fontResolver);

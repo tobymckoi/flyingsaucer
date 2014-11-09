@@ -20,6 +20,7 @@
 package org.xhtmlrenderer.render;
 
 import java.awt.BasicStroke;
+import java.awt.Color;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -447,15 +448,19 @@ public class BorderPainter {
             if (currentSide == BorderPainter.RIGHT) thickness = (int) border.right();
             if (currentSide == BorderPainter.LEFT) thickness = (int) border.left();
             if (borderSideStyle == IdentValue.DASHED) {
-                outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
                 paintPatternedRect(outputDevice, bounds, border, border, new float[]{8.0f + thickness * 2, 4.0f + thickness}, sides, currentSide, xOffset);
-                outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             }
             if (borderSideStyle == IdentValue.DOTTED) {
-                // turn off anti-aliasing or the dots will be all blurry
-                outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                Object aaHint = outputDevice.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+                // turn off anti-aliasing for small thickness or the dots will
+                // be all blurry
+                if (thickness < 4) {
+                    outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+                }
                 paintPatternedRect(outputDevice, bounds, border, border, new float[]{thickness, thickness}, sides, currentSide, xOffset);
-                outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                outputDevice.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        aaHint == null ? RenderingHints.VALUE_ANTIALIAS_DEFAULT :
+                                         aaHint);
             }
         }
     }
@@ -506,38 +511,27 @@ public class BorderPainter {
             final Rectangle bounds, final BorderPropertySet border, 
             final BorderPropertySet color, final float[] pattern, 
             final int sides, final int currentSide, int xOffset) {
-        Stroke old_stroke = outputDevice.getStroke();
 
-        Path2D path = generateBorderShape(bounds, currentSide, border, false, .5f, 1);
-        Path2D clip = generateBorderShape(bounds, currentSide, border, true, 0, 1);
-        
-        Shape old_clip = outputDevice.getClip();
-        outputDevice.clip(clip);
-                
+        Path2D path = generateBorderShape(bounds, currentSide, border, false, 1f, .5f);
+
         if (currentSide == BorderPainter.TOP) {
             outputDevice.setColor(color.topColor());
-            outputDevice.setStroke(new BasicStroke((int) border.top(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, xOffset));
-            outputDevice.drawBorderLine(
-                    path, BorderPainter.TOP, (int)border.top(), false);
+            BasicStroke stroke = new BasicStroke(border.top(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, xOffset);
+            outputDevice.fill(stroke.createStrokedShape(path));
         } else if (currentSide == BorderPainter.LEFT) {
             outputDevice.setColor(color.leftColor());
-            outputDevice.setStroke(new BasicStroke((int) border.left(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, 0));
-            outputDevice.drawBorderLine(
-                    path, BorderPainter.LEFT, (int)border.left(), false);
+            BasicStroke stroke = new BasicStroke(border.left(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, 0);
+            outputDevice.fill(stroke.createStrokedShape(path));
         } else if (currentSide == BorderPainter.RIGHT) {
             outputDevice.setColor(color.rightColor());
-            outputDevice.setStroke(new BasicStroke((int) border.right(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, 0));
-            outputDevice.drawBorderLine(
-                    path, BorderPainter.RIGHT, (int)border.right(), false);
+            BasicStroke stroke = new BasicStroke(border.right(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, 0);
+            outputDevice.fill(stroke.createStrokedShape(path));
         } else if (currentSide == BorderPainter.BOTTOM) {
             outputDevice.setColor(color.bottomColor());
-            outputDevice.setStroke(new BasicStroke((int) border.bottom(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, xOffset));
-            outputDevice.drawBorderLine(
-                    path, BorderPainter.BOTTOM, (int)border.bottom(), false);
+            BasicStroke stroke = new BasicStroke(border.bottom(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, pattern, xOffset);
+            outputDevice.fill(stroke.createStrokedShape(path));
         }
 
-        outputDevice.setClip(old_clip);
-        outputDevice.setStroke(old_stroke);
     }
 
     private static void paintBorderSideShape(OutputDevice outputDevice, 

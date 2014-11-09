@@ -65,6 +65,8 @@ public class SharedContext {
 
     private Map idMap;
 
+    private boolean antiAliasedShapes = false;
+
     /*
      * used to adjust fonts, ems, points, into screen resolution
      */
@@ -394,6 +396,27 @@ public class SharedContext {
     }
 
     /**
+     * Returns true if shapes should be rendered using anti-aliasing. False
+     * for no anti-aliasing.
+     * 
+     * @return 
+     */
+    public boolean isAntiAliasingShapes() {
+        return antiAliasedShapes;
+    }
+
+    /**
+     * Use to tell the renderer to use an anti-aliasing method when drawing
+     * shapes (borders, underscores, etc). If not enabled, no anti-aliasing
+     * is done when rendering shapes.
+     * 
+     * @param enabled
+     */
+    public void setAntiAliasingShapes(boolean enabled) {
+        antiAliasedShapes = enabled;
+    }
+
+    /**
      * Gets the dPI attribute of the RenderingContext object
      *
      * @return The dPI value
@@ -630,6 +653,7 @@ public class SharedContext {
             }
         }
     }
+
 }
 
 /*

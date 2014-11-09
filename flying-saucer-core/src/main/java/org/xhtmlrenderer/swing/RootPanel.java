@@ -307,9 +307,13 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
 
         XRLog.layout(Level.FINEST, "new context end");
 
+        // Set up the Java2D output device,
+        Java2DOutputDevice outputDevice = new Java2DOutputDevice(g);
+        outputDevice.setAntiAliasedShapesByDefault(getSharedContext().isAntiAliasingShapes());
+
         RenderingContext result = getSharedContext().newRenderingContextInstance();
         result.setFontContext(new Java2DFontContext(g));
-        result.setOutputDevice(new Java2DOutputDevice(g));
+        result.setOutputDevice(outputDevice);
 
         getSharedContext().getTextRenderer().setup(result.getFontContext());
 
