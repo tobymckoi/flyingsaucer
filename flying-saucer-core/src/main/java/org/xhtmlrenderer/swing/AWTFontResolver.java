@@ -29,9 +29,8 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.font.TextAttribute;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -44,8 +43,8 @@ public class AWTFontResolver implements FontResolver {
     // Maps string to font objects,
     private final Map<String, Font> instance_hash = new HashMap();
 
-    // The family names of available fonts.
-    private final Set<String> available_fonts_hash = new HashSet();
+    // The family names of available fonts (case insensitive to case sensitive)
+    private final Map<String, String> available_fonts_hash = new HashMap();
 
     // Overridden font names,
     private final Map<String, Font> overriden_fonts_hash = new HashMap();
@@ -68,14 +67,24 @@ public class AWTFontResolver implements FontResolver {
         // don't add the actual font objects because that would be a waste of memory
         // we will only add them once we need to use them
         // put empty strings in instead
-        for (int i = 0; i < available_fonts.length; i++) {
-            available_fonts_hash.add(available_fonts[i]);
+        for (String qualified_font_name : available_fonts) {
+            available_fonts_hash.put(
+                    qualified_font_name.toLowerCase(Locale.ENGLISH),
+                    qualified_font_name);
         }
 
         // preload sans, serif, and monospace into the available font hash
-        available_fonts_hash.add("Serif");
-        available_fonts_hash.add("SansSerif");
-        available_fonts_hash.add("Monospaced");
+        available_fonts_hash.put("serif", "Serif");
+        available_fonts_hash.put("sansserif", "SansSerif");
+        available_fonts_hash.put("sans-serif", "SansSerif");
+        available_fonts_hash.put("monospaced", "Monospaced");
+        available_fonts_hash.put("monospace", "Monospaced");
+
+        for (String or_font_name : overriden_fonts_hash.keySet()) {
+            available_fonts_hash.put(
+                    or_font_name.toLowerCase(Locale.ENGLISH), or_font_name);
+        }
+
     }
 
     public void flushCache() {
@@ -111,9 +120,9 @@ public class AWTFontResolver implements FontResolver {
 
         // if we get here then no font worked, so just return default sans
         //Uu.p("pulling out: -" + available_fonts_hash.get("SansSerif") + "-");
-        String family = "SansSerif";
+        String family = "sansserif";
         if (style == IdentValue.ITALIC) {
-            family = "Serif";
+            family = "serif";
         }
 
         Font fnt = createFont(ctx, family, size, weight, style, variant, kerning, ligatures);
@@ -186,8 +195,10 @@ public class AWTFontResolver implements FontResolver {
             }
         }
 
+        // The qualified font name,
+        String qual_font_name = available_fonts_hash.get(fontFamily);
+
         Map<TextAttribute, Object> fontAttrs = new HashMap();
-        fontAttrs.put(TextAttribute.FAMILY, fontFamily);
         fontAttrs.put(TextAttribute.SIZE, size);
         fontAttrs.put(TextAttribute.WEIGHT, tattr_weight);
         fontAttrs.put(TextAttribute.POSTURE, tattr_posture);
@@ -198,11 +209,12 @@ public class AWTFontResolver implements FontResolver {
             fontAttrs.put(TextAttribute.LIGATURES, TextAttribute.LIGATURES_ON);
         }
 
-        Font overrideFont = overriden_fonts_hash.get(fontFamily);
+        Font overrideFont = overriden_fonts_hash.get(qual_font_name);
         if (overrideFont != null) {
             return overrideFont.deriveFont(fontAttrs);
         }
         else {
+            fontAttrs.put(TextAttribute.FAMILY, qual_font_name);
             return Font.getFont(fontAttrs);
         }
 
@@ -231,20 +243,11 @@ public class AWTFontResolver implements FontResolver {
             font = font.substring(0, font.length() - 1);
         }
 
-        //Uu.p("final font = " + font);
-        // normalize the font name
-        if (font.equals("serif")) {
-            font = "Serif";
-        }
-        if (font.equals("sans-serif")) {
-            font = "SansSerif";
-        }
-        if (font.equals("monospace")) {
-            font = "Monospaced";
-        }
+        // Font to lower case so that search is case insensitive,
+        font = font.toLowerCase(Locale.ENGLISH);
 
-        if (font.equals("Serif") && style == IdentValue.OBLIQUE) font = "SansSerif";
-        if (font.equals("SansSerif") && style == IdentValue.ITALIC) font = "Serif";
+        if (font.equals("serif") && style == IdentValue.OBLIQUE) font = "sansserif";
+        if (font.equals("sansserif") && style == IdentValue.ITALIC) font = "serif";
 
         // assemble a font instance hash name
         String font_instance_name = getFontInstanceHashName(ctx, font, size, weight, style, variant, kerning, ligatures);
@@ -261,7 +264,7 @@ public class AWTFontResolver implements FontResolver {
 
         // if not then
         //  does the font exist
-        if (!available_fonts_hash.contains(font)) {
+        if (!available_fonts_hash.containsKey(font)) {
             return null;
         }
 
@@ -279,7 +282,7 @@ public class AWTFontResolver implements FontResolver {
      */
     public void setFontMapping(final String name, final Font font) {
         overriden_fonts_hash.put(name, font);
-        available_fonts_hash.add(name);
+        available_fonts_hash.put(name.toLowerCase(Locale.ENGLISH), name);
     }
 
     /**

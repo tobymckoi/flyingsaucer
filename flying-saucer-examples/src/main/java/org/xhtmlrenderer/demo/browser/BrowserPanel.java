@@ -44,6 +44,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -209,8 +211,10 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 	private void loadCustomFonts() {
 		SharedContext rc = view.getSharedContext();
 		try {
-			rc.setFontMapping("Fuzz", Font.createFont(Font.TRUETYPE_FONT,
-					new DemoMarker().getClass().getResourceAsStream("/demos/fonts/fuzz.ttf")));
+                    URL fontUrl = DemoMarker.class.getResource("/demos/fonts/fuzz.ttf");
+                    InputStream fontInputStream = fontUrl.openStream();
+                    Font fuzzFont = Font.createFont(Font.TRUETYPE_FONT, fontInputStream);
+                    rc.setFontMapping("Fuzz", fuzzFont);
 		} catch (Exception ex) {
 			Uu.p(ex);
 		}
