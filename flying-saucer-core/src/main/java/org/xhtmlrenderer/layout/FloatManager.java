@@ -389,12 +389,13 @@ public class FloatManager {
      * @param floatsList
      * @return 
      */
-    private List<Rectangle> findIntersectedFloatAreas(final CssContext cssCtx, final Rectangle bounds, final List<BoxOffset> floatsList) {
-        List<Rectangle> intersectedAreas = new ArrayList(3);
+    private List<FloatBounds> findIntersectedFloatAreas(final CssContext cssCtx, final Rectangle bounds, final List<BoxOffset> floatsList) {
+        List<FloatBounds> intersectedAreas = new ArrayList(3);
         for (final BoxOffset floater : floatsList) {
-            final Rectangle fr = floater.getBox().getMarginEdge(cssCtx, -floater.getX(), -floater.getY());
-            if (bounds.intersects(fr)) {
-                intersectedAreas.add(fr);
+            final Box box = floater.getBox();
+            final Rectangle marginEdge = box.getMarginEdge(cssCtx, -floater.getX(), -floater.getY());
+            if (bounds.intersects(marginEdge)) {
+                intersectedAreas.add(new FloatBounds(marginEdge));
             }
         }
         return intersectedAreas;
@@ -406,10 +407,10 @@ public class FloatManager {
      * @param areas
      * @return 
      */
-    private Rectangle findLeftmost(List<Rectangle> areas) {
-        Rectangle r = null;
-        for (Rectangle area : areas) {
-            if (r == null || area.x < r.x) {
+    private FloatBounds findLeftmost(List<FloatBounds> areas) {
+        FloatBounds r = null;
+        for (FloatBounds area : areas) {
+            if (r == null || area.getMarginEdge().x < r.getMarginEdge().x) {
                 r = area;
             }
         }
@@ -422,13 +423,82 @@ public class FloatManager {
      * @param areas
      * @return 
      */
-    private Rectangle findRightmost(List<Rectangle> areas) {
-        Rectangle r = null;
-        for (Rectangle area : areas) {
-            if (r == null || area.x > r.x) {
+    private FloatBounds findRightmost(List<FloatBounds> areas) {
+        FloatBounds r = null;
+        for (FloatBounds area : areas) {
+            if (r == null || area.getMarginEdge().x > r.getMarginEdge().x) {
                 r = area;
             }
         }
+        return r;
+    }
+
+    /**
+     * Returns a rectangle that represents the area between a left and right
+     * float area that intersects the given area bounds. This is used when
+     * an area being laid out is stressed by floating elements and we need to
+     * find the area to continue layout from.
+     * 
+     * @param cssCtx
+     * @param areaBounds
+     * @param maxAvailableWidth
+     * @return 
+     */
+    public FloatBounds getFloatExclusionBounds(
+            final CssContext cssCtx,
+            final Rectangle areaBounds, final int maxAvailableWidth) {
+
+        // Make the line horizonal extents very large,
+        areaBounds.x = Short.MIN_VALUE * 8;
+        areaBounds.width = Short.MAX_VALUE * 16;
+
+        // Find all rectangles that intersect the line bounds,
+        List<FloatBounds> leftAreas = findIntersectedFloatAreas(
+                                        cssCtx, areaBounds, getFloats(LEFT));
+        List<FloatBounds> rightAreas = findIntersectedFloatAreas(
+                                        cssCtx, areaBounds, getFloats(RIGHT));
+
+        if (leftAreas.isEmpty() && rightAreas.isEmpty()) {
+            return null;
+        }
+        // The leftmost and rightmost areas,
+        FloatBounds leftmost = findRightmost(leftAreas);
+        FloatBounds rightmost = findLeftmost(rightAreas);
+
+        Rectangle leftBoxEdge = leftmost == null ? null : leftmost.getMarginEdge();
+        Rectangle rightBoxEdge = rightmost == null ? null : rightmost.getMarginEdge();
+
+        Rectangle boxExclusion = calculateExclusion(
+                        leftBoxEdge, rightBoxEdge, maxAvailableWidth);
+        
+        return new FloatBounds(boxExclusion);
+        
+    }
+
+    /**
+     * Calculates the area that is the exclusion of the left and right
+     * rectangle areas (the smallest area between the two areas).
+     * 
+     * @param left
+     * @param right
+     * @param maxAvailableWidth
+     * @return 
+     */
+    private Rectangle calculateExclusion(Rectangle left, Rectangle right, final int maxAvailableWidth) {
+        int leftx = left == null ?
+                0 : Math.max(0, left.x + left.width);
+        int rightx = right == null ?
+                maxAvailableWidth : Math.min(maxAvailableWidth, right.x);
+
+        int leftTopY = left == null ? 0 : left.y;
+        int rightTopY = right == null ? 0 : right.y;
+        int leftBotY = left == null ? Integer.MAX_VALUE : left.y + left.height;
+        int rightBotY = right == null ? Integer.MAX_VALUE : right.y + right.height;
+
+        int ry = Math.max(leftTopY, rightTopY);
+        int rh = Math.min(leftBotY, rightBotY) - ry;
+
+        Rectangle r = new Rectangle(leftx, ry, rightx - leftx, rh);
         return r;
     }
 
@@ -444,7 +514,7 @@ public class FloatManager {
      * @param maxAvailableWidth
      * @return 
      */
-    public Rectangle getFloatExclusionBounds(
+    public FloatBounds getFloatExclusionBounds(
             final CssContext cssCtx, final BlockFormattingContext bfc,
             final LineBox line, final int maxAvailableWidth) {
 
@@ -454,38 +524,7 @@ public class FloatManager {
 
         applyLineHeightHack(cssCtx, line, lineBounds);
 
-        // Make the line horizonal extents very large,
-        lineBounds.x = Short.MIN_VALUE * 8;
-        lineBounds.width = Short.MAX_VALUE * 16;
-
-        // Find all rectangles that intersect the line bounds,
-        List<Rectangle> leftAreas = findIntersectedFloatAreas(
-                                        cssCtx, lineBounds, getFloats(LEFT));
-        List<Rectangle> rightAreas = findIntersectedFloatAreas(
-                                        cssCtx, lineBounds, getFloats(RIGHT));
-
-        if (leftAreas.isEmpty() && rightAreas.isEmpty()) {
-            return null;
-        }
-        // The leftmost and rightmost areas,
-        Rectangle leftmost = findRightmost(leftAreas);
-        Rectangle rightmost = findLeftmost(rightAreas);
-
-        int leftx = leftmost == null ?
-                0 : Math.max(0, leftmost.x + leftmost.width);
-        int rightx = rightmost == null ?
-                maxAvailableWidth : Math.min(maxAvailableWidth, rightmost.x);
-
-        int leftTopY = leftmost == null ? 0 : leftmost.y;
-        int rightTopY = rightmost == null ? 0 : rightmost.y;
-        int leftBotY = leftmost == null ? Integer.MAX_VALUE : leftmost.y + leftmost.height;
-        int rightBotY = rightmost == null ? Integer.MAX_VALUE : rightmost.y + rightmost.height;
-
-        int ry = Math.max(leftTopY, rightTopY);
-        int rh = Math.min(leftBotY, rightBotY) - ry;
-
-        Rectangle r = new Rectangle(leftx, ry, rightx - leftx, rh);
-        return r;
+        return getFloatExclusionBounds(cssCtx, lineBounds, maxAvailableWidth);
 
     }
 

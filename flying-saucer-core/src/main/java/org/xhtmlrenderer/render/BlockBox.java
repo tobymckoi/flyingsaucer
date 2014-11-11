@@ -47,6 +47,7 @@ import org.xhtmlrenderer.layout.CounterFunction;
 import org.xhtmlrenderer.layout.FloatManager;
 import org.xhtmlrenderer.layout.InlineBoxing;
 import org.xhtmlrenderer.layout.InlinePaintable;
+import org.xhtmlrenderer.layout.Layer;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.layout.PaintingInfo;
 import org.xhtmlrenderer.layout.PersistentBFC;
@@ -602,8 +603,14 @@ public class BlockBox extends Box implements InlinePaintable {
         }
 
         if (isFloated()) {
-            _floatedBoxData.getManager().removeFloat(this);
-            _floatedBoxData.getDrawingLayer().removeFloat(this);
+            FloatManager manager = _floatedBoxData.getManager();
+            Layer drawingLayer = _floatedBoxData.getDrawingLayer();
+            if (manager != null) {
+                manager.removeFloat(this);
+            }
+            if (drawingLayer != null) {
+                drawingLayer.removeFloat(this);
+            }
         }
 
         if (getStyle().isRunning()) {

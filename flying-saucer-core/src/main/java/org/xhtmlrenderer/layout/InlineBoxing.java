@@ -62,7 +62,7 @@ public class InlineBoxing {
     }
 
 
-    public static void layoutContent(LayoutContext c, BlockBox box, int initialY, int breakAtLine) {
+    public static void layoutContent(LayoutContext c, final BlockBox box, final int initialY, int breakAtLine) {
         int maxAvailableWidth = box.getContentWidth();
         int remainingWidth = maxAvailableWidth;
 
@@ -118,6 +118,18 @@ public class InlineBoxing {
         }
 
         int lineOffset = 0;
+
+        // Make sure to layout any nested inline blocks,
+        List<Styleable> inlineContent = box.getInlineContent();
+        for (Styleable s : inlineContent) {
+            if (s instanceof BlockBox) {
+                BlockBox child = (BlockBox) s;
+                if (child.getStyle().isInlineBlock() || child.getStyle().isInlineTable()) {
+                    // Lay out the nested box,
+                    layoutInlineBlockContent(c, box, child, initialY);
+                }
+            }
+        }
 
         // Create a list of all unbreakable objects in the content. This breaks
         // all inline text into individual words.
@@ -208,8 +220,9 @@ public class InlineBoxing {
 
                         // The end of the exclusion rectangle is the area
                         // we should try to flow the text in.
-                        Rectangle exclusionRect = bFContext.getFloatExclusionBounds(
+                        FloatBounds exclusionArea = bFContext.getFloatExclusionBounds(
                                         c, currentLine, maxAvailableWidth);
+                        Rectangle exclusionRect = exclusionArea.getMarginEdge();
 
                         int dify = bFContext.getOffset().y;
                         currentLine.setY((exclusionRect.y + exclusionRect.height) + dify);
@@ -404,9 +417,6 @@ public class InlineBoxing {
                         }
 
                     } else if (child.getStyle().isInlineBlock() || child.getStyle().isInlineTable()) {
-
-                        // Lay out the nested box,
-                        layoutInlineBlockContent(c, box, child, initialY);
 
                         // Add it to the current line,
                         if (currentIB == null) {
@@ -867,8 +877,7 @@ public class InlineBoxing {
         // XXX Revisit this.  Do we need this when dealing with unbreakable
         // text?  Is a line required to always have a minimum height?
         if (current.getHeight() != 0 &&
-                current.getHeight() < minHeight &&
-                ! current.isContainsOnlyBlockLevelContent()) {
+                current.getHeight() < minHeight) {
             current.setHeight(minHeight);
         }
 

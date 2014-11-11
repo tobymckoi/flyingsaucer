@@ -88,7 +88,7 @@ public class BlockFormattingContext {
      * @param containingBlockWidth
      * @return 
      */
-    public Rectangle getFloatExclusionBounds(CssContext c, LineBox line, int containingBlockWidth) {
+    public FloatBounds getFloatExclusionBounds(CssContext c, LineBox line, int containingBlockWidth) {
         return getFloatManager().getFloatExclusionBounds(c, this, line, containingBlockWidth);
     }
 

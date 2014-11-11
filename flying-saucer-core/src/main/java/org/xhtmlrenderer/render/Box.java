@@ -301,6 +301,42 @@ public abstract class Box implements Styleable {
         return getMarginEdge(getX(), getY(), cssCtx, tx, ty);
     }
 
+    /**
+     * Returns the rectangle bounds minus the margin. This can be used for
+     * collapsing sections.
+     * 
+     * @param left
+     * @param top
+     * @param cssCtx
+     * @param tx
+     * @param ty
+     * @return 
+     */
+    public Rectangle getNonMarginEdge(int left, int top, CssContext cssCtx, int tx, int ty) {
+        Rectangle result = new Rectangle(left, top, getWidth(), getHeight());
+        result.translate(tx, ty);
+        // Subtract the margin areas from the rectangle,
+        RectPropertySet margin = getMargin(cssCtx);
+        result.width -= margin.left() + margin.right();
+        result.height -= margin.top() + margin.bottom();
+        result.x += margin.left();
+        result.y += margin.top();
+        return result;
+    }
+
+    /**
+     * Returns the rectangle bounds minus the margin. This can be used for
+     * collapsing sections.
+     * 
+     * @param cssCtx
+     * @param tx
+     * @param ty
+     * @return 
+     */
+    public Rectangle getNonMarginEdge(CssContext cssCtx, int tx, int ty) {
+        return getNonMarginEdge(getX(), getY(), cssCtx, tx, ty);
+    }
+
     public Rectangle getPaintingBorderEdge(CssContext cssCtx) {
         return getBorderEdge(getAbsX(), getAbsY(), cssCtx);
     }

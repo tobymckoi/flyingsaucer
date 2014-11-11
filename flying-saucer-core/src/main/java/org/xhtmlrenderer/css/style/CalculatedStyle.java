@@ -953,8 +953,8 @@ public class CalculatedStyle {
 
             return isFloated() ||
                     position == IdentValue.ABSOLUTE || position == IdentValue.FIXED ||
-                    display == IdentValue.INLINE_BLOCK || display == IdentValue.TABLE_CELL ||
-                    ! isIdent(CSSName.OVERFLOW, IdentValue.VISIBLE);
+                    display == IdentValue.INLINE_BLOCK || display == IdentValue.TABLE_CELL;
+
         }
     }
 
