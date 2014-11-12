@@ -240,6 +240,7 @@ public class TableBox extends BlockBox {
         // The maximum available width,
         final int maxAvailableWidth = getContainingBlockWidth();
         final Layer origContainingLayer = getContainingLayer();
+        final Box parent = getParent();
         LayoutState originalLayoutState = c.captureLayoutState();
 
         calcMinMaxWidth(c);
@@ -248,6 +249,8 @@ public class TableBox extends BlockBox {
         // into account any floating areas. We test for those after we've
         // attempted layout.
         layoutAttempt(c);
+
+        int translateY = 0;
 
         // Test to see if the table intersected a floating area.
         BlockFormattingContext blockCtx = c.getBlockFormattingContext();
@@ -259,8 +262,6 @@ public class TableBox extends BlockBox {
         // If 'exclus' is null then we know we didn't hit any floating blocks
         // and we are done.
         if (exclus == null) {
-//            System.out.println("(1) x = " + getX());
-//            System.out.println("(1) absX = " + getAbsX());
             return;
         }
 
@@ -273,73 +274,117 @@ public class TableBox extends BlockBox {
             // Does the default table width fit into this area?
             if (maxExclus.width >= getWidth() - blockCtx.getOffset().x) {
                 // Yes, so we are fine,
-//                System.out.println("(2) x = " + getX());
-//                System.out.println("(2) absX = " + getAbsX());
                 return;
             }
         }
-
-//        System.out.println(" maxExclus = " + maxExclus);
-//        System.out.println(" getWidth() = " + getWidth());
-
-        // There's either a float on the left or right that needs us to
-        // recalculate the table layout.
 
         RectPropertySet margin = getMargin(c);
         BorderPropertySet border = getBorder(c);
         RectPropertySet padding = getPadding(c);
 
-        // Note that the left floating area is represented by;
-        //      maxExclus.x
-        // The width of the floating area to the right.
-        int rightFloatWidth = maxAvailableWidth - (maxExclus.x + maxExclus.width);
-        // Pushing against left side,
-        boolean againstLeft = (maxExclus.x <= (int) margin.left());
-        // Pushing against right side,
-        boolean againstRight = (rightFloatWidth <= (int) margin.right());
-
-        int xMin = 0; //-blockCtx.getOffset().x;
-        int xMax = maxAvailableWidth; //availableWidth;
-
-        if (!againstLeft) {
-            xMin += (maxExclus.x - (int) margin.left());
-            if (againstRight) {
-                xMin += blockCtx.getOffset().x;
-            }
-            else {
-                xMin += blockCtx.getOffset().x;
-            }
-        }
-
-        if (!againstRight) {
-            xMax += blockCtx.getOffset().x - rightFloatWidth + (int) margin.right();
-        }
-
-        int newContentWidth = xMax - xMin;
+//        System.out.println("-----");
         
-        // Reset the layout,
-        reset(c);
-        setContainingLayer(origContainingLayer);
-        c.restoreLayoutState(originalLayoutState);
+        int loopCount = 0;
 
-        calcLayoutDimensions(c);
+        while (true) {
 
-        // YUCK, any way of preserving this information?
-        calcMinMaxWidth(c);
+            // There's either a float on the left or right that needs us to
+            // recalculate the table layout.
 
-        // Try and fit the table into the float exclusion width,
-        setContentWidth(newContentWidth -
-                            (int) margin.left() - (int) margin.right() -
-                            (int) padding.left() - (int) padding.right() -
-                            (int) border.left() - (int) border.right());
+            // Note that the left floating area is represented by;
+            //      maxExclus.x
+            // The width of the floating area to the right.
+            int rightFloatWidth = maxAvailableWidth - (maxExclus.x + maxExclus.width);
+            // Pushing against left side,
+            boolean againstLeft = (maxExclus.x <= (int) margin.left());
+            // Pushing against right side,
+            boolean againstRight = (rightFloatWidth <= (int) margin.right());
 
-        setX(xMin);
-        setAbsX(xMin - blockCtx.getOffset().x);
-        layoutAttempt(c);
-        c.translate(xMin, 0);
+            int xMin = 0; //-blockCtx.getOffset().x;
+            int xMax = maxAvailableWidth; //availableWidth;
 
-//        System.out.println("(3) x = " + getX());
-//        System.out.println("(3) absX = " + getAbsX());
+            if (!againstLeft) {
+                xMin += (maxExclus.x - (int) margin.left());
+                if (againstRight) {
+                    xMin += blockCtx.getOffset().x;
+                }
+                else {
+                    xMin += blockCtx.getOffset().x;
+                }
+            }
+
+            if (!againstRight) {
+                xMax += blockCtx.getOffset().x - rightFloatWidth + (int) margin.right();
+            }
+
+            int newContentWidth = xMax - xMin;
+
+            // Can even the minimum width not fit into the exclusion area?
+            if (newContentWidth < getMinWidth()) {
+                // Ok, the minimum table width can't fit into this area, so find
+                // the next area.
+
+//                System.out.println("blockCtx = " + blockCtx.getOffset());
+//                System.out.println(maxExclus);
+//                System.out.println(getContainingBlock().getAbsY());
+
+//                System.out.println("(B) absY = " + getAbsY());
+//                System.out.println("(B)    Y = " + getY());
+
+                int normY = /*parent.getAbsY() +*/ parent.getTy();
+                int py = (maxExclus.y + maxExclus.height + blockCtx.getOffset().y);
+//                System.out.println("normY = " + normY);
+//                System.out.println("py = " + py);
+
+                setY((-blockCtx.getOffset().y - normY) + py);
+                setAbsY(normY + getY());
+
+//                System.out.println("(A) absY = " + getAbsY());
+//                System.out.println("(A)    Y = " + getY());
+
+                translateY = ((maxExclus.y + maxExclus.height)) + blockCtx.getOffset().y;
+
+                // Recompute exclusion area,
+                Rectangle newTableBounds = new Rectangle(tableBounds);
+                newTableBounds.y = getAbsY();
+                exclus = floats.getFloatExclusionBounds(c, newTableBounds, maxAvailableWidth);
+                if (exclus == null) {
+                    maxExclus = newTableBounds;
+                }
+                else {
+                    maxExclus = exclus.getMarginEdge();
+                }
+
+                // Loop and try for this section,
+                ++loopCount;
+                if (loopCount < 16) {
+                    continue;
+                }
+            }
+
+            // Reset the layout,
+            reset(c);
+            setContainingLayer(origContainingLayer);
+            c.restoreLayoutState(originalLayoutState);
+
+            calcLayoutDimensions(c);
+
+            // YUCK, any way of preserving this information?
+            calcMinMaxWidth(c);
+
+            // Try and fit the table into the float exclusion width,
+            setContentWidth(newContentWidth -
+                                (int) margin.left() - (int) margin.right() -
+                                (int) padding.left() - (int) padding.right() -
+                                (int) border.left() - (int) border.right());
+
+            setX(xMin);
+            setAbsX(xMin - blockCtx.getOffset().x);
+            layoutAttempt(c);
+            c.translate(xMin, translateY);
+
+            break;
+        }
 
     }
 
