@@ -19,6 +19,7 @@
  */
 package org.xhtmlrenderer.newtable;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -240,7 +241,7 @@ public class TableBox extends BlockBox {
         // The maximum available width,
         final int maxAvailableWidth = getContainingBlockWidth();
         final Layer origContainingLayer = getContainingLayer();
-        final Box parent = getParent();
+
         LayoutState originalLayoutState = c.captureLayoutState();
 
         calcMinMaxWidth(c);
@@ -250,14 +251,37 @@ public class TableBox extends BlockBox {
         // attempted layout.
         layoutAttempt(c);
 
+        int inputY = getY();
         int translateY = 0;
 
         // Test to see if the table intersected a floating area.
         BlockFormattingContext blockCtx = c.getBlockFormattingContext();
         FloatManager floats = blockCtx.getFloatManager();
+        // The master of this float context
 
-        Rectangle tableBounds = new Rectangle(getAbsX(), getAbsY(), getWidth(), getHeight());
-        FloatBounds exclus = floats.getFloatExclusionBounds(c, new Rectangle(tableBounds), maxAvailableWidth);
+        Point blockCtxOffset = blockCtx.getOffset();
+
+        // The range of X that's permissible,
+        final int minContentX = -blockCtxOffset.x;
+        final int maxContentX = minContentX + maxAvailableWidth;
+
+        // Spacing,
+        RectPropertySet margin = getMargin(c);
+        BorderPropertySet border = getBorder(c);
+        RectPropertySet padding = getPadding(c);
+
+        Rectangle tableBounds = new Rectangle(
+                -blockCtxOffset.x, -blockCtxOffset.y,
+                getWidth(), getHeight());
+        // For the purpose of floating area hit detection, we remove the top
+        // margin.
+        final int topMargin = (int) margin.top();
+        tableBounds.height -= topMargin;
+        tableBounds.y += topMargin;
+        
+        // Calculate the float exclusion area if there is one,
+        FloatBounds exclus = floats.getFloatExclusionBounds(
+                    c, new Rectangle(tableBounds), minContentX, maxContentX);
 
         // If 'exclus' is null then we know we didn't hit any floating blocks
         // and we are done.
@@ -268,99 +292,96 @@ public class TableBox extends BlockBox {
         // The maximum exclusion area is represented by the margin edge,
         Rectangle maxExclus = exclus.getMarginEdge();
 
-        // If the exclusion area starts at 0 then we are up against the left
-        // side.
-        if (maxExclus.x == 0) {
+        Rectangle normalizedExclus = new Rectangle(maxExclus);
+        normalizedExclus.translate(blockCtxOffset.x, blockCtxOffset.y);
+
+        // If the exclusion area starts at the minimum then we are up against
+        // the far left side.
+        if (normalizedExclus.x == 0) {
             // Does the default table width fit into this area?
-            if (maxExclus.width >= getWidth() - blockCtx.getOffset().x) {
-                // Yes, so we are fine,
+            if (getWidth() < normalizedExclus.width) {
+                // Yes, so return without further calculations,
                 return;
             }
         }
 
-        RectPropertySet margin = getMargin(c);
-        BorderPropertySet border = getBorder(c);
-        RectPropertySet padding = getPadding(c);
-
-//        System.out.println("-----");
-        
         int loopCount = 0;
 
         while (true) {
 
-            // There's either a float on the left or right that needs us to
-            // recalculate the table layout.
+            // True if this table margin edge should be capped against the
+            // far left side,
+            boolean againstLeftSide = margin.left() >= normalizedExclus.x;
+            // True if this table margin edge should be capped against the
+            // far right side,
+            boolean againstRightSide = margin.right() >= maxAvailableWidth -
+                                    (normalizedExclus.x + normalizedExclus.width);
 
-            // Note that the left floating area is represented by;
-            //      maxExclus.x
-            // The width of the floating area to the right.
-            int rightFloatWidth = maxAvailableWidth - (maxExclus.x + maxExclus.width);
-            // Pushing against left side,
-            boolean againstLeft = (maxExclus.x <= (int) margin.left());
-            // Pushing against right side,
-            boolean againstRight = (rightFloatWidth <= (int) margin.right());
-
-            int xMin = 0; //-blockCtx.getOffset().x;
-            int xMax = maxAvailableWidth; //availableWidth;
-
-            if (!againstLeft) {
-                xMin += (maxExclus.x - (int) margin.left());
-                if (againstRight) {
-                    xMin += blockCtx.getOffset().x;
-                }
-                else {
-                    xMin += blockCtx.getOffset().x;
-                }
+            // Calculate the X bounds of this table against the left and right
+            // floated areas.
+            int cappedMinX;
+            int cappedMaxX;
+            if (againstLeftSide) {
+                cappedMinX = 0;
+            }
+            else {
+                cappedMinX = normalizedExclus.x - (int) margin.left();
+            }
+            if (againstRightSide) {
+                cappedMaxX = maxAvailableWidth;
+            }
+            else {
+                cappedMaxX = normalizedExclus.x + normalizedExclus.width + (int) margin.right();
             }
 
-            if (!againstRight) {
-                xMax += blockCtx.getOffset().x - rightFloatWidth + (int) margin.right();
-            }
+            // The calculated width of this table
+            int calculatedWidth = (cappedMaxX - cappedMinX);
 
-            int newContentWidth = xMax - xMin;
+            // Is the area smaller than the minimum width of the table?
+            if (exclus != null && calculatedWidth < getMinWidth()) {
 
-            // Can even the minimum width not fit into the exclusion area?
-            if (newContentWidth < getMinWidth()) {
-                // Ok, the minimum table width can't fit into this area, so find
-                // the next area.
+                // The exclusion area will not contain the minimum width of
+                // the table, so we try the area immediately following the
+                // exclusion area.
 
-//                System.out.println("blockCtx = " + blockCtx.getOffset());
-//                System.out.println(maxExclus);
-//                System.out.println(getContainingBlock().getAbsY());
+                // Change Y position,
+                setY(inputY + normalizedExclus.y + normalizedExclus.height);
+                calcCanvasLocation();
+                translateY = normalizedExclus.y + normalizedExclus.height;
 
-//                System.out.println("(B) absY = " + getAbsY());
-//                System.out.println("(B)    Y = " + getY());
-
-                int normY = /*parent.getAbsY() +*/ parent.getTy();
-                int py = (maxExclus.y + maxExclus.height + blockCtx.getOffset().y);
-//                System.out.println("normY = " + normY);
-//                System.out.println("py = " + py);
-
-                setY((-blockCtx.getOffset().y - normY) + py);
-                setAbsY(normY + getY());
-
-//                System.out.println("(A) absY = " + getAbsY());
-//                System.out.println("(A)    Y = " + getY());
-
-                translateY = ((maxExclus.y + maxExclus.height)) + blockCtx.getOffset().y;
-
-                // Recompute exclusion area,
-                Rectangle newTableBounds = new Rectangle(tableBounds);
-                newTableBounds.y = getAbsY();
-                exclus = floats.getFloatExclusionBounds(c, newTableBounds, maxAvailableWidth);
+                // Recalculate exclusion area,
+                tableBounds = new Rectangle(
+                        -blockCtxOffset.x, -blockCtxOffset.y + normalizedExclus.y + normalizedExclus.height,
+                        getWidth(), getHeight());
+                // For the purpose of floating area hit detection, we take
+                // off the top margin.
+                tableBounds.height -= topMargin;
+                tableBounds.y += topMargin;
+                // Calculate the float exclusion area if there is one,
+                exclus = floats.getFloatExclusionBounds(
+                            c, new Rectangle(tableBounds), minContentX, maxContentX);
                 if (exclus == null) {
-                    maxExclus = newTableBounds;
+                    normalizedExclus = new Rectangle(tableBounds);
+                    normalizedExclus.translate(blockCtxOffset.x, blockCtxOffset.y);
                 }
                 else {
                     maxExclus = exclus.getMarginEdge();
+                    normalizedExclus = new Rectangle(maxExclus);
+                    normalizedExclus.translate(blockCtxOffset.x, blockCtxOffset.y);
                 }
 
-                // Loop and try for this section,
                 ++loopCount;
                 if (loopCount < 16) {
                     continue;
                 }
+
             }
+
+            // The computed content width for the next layout cycle,
+            int newContentWidth = calculatedWidth -
+                                (int) margin.left() - (int) margin.right() -
+                                (int) padding.left() - (int) padding.right() -
+                                (int) border.left() - (int) border.right();
 
             // Reset the layout,
             reset(c);
@@ -373,30 +394,28 @@ public class TableBox extends BlockBox {
             calcMinMaxWidth(c);
 
             // Try and fit the table into the float exclusion width,
-            setContentWidth(newContentWidth -
-                                (int) margin.left() - (int) margin.right() -
-                                (int) padding.left() - (int) padding.right() -
-                                (int) border.left() - (int) border.right());
+            setContentWidth(newContentWidth);
 
-            setX(xMin);
-            setAbsX(xMin - blockCtx.getOffset().x);
+            // Set the new x position,
+            setX(cappedMinX);
+            calcCanvasLocation();
+
+            // Layout in the area we know the table will fit,
             layoutAttempt(c);
-            c.translate(xMin, translateY);
+            c.translate(cappedMinX, translateY);
 
             break;
         }
 
     }
 
-    
+
     @Override
     public void setLeftMBP(int v) {
         super.setLeftMBP(v);
     }
     
     private void layoutAttempt(LayoutContext c) {
-        
-//        calcLayoutDimensions(c);
         
         calcWidth();
 

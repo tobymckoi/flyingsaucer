@@ -441,12 +441,14 @@ public class FloatManager {
      * 
      * @param cssCtx
      * @param areaBounds
-     * @param maxAvailableWidth
+     * @param minX
+     * @param maxX
      * @return 
      */
     public FloatBounds getFloatExclusionBounds(
             final CssContext cssCtx,
-            final Rectangle areaBounds, final int maxAvailableWidth) {
+            final Rectangle areaBounds,
+            final int minX, final int maxX) {
 
         // Make the line horizonal extents very large,
         areaBounds.x = Short.MIN_VALUE * 8;
@@ -469,7 +471,7 @@ public class FloatManager {
         Rectangle rightBoxEdge = rightmost == null ? null : rightmost.getMarginEdge();
 
         Rectangle boxExclusion = calculateExclusion(
-                        leftBoxEdge, rightBoxEdge, maxAvailableWidth);
+                        leftBoxEdge, rightBoxEdge, minX, maxX);
         
         return new FloatBounds(boxExclusion);
         
@@ -484,16 +486,22 @@ public class FloatManager {
      * @param maxAvailableWidth
      * @return 
      */
-    private Rectangle calculateExclusion(Rectangle left, Rectangle right, final int maxAvailableWidth) {
-        int leftx = left == null ?
-                0 : Math.max(0, left.x + left.width);
-        int rightx = right == null ?
-                maxAvailableWidth : Math.min(maxAvailableWidth, right.x);
+    private Rectangle calculateExclusion(
+            Rectangle left, Rectangle right,
+            final int minX, final int maxX) {
 
-        int leftTopY = left == null ? 0 : left.y;
-        int rightTopY = right == null ? 0 : right.y;
-        int leftBotY = left == null ? Integer.MAX_VALUE : left.y + left.height;
-        int rightBotY = right == null ? Integer.MAX_VALUE : right.y + right.height;
+        int leftx = left == null ?
+                minX : Math.max(minX, left.x + left.width);
+        int rightx = right == null ?
+                maxX : Math.min(maxX, right.x);
+
+        // Large number for purpose of min/max calculations.
+        final int BIG_NUMBER = ((int) Short.MAX_VALUE) * 64;
+
+        int leftTopY = left == null ? -BIG_NUMBER : left.y;
+        int rightTopY = right == null ? -BIG_NUMBER : right.y;
+        int leftBotY = left == null ? BIG_NUMBER : left.y + left.height;
+        int rightBotY = right == null ? BIG_NUMBER : right.y + right.height;
 
         int ry = Math.max(leftTopY, rightTopY);
         int rh = Math.min(leftBotY, rightBotY) - ry;
@@ -524,7 +532,10 @@ public class FloatManager {
 
         applyLineHeightHack(cssCtx, line, lineBounds);
 
-        return getFloatExclusionBounds(cssCtx, lineBounds, maxAvailableWidth);
+        int minX = -offset.x;
+        int maxX = minX + maxAvailableWidth;
+
+        return getFloatExclusionBounds(cssCtx, lineBounds, minX, maxX);
 
     }
 

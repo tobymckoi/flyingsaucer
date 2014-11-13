@@ -525,11 +525,11 @@ public class BoxBuilder {
      * If not, the table is returned.
      */
     private static BlockBox reorderTableContent(LayoutContext c, TableBox table) {
-        List topCaptions = new LinkedList();
+        List<Box> topCaptions = new ArrayList(2);
         Box header = null;
-        List bodies = new LinkedList();
+        List<Box> bodies = new ArrayList(2);
         Box footer = null;
-        List bottomCaptions = new LinkedList();
+        List<Box> bottomCaptions = new ArrayList(2);
 
         for (Iterator i = table.getChildIterator(); i.hasNext();) {
             Box b = (Box) i.next();
@@ -573,8 +573,8 @@ public class BoxBuilder {
                                 CascadedStyle.createLayoutPropertyDeclaration(
                                         CSSName.DISPLAY, IdentValue.BLOCK),
                                 CascadedStyle.createLayoutPropertyDeclaration(
-                                        CSSName.FLOAT, table.getStyle().getIdent(CSSName.FLOAT))});
-
+                                        CSSName.FLOAT, table.getStyle().getIdent(CSSName.FLOAT)),
+                        });
                 anonStyle = table.getStyle().deriveStyle(cascadedStyle);
             } else {
                 anonStyle = table.getStyle().createAnonymousStyle(IdentValue.BLOCK);
