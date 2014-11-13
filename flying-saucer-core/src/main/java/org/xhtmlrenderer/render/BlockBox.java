@@ -1645,6 +1645,14 @@ public class BlockBox extends Box implements InlinePaintable {
                 calcMinMaxCSSMinMaxWidth(c, margin, border, padding);
             }
 
+            // ISSUE: Should this rule be here? Maybe this needs to
+            //   be a special rule in a caption block box class?
+            // Table captions do not have a max width so they inherit
+            //   the table width.
+            if (getStyle().isTableCaption()) {
+                _maxWidth = _minWidth;
+            }
+
             setMinMaxCalculated(true);
         }
     }

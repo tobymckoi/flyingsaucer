@@ -102,7 +102,20 @@ public class CascadedStyle {
      */
     public static CascadedStyle createLayoutStyle(
             CascadedStyle startingPoint, PropertyDeclaration[] decls) {
-        return new CascadedStyle(startingPoint, Arrays.asList(decls).iterator());
+        return createLayoutStyle(startingPoint, Arrays.asList(decls));
+    }
+
+    /**
+     * Creates a <code>CascadedStyle</code> using style information from
+     * <code>startingPoint</code> and then adding the property declarations
+     * from <code>decls</code>.
+     * @param decls An array of PropertyDeclaration objects created with 
+     * {@link #createLayoutPropertyDeclaration(CSSName, IdentValue)}
+     * @see #createLayoutPropertyDeclaration(CSSName, IdentValue)
+     */
+    public static CascadedStyle createLayoutStyle(
+            CascadedStyle startingPoint, List<PropertyDeclaration> decls) {
+        return new CascadedStyle(startingPoint, decls.iterator());
     }
 
     /**

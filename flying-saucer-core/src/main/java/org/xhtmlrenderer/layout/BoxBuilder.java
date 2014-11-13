@@ -43,6 +43,7 @@ import org.xhtmlrenderer.css.sheet.StylesheetInfo;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.EmptyStyle;
 import org.xhtmlrenderer.css.style.FSDerivedValue;
+import org.xhtmlrenderer.css.style.derived.LengthValue;
 import org.xhtmlrenderer.dom.CharacterData;
 import org.xhtmlrenderer.dom.DataNode;
 import org.xhtmlrenderer.dom.Document;
@@ -566,19 +567,74 @@ public class BoxBuilder {
         } else {
             // If we have a floated table with a caption, we need to float the
             // outer anonymous box and not the table
-            CalculatedStyle anonStyle;
-            if (table.getStyle().isFloated()) {
-                CascadedStyle cascadedStyle = CascadedStyle.createLayoutStyle(
-                        new PropertyDeclaration[]{
-                                CascadedStyle.createLayoutPropertyDeclaration(
-                                        CSSName.DISPLAY, IdentValue.BLOCK),
-                                CascadedStyle.createLayoutPropertyDeclaration(
-                                        CSSName.FLOAT, table.getStyle().getIdent(CSSName.FLOAT)),
-                        });
-                anonStyle = table.getStyle().deriveStyle(cascadedStyle);
-            } else {
-                anonStyle = table.getStyle().createAnonymousStyle(IdentValue.BLOCK);
+
+            // The table styles that will get inherited into the anonymous
+            // block holding the caption(s).
+
+            // Get the table style as a cascaded style,
+            final CascadedStyle originalCS =
+                    c.getCss().getCascadedStyle(table.getElement(), false);
+            Iterator<PropertyDeclaration> it =
+                        originalCS.getCascadedPropertyDeclarations();
+
+            List<PropertyDeclaration> anonStyles = new ArrayList(8);
+            List<PropertyDeclaration> tableStyles = new ArrayList(16);
+            // Go through all the styles of the table element. We
+            // move the float, clear and margin properties to the
+            // outer anonymous box. The width property is inherited
+            // by both.
+            while (it.hasNext()) {
+                PropertyDeclaration declr = it.next();
+                // Styles both inherit,
+                if (declr.getCSSName().equals(CSSName.WIDTH)) {
+                    anonStyles.add(declr);
+                    tableStyles.add(declr);
+                }
+                // Styles inherited by anon outer box,
+                else if (
+                    declr.getCSSName().equals(CSSName.FLOAT) ||
+                    declr.getCSSName().equals(CSSName.CLEAR) ||
+                    declr.getCSSName().equals(CSSName.MARGIN_TOP) ||
+                    declr.getCSSName().equals(CSSName.MARGIN_LEFT) ||
+                    declr.getCSSName().equals(CSSName.MARGIN_RIGHT) ||
+                    declr.getCSSName().equals(CSSName.MARGIN_BOTTOM)) {
+                    anonStyles.add(declr);
+                }
+                // Remaining styles stay with the table,
+                else {
+                    tableStyles.add(declr);
+                }
             }
+
+            PropertyValue ZEROPX = new PropertyValue(CSSPrimitiveValue.CSS_PX, 0f, "0px");
+            
+            anonStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
+                CSSName.DISPLAY, IdentValue.BLOCK));
+            
+            tableStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
+                CSSName.FLOAT, IdentValue.NONE));
+            tableStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
+                CSSName.CLEAR, IdentValue.NONE));
+            tableStyles.add(new PropertyDeclaration(
+                CSSName.MARGIN_TOP, ZEROPX, true, StylesheetInfo.USER));
+            tableStyles.add(new PropertyDeclaration(
+                CSSName.MARGIN_LEFT, ZEROPX, true, StylesheetInfo.USER));
+            tableStyles.add(new PropertyDeclaration(
+                CSSName.MARGIN_RIGHT, ZEROPX, true, StylesheetInfo.USER));
+            tableStyles.add(new PropertyDeclaration(
+                CSSName.MARGIN_BOTTOM, ZEROPX, true, StylesheetInfo.USER));
+
+            // Create style for the anonymous box,
+            CalculatedStyle initialAnonStyle =
+                    table.getStyle().createAnonymousStyle(IdentValue.BLOCK);
+            CalculatedStyle anonStyle = initialAnonStyle.deriveStyle(
+                                CascadedStyle.createLayoutStyle(anonStyles));
+
+            // Create style for the table box,
+            CalculatedStyle newTableStyle =
+                    table.getStyle().getParent().deriveStyle(
+                            CascadedStyle.createLayoutStyle(
+                                    originalCS, tableStyles));
 
             BlockBox anonBox = new BlockBox();
             anonBox.setStyle(anonStyle);
@@ -594,17 +650,9 @@ public class BoxBuilder {
             if (table.getStyle().isFloated()) {
                 anonBox.setFloatedBoxData(new FloatedBoxData());
                 table.setFloatedBoxData(null);
-
-                CascadedStyle original = c.getSharedContext().getCss().getCascadedStyle(
-                        table.getElement(), false);
-                CascadedStyle modified = CascadedStyle.createLayoutStyle(
-                        original,
-                        new PropertyDeclaration[]{
-                                CascadedStyle.createLayoutPropertyDeclaration(
-                                        CSSName.FLOAT, IdentValue.NONE)
-                        });
-                table.setStyle(table.getStyle().getParent().deriveStyle(modified));
             }
+
+            table.setStyle(newTableStyle);
 
             return anonBox;
         }
