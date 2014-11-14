@@ -47,13 +47,18 @@ public class WhitespaceStripper {
      * Strips whitespace early in inline content generation. This can be done
      * because "whitespage" does not ally to :first-line and :first-letter. For
      * dynamic pseudo-classes we are allowed to choose which properties apply.
+     * <p>
+     * When 'stripLeadingNewline' is true, the leading newline character is
+     * stripped if the first element in the list in anonymous. This is
+     * necessary to support HTML &lt;pre&gt; block behavior.
      * 
      * <b>NOTE:</b> The <code>inlineContent</code> parameter may be modified
      *
-     * @param c
+     * @param stripLeadingNewline
      * @param inlineContent
      */
-    public static void stripInlineContent(List inlineContent) {
+    public static void stripInlineContent(
+                            boolean stripLeadingNewline, List inlineContent) {
         boolean collapse = false;
         boolean allWhitespace = true;
 
@@ -62,7 +67,13 @@ public class WhitespaceStripper {
 
             if (node.getStyle().isInline()) {
                 InlineBox iB = (InlineBox)node;
-                boolean collapseNext = stripWhitespace(iB, collapse);
+                // If the child is a styled block of text, we don't strip the
+                // leading newline on it.
+                if (iB.getElement() != null) {
+                    stripLeadingNewline = false;
+                }
+                boolean collapseNext =
+                        stripWhitespace(stripLeadingNewline, iB, collapse);
                 if (! iB.isRemovableWhitespace()) {
                     allWhitespace = false;
                 }
@@ -74,6 +85,7 @@ public class WhitespaceStripper {
                     collapse = false;
                 }
             }
+            stripLeadingNewline = false;
         }
 
         if (allWhitespace) {
@@ -115,6 +127,8 @@ public class WhitespaceStripper {
      * 2.1 spec on whitespace handling. It accounts for the different whitespace
      * settings like normal, nowrap, pre, etc
      *
+     * @param stripLeadingNewline flag for handling special case of
+     *   stripping leading newline of &lt;pre&gt; tag.
      * @param style
      * @param collapseLeading
      * @param tc              the TextContent to strip. The text in it is
@@ -122,11 +136,17 @@ public class WhitespaceStripper {
      * @return whether the next leading space should collapse or
      *         not.
      */
-    private static boolean stripWhitespace(InlineBox iB, boolean collapseLeading) {
+    private static boolean stripWhitespace(boolean stripLeadingNewline,
+                                      InlineBox iB, boolean collapseLeading) {
 
         IdentValue whitespace = iB.getStyle().getIdent(CSSName.WHITE_SPACE);
-        
+
         String text = iB.getText();
+
+        // <pre> blocks strip the first newline as special case,
+        if (stripLeadingNewline && text.startsWith("\n")) {
+            text = text.substring(1);
+        }
 
         text = collapseWhitespace(iB, whitespace, text, collapseLeading);
 

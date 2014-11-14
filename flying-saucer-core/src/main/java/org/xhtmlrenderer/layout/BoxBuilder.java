@@ -43,8 +43,6 @@ import org.xhtmlrenderer.css.sheet.StylesheetInfo;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.css.style.EmptyStyle;
 import org.xhtmlrenderer.css.style.FSDerivedValue;
-import org.xhtmlrenderer.css.style.derived.LengthValue;
-import org.xhtmlrenderer.dom.CharacterData;
 import org.xhtmlrenderer.dom.DataNode;
 import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.dom.Element;
@@ -121,7 +119,7 @@ public class BoxBuilder {
         if (!parentIsNestingTableContent && !info.isContainsTableContent()) {
             resolveChildren(c, parent, children, info);
         } else {
-            stripAllWhitespace(children);
+            stripAllWhitespace(isPreTag(parent.getElement()), children);
             if (parentIsNestingTableContent) {
                 resolveTableContent(c, parent, children, info);
             } else {
@@ -275,7 +273,7 @@ public class BoxBuilder {
                     style,
                     info));
 
-            stripAllWhitespace(children);
+            stripAllWhitespace(false, children);
         }
 
         if (children.size() == 0 && style.isAutoWidth() && ! alwaysCreate) {
@@ -295,7 +293,8 @@ public class BoxBuilder {
                         c.getSharedContext(), owner, children, info.isLayoutRunningBlocks());
                 owner.setChildrenContentType(BlockBox.CONTENT_BLOCK);
             } else {
-                WhitespaceStripper.stripInlineContent(children);
+                WhitespaceStripper.stripInlineContent(
+                                    isPreTag(owner.getElement()), children);
                 if (children.size() > 0) {
                     owner.setInlineContent(children);
                     owner.setChildrenContentType(BlockBox.CONTENT_INLINE);
@@ -401,7 +400,7 @@ public class BoxBuilder {
         }
     }
 
-    private static void stripAllWhitespace(List content) {
+    private static void stripAllWhitespace(boolean stripLeadingNewline, List content) {
         int start = 0;
         int current = 0;
         boolean started = false;
@@ -410,7 +409,8 @@ public class BoxBuilder {
             if (! styleable.getStyle().isLayedOutInInlineContext()) {
                 if (started) {
                     int before = content.size();
-                    WhitespaceStripper.stripInlineContent(content.subList(start, current));
+                    WhitespaceStripper.stripInlineContent(stripLeadingNewline,
+                                            content.subList(start, current));
                     int after = content.size();
                     current -= (before - after);
                 }
@@ -424,7 +424,8 @@ public class BoxBuilder {
         }
 
         if (started) {
-            WhitespaceStripper.stripInlineContent(content.subList(start, current));
+            WhitespaceStripper.stripInlineContent(stripLeadingNewline,
+                                            content.subList(start, current));
         }
     }
 
@@ -1301,7 +1302,7 @@ public class BoxBuilder {
 
     private static void createAnonymousBlock(SharedContext c, Box parent, List inline,
                                              List savedParents) {
-        WhitespaceStripper.stripInlineContent(inline);
+        WhitespaceStripper.stripInlineContent(isPreTag(parent.getElement()), inline);
         if (inline.size() > 0) {
             AnonymousBlockBox anon = new AnonymousBlockBox(parent.getElement());
             anon.setStyle(parent.getStyle().createAnonymousStyle(IdentValue.BLOCK));
@@ -1313,6 +1314,10 @@ public class BoxBuilder {
             anon.setChildrenContentType(BlockBox.CONTENT_INLINE);
             anon.setInlineContent(inline);
         }
+    }
+
+    private static boolean isPreTag(Element ele) {
+        return (ele != null && ele.getTagName().equals("pre"));
     }
 
     private static class ChildBoxInfo {
