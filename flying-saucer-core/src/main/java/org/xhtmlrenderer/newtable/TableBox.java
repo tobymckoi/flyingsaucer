@@ -251,7 +251,17 @@ public class TableBox extends BlockBox {
         // attempted layout.
         layoutAttempt(c);
 
-        int inputY = getY();
+        // We can exit with the default layout if the table is
+        // positioned or floated.
+        if (getStyle().isPostionedOrFloated()) {
+            return;
+        }
+
+        // Otherwise we need to see if the table overlaps any floated
+        // areas, and change the size of the table if it is.
+
+        final int inputWidth = getWidth();
+        final int inputY = getY();
         int translateY = 0;
 
         // Test to see if the table intersected a floating area.
@@ -335,7 +345,8 @@ public class TableBox extends BlockBox {
             }
 
             // The calculated width of this table
-            int calculatedWidth = (cappedMaxX - cappedMinX);
+            final int calculatedWidth =
+                        Math.min(inputWidth, (cappedMaxX - cappedMinX));
 
             // Is the area smaller than the minimum width of the table?
             if (exclus != null && calculatedWidth < getMinWidth()) {

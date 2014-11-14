@@ -607,10 +607,13 @@ public class BoxBuilder {
             }
 
             PropertyValue ZEROPX = new PropertyValue(CSSPrimitiveValue.CSS_PX, 0f, "0px");
-            
+
+            // The outer anon display type is BLOCK
             anonStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
                 CSSName.DISPLAY, IdentValue.BLOCK));
-            
+
+            // Set the inner table margin to zero, and set the float
+            // properties to 'none'.
             tableStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
                 CSSName.FLOAT, IdentValue.NONE));
             tableStyles.add(CascadedStyle.createLayoutPropertyDeclaration(
