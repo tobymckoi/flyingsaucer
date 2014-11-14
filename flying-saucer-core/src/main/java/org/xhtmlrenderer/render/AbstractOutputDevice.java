@@ -230,13 +230,13 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         
         Shape borderBounds = BorderPainter.generateBorderBounds(backgroundBounds, border, false);
 
-        Shape oldclip = getClip();
-        clip(borderBounds);
-        
         if (backgroundColor != null && backgroundColor != FSRGBColor.TRANSPARENT) {
             setColor(backgroundColor);
             fill(borderBounds);
         }
+
+        Shape oldclip = getClip();
+        clip(borderBounds);
 
         if (backgroundImage != null) {
             FSImage fsImage = backgroundImage.getImage();
