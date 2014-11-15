@@ -28,14 +28,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -46,14 +49,17 @@ import javax.imageio.ImageIO;
 import org.xhtmlrenderer.css.parser.CSSErrorHandler;
 import org.xhtmlrenderer.css.parser.CSSParser;
 import org.xhtmlrenderer.css.sheet.Stylesheet;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.parser.Parser;
+import org.xhtmlrenderer.parser.XHTMLJavaSAXParser;
 import org.xhtmlrenderer.resource.CSSResource;
 import org.xhtmlrenderer.resource.DocumentResource;
 import org.xhtmlrenderer.resource.ImageResource;
-import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.swing.AWTFSImage;
 import org.xhtmlrenderer.swing.ImageProgressListener;
 import org.xhtmlrenderer.util.ImageUtil;
 import org.xhtmlrenderer.util.XRLog;
+import org.xhtmlrenderer.util.XRRuntimeException;
 
 /**
  * An abstract implementation of UserAgentCallback that implements the common
@@ -77,7 +83,10 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
     private String _baseURL;
     private String _cachedDefaultBaseURL;
 
+    // The parser for style sheet creation.
     private final CSSParser _cssParser;
+    // The parser for DOM creation. This is the Java XML parser by default.
+    private final Parser _xmlParser;
 
     private boolean deferredImageLoading = false;
     private final List<ImageProgressListener> imageProgressListeners = new ArrayList();
@@ -120,6 +129,7 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
                 XRLog.cssParse(Level.WARNING, "(" + uri + ") " + message);
             }
         });
+        this._xmlParser = new XHTMLJavaSAXParser();
     }
 
     /**
@@ -293,14 +303,60 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
     }
 
     /**
-     * Gets a Reader for the resource identified
+     * Gets a Reader for the resource identified.
+     * 
+     * @param uri
+     * @return 
+     */
+    protected Reader resolveAndOpenReader(String uri) {
+        Reader reader = null;
+        uri = resolveURI(uri);
+        try {
+            URL url = new URL(uri);
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.connect();
+
+            String contentType = urlConnection.getContentType();
+
+            // Decode any parameters in 'content-type'
+            Map<String, String> contentParams = new HashMap(4);
+            String[] paramsSplit = contentType.split("\\;");
+            for (int i = 1; i < paramsSplit.length; ++i) {
+                String param = paramsSplit[i];
+                int delim = param.indexOf("=");
+                if (delim != -1) {
+                    contentParams.put(param.substring(0, delim).trim().toLowerCase(Locale.ENGLISH),
+                                      param.substring(delim + 1).trim());
+                }
+            }
+
+            String charset = contentParams.get("charset");
+            // If no charset given then default to utf-8,
+            if (charset == null) {
+                charset = "utf-8";
+            }
+
+            reader = new InputStreamReader(urlConnection.getInputStream(), charset);
+
+        } catch (java.net.MalformedURLException e) {
+            XRLog.exception("bad URL given: " + uri, e);
+        } catch (java.io.FileNotFoundException e) {
+            XRLog.exception("item at URI " + uri + " not found");
+        } catch (java.io.IOException e) {
+            XRLog.exception("IO problem for " + uri, e);
+        }
+        return reader;
+    }
+
+    /**
+     * Gets an InputStream for the resource identified.
      *
      * @param uri PARAM
      * @return The stylesheet value
      */
     //TOdO:implement this with nio.
     protected InputStream resolveAndOpenStream(String uri) {
-        java.io.InputStream is = null;
+        InputStream is = null;
         uri = resolveURI(uri);
         try {
             is = new URL(uri).openStream();
@@ -325,50 +381,22 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
      * @return 
      */
     public synchronized Stylesheet parseStylesheet(
-                                    Reader reader, String uri, int origin) {
-        try {
-            return _cssParser.parseStylesheet(uri, origin, reader);
-        } catch (IOException e) {
-            XRLog.cssParse(Level.WARNING, "Couldn't parse stylesheet at URI " + uri + ": " + e.getMessage(), e);
-            e.printStackTrace();
-            return new Stylesheet(uri, origin);
-        }
+                    Reader reader, String uri, int origin) throws IOException {
+        return _cssParser.parseStylesheet(uri, origin, reader);
     }
 
     /**
-     * Retrieves the CSS located at the given URI.  It's assumed the URI does point to a CSS file--the URI will
-     * be accessed (using java.io or java.net), opened, read and then passed into the CSS parser.
-     * The result is packed up into an CSSResource for later consumption.
-     *
-     * @param uri Location of the CSS source.
-     * @return A CSSResource containing the parsed CSS.
+     * Parses and returns a document given a Reader containing the document
+     * text content, and a URI representing the location of the document
+     * (for naming purposes only).
+     * 
+     * @param reader
+     * @param uri
+     * @return 
+     * @throws java.io.IOException
      */
-    @Override
-    public CSSResource getCSSResource(String uri, int origin) {
-
-        InputStream cssInput = resolveAndOpenStream(uri);
-        if (cssInput == null) {
-            return null;
-        }
-        Stylesheet stylesheet;
-        try {
-            stylesheet = parseStylesheet(
-                    new InputStreamReader(cssInput, "UTF-8"), uri, origin);
-        } catch (UnsupportedEncodingException e) {
-            // Shouldn't happen
-            throw new RuntimeException(e.getMessage(), e);
-        } finally {
-            if (cssInput != null) {
-                try {
-                    cssInput.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-        }
-
-        return new CSSResource(uri, stylesheet);
-
+    public Document parseDocument(Reader reader, String uri) throws IOException {
+        return _xmlParser.createDocument(reader);
     }
 
     /**
@@ -438,6 +466,49 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
     }
 
     /**
+     * Retrieves the CSS located at the given URI.  It's assumed the URI does point to a CSS file--the URI will
+     * be accessed (using java.io or java.net), opened, read and then passed into the CSS parser.
+     * The result is packed up into an CSSResource for later consumption.
+     *
+     * @param uri Location of the CSS source.
+     * @return A CSSResource containing the parsed CSS.
+     */
+    @Override
+    public CSSResource getCSSResource(String uri, int origin) {
+        Reader cssReader = resolveAndOpenReader(uri);
+        if (cssReader == null) {
+            return null;
+        }
+        try {
+
+            // Timing metrics,
+            long st = System.currentTimeMillis();
+            Stylesheet stylesheet = parseStylesheet(cssReader, uri, origin);
+            long end = System.currentTimeMillis();
+
+            CSSResource cssResource = new CSSResource(uri, stylesheet);
+
+            cssResource.setElapsedLoadTime(end - st);
+            XRLog.load("Loaded stylesheet in ~" + cssResource.getElapsedLoadTime() + "ms");
+
+            return cssResource;
+
+        } catch (IOException ex) {
+            XRLog.cssParse(Level.WARNING,
+                    "Couldn't parse stylesheet at URI " + uri + ": " + ex.getMessage(), ex);
+            ex.printStackTrace();
+            // Return an empty style sheet if it failed to load,
+            return new CSSResource(uri, new Stylesheet(uri, origin));
+        } finally {
+            try {
+                cssReader.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
      * Retrieves the document located at the given URI. It's assumed the URI does point to a XML--the URI will
      * be accessed (using java.io or java.net), opened, read and then passed into the XML parser (XMLReader)
      * configured for Flying Saucer. The result is packed up into an DocumentResource for later consumption.
@@ -447,20 +518,35 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
      */
     @Override
     public DocumentResource getDocumentResource(String uri) {
-        InputStream inputStream = resolveAndOpenStream(uri);
-        DocumentResource docResource;
+        Reader inputReader = resolveAndOpenReader(uri);
+        if (inputReader == null) {
+            return null;
+        }
         try {
-            docResource = XMLDocumentResource.load(uri, inputStream);
+
+            // Timing metrics,
+            long st = System.currentTimeMillis();
+            // Parse the document,
+            Document document = parseDocument(inputReader, uri);
+            long end = System.currentTimeMillis();
+
+            // Return it as a document resource,
+            DocumentResource docResource = new DocumentResource(uri, document);
+
+            docResource.setElapsedLoadTime(end - st);
+            XRLog.load("Loaded document in ~" + docResource.getElapsedLoadTime() + "ms");
+
+            return docResource;
+
+        } catch (IOException ex) {
+            throw new XRRuntimeException("Failed to parse XML Document.", ex);
         } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    // swallow
-                }
+            try {
+                inputReader.close();
+            } catch (IOException e) {
+                // swallow
             }
         }
-        return docResource;
     }
 
     @Override

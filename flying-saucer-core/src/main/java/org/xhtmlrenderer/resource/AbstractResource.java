@@ -24,8 +24,8 @@ package org.xhtmlrenderer.resource;
  */
 public abstract class AbstractResource implements Resource {
 
-    private long createTimeStamp;
-    private long elapsedLoadTime;
+    private final long createTimeStamp;
+    private long elapsedLoadTime = -1;
 
     /**
      * Creates a new instance of AbstractResource
@@ -42,9 +42,11 @@ public abstract class AbstractResource implements Resource {
         return elapsedLoadTime;
     }
 
-    /*package*/
-    void setElapsedLoadTime(long elapsedLoadTime) {
-        this.elapsedLoadTime = elapsedLoadTime;
+    public void setElapsedLoadTime(long elapsedLoadTime) {
+        if (elapsedLoadTime == -1) {
+            // Only let us set this metric once.
+            this.elapsedLoadTime = elapsedLoadTime;
+        }
     }
 }
 

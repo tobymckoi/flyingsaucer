@@ -42,21 +42,8 @@ import org.xml.sax.InputSource;
  */
 public class XMLDocumentResource extends DocumentResource {
 
-    private String uri = null;
-    private Document document = null;
-
-    public XMLDocumentResource(final String uri, Document document) {
-        this.uri = uri;
-        this.document = document;
-    }
-
-    public String getUri() {
-        return uri;
-    }
-
-    @Override
-    public Document getDocument() {
-        return document;
+    public XMLDocumentResource(String uri, Document document) {
+        super(uri, document);
     }
 
     // ----- Static Methods -----

@@ -26,13 +26,24 @@ import org.xhtmlrenderer.dom.Document;
  * Saucer. A Document is the DOM tree of a parsed XML/XHTML/HTML text
  * document.
  * 
- * Use XMLDocumentResource to represent an XML document resource. Use
- * HTMLDocumentResource for HTML document resources.
- * 
  * @author Tobias Downer
  */
-public abstract class DocumentResource extends AbstractResource {
+public class DocumentResource extends AbstractResource {
 
-    public abstract Document getDocument();
+    private String uri = null;
+    private Document document = null;
+
+    public DocumentResource(final String uri, Document document) {
+        this.uri = uri;
+        this.document = document;
+    }
+
+    public String getUri() {
+        return uri;
+    }
+
+    public Document getDocument() {
+        return document;
+    }
 
 }

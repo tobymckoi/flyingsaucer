@@ -63,7 +63,7 @@ public class XMLResource extends AbstractResource {
     }
 
     @Override
-    void setElapsedLoadTime(long elapsedLoadTime) {
+    public void setElapsedLoadTime(long elapsedLoadTime) {
         delegate.setElapsedLoadTime(elapsedLoadTime);
     }
 
