@@ -17,19 +17,28 @@
  * MA 02110-1301  USA
  */
 
-package org.xhtmlrenderer.dom;
+package org.xhtmlrenderer.parser;
 
 import java.io.IOException;
+import java.io.Reader;
+import org.xhtmlrenderer.dom.Document;
 
 /**
- * A build object that creates a Flying Saucer DOM object hierarchy. The
- * source of the builder is implementation dependent. It could be from an
- * XML/XHTML/HTML parser, or converted from another DOM hierarchy.
+ * Parses a text document and creates an org.xhtmlrenderer.dom.Document object
+ * representing the DOM hierarchy of the source document.
  *
  * @author Tobias Downer
  */
-public interface FSDomBuilder {
+public interface Parser {
 
-    public abstract Document build() throws IOException;
+    /**
+     * Given a java.io.Reader containing the text content of the document,
+     * produces an org.xhtmlrenderer.dom.Document object representing it.
+     * 
+     * @param reader
+     * @return 
+     * @throws java.io.IOException 
+     */
+    Document createDocument(Reader reader) throws IOException;
 
 }

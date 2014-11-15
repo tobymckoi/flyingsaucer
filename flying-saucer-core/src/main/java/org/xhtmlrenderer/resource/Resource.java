@@ -19,14 +19,11 @@
  */
 package org.xhtmlrenderer.resource;
 
-import org.xml.sax.InputSource;
-
 /**
  *
  * @author Patrick Wright
  */
 public interface Resource {
-    InputSource getResourceInputSource();
     long getResourceLoadTimeStamp();    
 }
 

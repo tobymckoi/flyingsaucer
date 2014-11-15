@@ -21,7 +21,7 @@ package org.xhtmlrenderer.extend;
 
 import org.xhtmlrenderer.resource.CSSResource;
 import org.xhtmlrenderer.resource.ImageResource;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
 
 
 /**
@@ -51,10 +51,11 @@ public interface UserAgentCallback {
     /**
      * Retrieves the CSS at the given URI. This is a synchronous call.
      *
-     * @param uri Location of the CSS
+     * @param uri
+     * @param origin
      * @return A CSSResource for the content at the URI.
      */
-    CSSResource getCSSResource(String uri);
+    CSSResource getCSSResource(String uri, int origin);
 
     /**
      * Retrieves the Image at the given URI. This is a synchronous call.
@@ -65,12 +66,12 @@ public interface UserAgentCallback {
     ImageResource getImageResource(String uri);
 
     /**
-     * Retrieves the XML at the given URI. This is a synchronous call.
+     * Retrieves the Document at the given URI. This is a synchronous call.
      *
      * @param uri Location of the XML
-     * @return A XMLResource for the content at the URI.
+     * @return A DocumentResource for the content at the URI.
      */
-    XMLResource getXMLResource(String uri);
+    DocumentResource getDocumentResource(String uri);
     
     /**
      * Retrieves a binary resource located at a given URI and returns its contents

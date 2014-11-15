@@ -19,18 +19,27 @@
  */
 package org.xhtmlrenderer.resource;
 
-import java.io.InputStream;
+import org.xhtmlrenderer.css.sheet.Stylesheet;
 
 /**
  * @author Administrator
  */
 public class CSSResource extends AbstractResource {
 
-    /**
-     * Creates a new instance of CSSResource
-     */
-    public CSSResource(InputStream stream) {
-        super(stream);
+    private final String uri;
+    private final Stylesheet stylesheet;
+
+    public CSSResource(String uri, Stylesheet stylesheet) {
+        this.uri = uri;
+        this.stylesheet = stylesheet;
+    }
+
+    public String getUri() {
+        return uri;
+    }
+
+    public Stylesheet getStylesheet() {
+        return stylesheet;
     }
 
 }

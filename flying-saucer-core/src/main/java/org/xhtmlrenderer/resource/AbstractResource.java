@@ -19,37 +19,19 @@
  */
 package org.xhtmlrenderer.resource;
 
-import org.xml.sax.InputSource;
-
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-
 /**
  * @author Patrick Wright
  */
 public abstract class AbstractResource implements Resource {
-    private InputSource inputSource;
+
     private long createTimeStamp;
     private long elapsedLoadTime;
-
-    private AbstractResource() {
-        this.createTimeStamp = System.currentTimeMillis();
-    }
 
     /**
      * Creates a new instance of AbstractResource
      */
-    public AbstractResource(InputSource source) {
-        this();
-        this.inputSource = source;
-    }
-
-    public AbstractResource(InputStream is) {
-        this(is==null?(InputSource)null:new InputSource(new BufferedInputStream(is)));
-    }
-
-    public InputSource getResourceInputSource() {
-        return this.inputSource;
+    AbstractResource() {
+        this.createTimeStamp = System.currentTimeMillis();
     }
 
     public long getResourceLoadTimeStamp() {

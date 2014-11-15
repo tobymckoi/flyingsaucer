@@ -56,13 +56,14 @@ import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
 import org.xhtmlrenderer.simple.extend.XhtmlNamespaceHandler;
 import org.xhtmlrenderer.util.Configuration;
 import org.xml.sax.InputSource;
 
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfWriter;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 public class ITextRenderer {
     // These two defaults combine to produce an effective resolution of 96 px to
@@ -132,7 +133,7 @@ public class ITextRenderer {
     }
 
     private Document loadDocument(final String uri) {
-        return _sharedContext.getUac().getXMLResource(uri).getDocument();
+        return _sharedContext.getUac().getDocumentResource(uri).getDocument();
     }
 
     public void setDocument(String uri) {
@@ -155,7 +156,7 @@ public class ITextRenderer {
 
     public void setDocumentFromString(String content, String baseUrl) {
         InputSource is = new InputSource(new BufferedReader(new StringReader(content)));
-        Document dom = XMLResource.load(is).getDocument();
+        Document dom = XMLDocumentResource.load(baseUrl, is).getDocument();
 
         setDocument(dom, baseUrl);
     }

@@ -51,7 +51,8 @@ import org.xhtmlrenderer.layout.SharedContext;
 import org.xhtmlrenderer.render.Box;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.simple.NoNamespaceHandler;
 import org.xhtmlrenderer.simple.extend.FormSubmissionListener;
 import org.xhtmlrenderer.util.Configuration;
@@ -364,14 +365,14 @@ public abstract class BasicPanel extends RootPanel implements FormSubmissionList
 =========== set document utility methods =============== */
 
     public void setDocument(InputStream stream, String url, NamespaceHandler nsh) {
-        Document dom = XMLResource.load(stream).getDocument();
+        Document dom = XMLDocumentResource.load(url, stream).getDocument();
 
         setDocument(dom, url, nsh);
     }
 
     public void setDocumentFromString(String content, String url, NamespaceHandler nsh) {
         InputSource is = new InputSource(new BufferedReader(new StringReader(content)));
-        Document dom = XMLResource.load(is).getDocument();
+        Document dom = XMLDocumentResource.load(url, is).getDocument();
 
         setDocument(dom, url, nsh);
     }
@@ -485,8 +486,8 @@ public abstract class BasicPanel extends RootPanel implements FormSubmissionList
     }
 
     protected Document loadDocument(final String uri) {
-        XMLResource xmlResource = sharedContext.getUac().getXMLResource(uri);
-        return xmlResource.getDocument();
+        DocumentResource docResource = sharedContext.getUac().getDocumentResource(uri);
+        return docResource.getDocument();
     }
 
     /* ====== hover and active utility methods

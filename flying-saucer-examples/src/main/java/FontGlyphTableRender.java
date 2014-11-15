@@ -24,7 +24,6 @@ import org.xhtmlrenderer.event.DefaultDocumentListener;
 import org.xhtmlrenderer.pdf.ITextFontResolver;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xhtmlrenderer.resource.FSEntityResolver;
-import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
 import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.simple.extend.XhtmlNamespaceHandler;
@@ -45,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 /**
  * Opens a frame and displays, for a selected font, the glyphs for a range of Unicode code points. Can be used to
@@ -325,7 +325,7 @@ public class FontGlyphTableRender {
         // DEBUG
         //System.out.println(page);
         InputSource is = new InputSource(new BufferedReader(new StringReader(page)));
-        return XMLResource.load(is).getDocument();
+        return XMLDocumentResource.load(null, is).getDocument();
     }
 
     private Table buildGlyphTable(int from, int to) {

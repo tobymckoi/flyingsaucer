@@ -54,7 +54,8 @@ import org.xhtmlrenderer.render.Box;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.simple.NoNamespaceHandler;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.Uu;
@@ -159,7 +160,7 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
                 // dispose images when using NaiveUserAgent
                 UserAgentCallback uac = _sharedContext.getUac();
                 if (uac instanceof NaiveUserAgent) {
-                    ((NaiveUserAgent) uac).disposeCache();
+                    ((NaiveUserAgent) uac).clearImageCache();
                 }
                 // dispose offscreen image
                 if (_offscreen != null) {
@@ -803,14 +804,14 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
     }
 
     public void setDocument(InputStream stream, String url, NamespaceHandler nsh) {
-        Document dom = XMLResource.load(stream).getDocument();
+        Document dom = XMLDocumentResource.load(url, stream).getDocument();
 
         setDocument(dom, url, nsh);
     }
 
     public void setDocumentFromString(String content, String url, NamespaceHandler nsh) {
         InputSource is = new InputSource(new BufferedReader(new StringReader(content)));
-        Document dom = XMLResource.load(is).getDocument();
+        Document dom = XMLDocumentResource.load(url, is).getDocument();
 
         setDocument(dom, url, nsh);
     }
@@ -869,7 +870,7 @@ public class BasicRenderer extends Canvas implements PaintListener, UserInterfac
     }
 
     protected Document loadDocument(final String uri) {
-        XMLResource xmlResource = _sharedContext.getUac().getXMLResource(uri);
+        DocumentResource xmlResource = _sharedContext.getUac().getDocumentResource(uri);
         if (xmlResource == null) {
             return null;
         }

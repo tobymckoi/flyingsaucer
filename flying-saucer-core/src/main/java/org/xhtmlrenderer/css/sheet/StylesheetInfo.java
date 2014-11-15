@@ -22,8 +22,6 @@ package org.xhtmlrenderer.css.sheet;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 /**
  * A reference to a stylesheet. If no stylesheet is set, the matcher will try to
  * find the stylesheet by uri, first from the StylesheetFactory cache, then by
@@ -60,7 +58,7 @@ public class StylesheetInfo {
 
     /** Origin of stylesheet - author  */
     public final static int AUTHOR = 2;
-    
+
 
     /**
      * @param m  a single media identifier

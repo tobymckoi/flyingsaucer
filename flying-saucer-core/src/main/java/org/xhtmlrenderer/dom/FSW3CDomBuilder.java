@@ -23,6 +23,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.transform.sax.SAXSource;
+import org.xhtmlrenderer.dom.AttributeImpl;
+import org.xhtmlrenderer.dom.CommentDataImpl;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.DocumentImpl;
+import org.xhtmlrenderer.dom.ElementImpl;
+import org.xhtmlrenderer.dom.FSDomBuilder;
+import org.xhtmlrenderer.dom.Node;
+import org.xhtmlrenderer.dom.ProcessingInstructionImpl;
 
 import org.xhtmlrenderer.util.XRRuntimeException;
 import org.xml.sax.ContentHandler;
@@ -34,7 +42,7 @@ import org.xml.sax.ext.LexicalHandler;
 
 /**
  * An implementation of FSDomBuilder that uses a SAX source to build into a
- * Flying Saucer DOM.
+ * Flying Saucer DOM. Appropriate for XHML and XML documents.
  *
  * @author Tobias Downer
  */
@@ -47,7 +55,7 @@ public class FSW3CDomBuilder implements FSDomBuilder {
     }
 
     @Override
-    public Document build() {
+    public Document build() throws IOException {
 
         DocumentImpl doc = new DocumentImpl();
 
@@ -59,11 +67,6 @@ public class FSW3CDomBuilder implements FSDomBuilder {
             xmlreader.setProperty("http://xml.org/sax/properties/lexical-handler",
                                   handler); 
             xmlreader.parse(source);
-        }
-        catch (IOException ex) {
-            throw new XRRuntimeException(
-                    "Can't load the XML resource (using TRaX transformer). " +
-                    ex.getMessage(), ex);
         }
         catch (SAXException ex) {
             throw new XRRuntimeException(

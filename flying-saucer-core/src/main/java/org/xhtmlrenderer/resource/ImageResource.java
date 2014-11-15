@@ -27,7 +27,6 @@ import java.awt.image.BufferedImage;
 import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.render.AbstractOutputDevice;
 import org.xhtmlrenderer.swing.AWTFSImage;
-import org.xml.sax.InputSource;
 
 /**
  * @author Administrator
@@ -80,7 +79,7 @@ public class ImageResource extends AbstractResource {
      * @param img
      */
     public ImageResource(final String uri, FSImage img) {
-        super((InputSource) null);
+        super();
         _imageUri = uri;
         _img = img;
     }

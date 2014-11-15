@@ -39,7 +39,8 @@ import org.xhtmlrenderer.demo.browser.DemoMarker;
 import org.xhtmlrenderer.demo.browser.swt.DemosNavigation.Demo;
 import org.xhtmlrenderer.resource.CSSResource;
 import org.xhtmlrenderer.resource.ImageResource;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.swt.NaiveUserAgent;
 import org.xhtmlrenderer.util.GeneralUtil;
 import org.xhtmlrenderer.util.XRLog;
@@ -183,7 +184,7 @@ public class BrowserUserAgent extends NaiveUserAgent {
         return uri;
     }
 
-    public XMLResource getXMLResource(String uri) {
+    public DocumentResource getDocumentResource(String uri) {
         uri = resolveFullURI(uri);
         if (uri != null && uri.startsWith("file:")) {
             File file;
@@ -203,10 +204,10 @@ public class BrowserUserAgent extends NaiveUserAgent {
             }
             if (file.isDirectory()) {
                 String dirlist = DirectoryLister.list(file);
-                return XMLResource.load(new StringReader(dirlist));
+                return XMLDocumentResource.load(uri, new StringReader(dirlist));
             }
         }
-        XMLResource xr = null;
+        DocumentResource xr = null;
         URLConnection uc;
         InputStream inputStream = null;
         try {
@@ -219,13 +220,13 @@ public class BrowserUserAgent extends NaiveUserAgent {
                 inputStream = uc.getInputStream();
                 SAXSource source = new SAXSource(new PlainTextXMLReader(
                     inputStream), new InputSource());
-                xr = XMLResource.load(source);
+                xr = XMLDocumentResource.load(uri, source);
             } else if (contentType.startsWith("image")) {
                 String doc = "<img src='" + uri + "'/>";
-                xr = XMLResource.load(new StringReader(doc));
+                xr = XMLDocumentResource.load(uri, new StringReader(doc));
             } else {
                 inputStream = uc.getInputStream();
-                xr = XMLResource.load(inputStream);
+                xr = XMLDocumentResource.load(uri, inputStream);
             }
         } catch (MalformedURLException e) {
             XRLog.exception("bad URL given: " + uri, e);
@@ -247,9 +248,9 @@ public class BrowserUserAgent extends NaiveUserAgent {
         return xr;
     }
 
-    public CSSResource getCSSResource(String uri) {
+    public CSSResource getCSSResource(String uri, int origin) {
         uri = resolveFullURI(uri);
-        return super.getCSSResource(uri);
+        return super.getCSSResource(uri, origin);
     }
 
     public ImageResource getImageResource(String uri) {
@@ -265,12 +266,12 @@ public class BrowserUserAgent extends NaiveUserAgent {
      * 
      * @return An XMLResource containing XML which about the failure.
      */
-    private XMLResource getNotFoundDocument(String uri) {
-        XMLResource xr;
+    private DocumentResource getNotFoundDocument(String uri) {
+        DocumentResource xr;
         String notFound = "<html><h1>Document not found</h1><p>Could not access URI <pre>"
                 + uri + "</pre></p></html>";
 
-        xr = XMLResource.load(new StringReader(notFound));
+        xr = XMLDocumentResource.load(uri, new StringReader(notFound));
         return xr;
     }
 

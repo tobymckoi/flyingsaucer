@@ -27,19 +27,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 import org.xhtmlrenderer.context.StyleReference;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
@@ -56,13 +47,13 @@ import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
-import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.simple.extend.XhtmlNamespaceHandler;
 import org.xhtmlrenderer.util.Configuration;
 import org.xml.sax.InputSource;
 
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.pdf.PdfWriter;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 public class ITextRenderer {
     // These two defaults combine to produce an effective resolution of 96 px to
@@ -132,7 +123,7 @@ public class ITextRenderer {
     }
 
     private Document loadDocument(final String uri) {
-        return _sharedContext.getUac().getXMLResource(uri).getDocument();
+        return _sharedContext.getUac().getDocumentResource(uri).getDocument();
     }
 
     public void setDocument(String uri) {
@@ -155,7 +146,7 @@ public class ITextRenderer {
 
     public void setDocumentFromString(String content, String baseUrl) {
         InputSource is = new InputSource(new BufferedReader(new StringReader(content)));
-        Document dom = XMLResource.load(is).getDocument();
+        Document dom = XMLDocumentResource.load(baseUrl, is).getDocument();
 
         setDocument(dom, baseUrl);
     }

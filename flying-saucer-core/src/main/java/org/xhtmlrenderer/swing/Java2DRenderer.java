@@ -348,7 +348,7 @@ public class Java2DRenderer {
 	}
 
 	private Document loadDocument(final String uri) {
-		return sharedContext.getUac().getXMLResource(uri).getDocument();
+		return sharedContext.getUac().getDocumentResource(uri).getDocument();
 	}
 
 	private LayoutContext newLayoutContext() {

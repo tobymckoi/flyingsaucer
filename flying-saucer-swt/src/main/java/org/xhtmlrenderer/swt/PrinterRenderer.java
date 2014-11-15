@@ -44,7 +44,7 @@ import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.PageBox;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
 
@@ -85,7 +85,7 @@ public class PrinterRenderer implements UserInterface {
         // dispose images when using NaiveUserAgent
         UserAgentCallback uac = _sharedContext.getUac();
         if (uac instanceof NaiveUserAgent) {
-            ((NaiveUserAgent) uac).disposeCache();
+            ((NaiveUserAgent) uac).clearImageCache();
         }
     }
 
@@ -224,7 +224,7 @@ public class PrinterRenderer implements UserInterface {
     }
 
     protected Document loadDocument(final String uri) {
-        XMLResource xmlResource = _sharedContext.getUac().getXMLResource(uri);
+        DocumentResource xmlResource = _sharedContext.getUac().getDocumentResource(uri);
         if (xmlResource == null) {
             return null;
         }

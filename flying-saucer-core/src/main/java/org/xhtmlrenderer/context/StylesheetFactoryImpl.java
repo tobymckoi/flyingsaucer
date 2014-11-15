@@ -20,10 +20,7 @@
 package org.xhtmlrenderer.context;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 
 import org.xhtmlrenderer.css.extend.StylesheetFactory;
@@ -35,7 +32,6 @@ import org.xhtmlrenderer.css.sheet.StylesheetInfo;
 import org.xhtmlrenderer.extend.UserAgentCallback;
 import org.xhtmlrenderer.resource.CSSResource;
 import org.xhtmlrenderer.util.XRLog;
-import org.xml.sax.InputSource;
 
 /**
  * A Factory class for Cascading Style Sheets. Sheets are parsed using a single
@@ -88,28 +84,36 @@ public class StylesheetFactoryImpl implements StylesheetFactory {
      * @return Returns null if uri could not be loaded
      */
     private Stylesheet parse(StylesheetInfo info) {
-        CSSResource cr = _userAgentCallback.getCSSResource(info.getUri());
-        if (cr==null) return null;  
-        // Whether by accident or design, InputStream will never be null
-        // since the null resource stream is wrapped in a BufferedInputStream
-        InputSource inputSource=cr.getResourceInputSource();
-        if (inputSource==null) return null;
-        InputStream is = inputSource.getByteStream();
-        if (is==null) return null;
-        try {
-            return parse(new InputStreamReader(is, "UTF-8"), info);
-        } catch (UnsupportedEncodingException e) {
-            // Shouldn't happen
-            throw new RuntimeException(e.getMessage(), e);
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
+
+        CSSResource cr = _userAgentCallback.getCSSResource(
+                                              info.getUri(), info.getOrigin());
+        if (cr == null) {
+            return null;
         }
+        return cr.getStylesheet();
+
+//        CSSResource cr = _userAgentCallback.getCSSResource(info.getUri());
+//        if (cr==null) return null;  
+//        // Whether by accident or design, InputStream will never be null
+//        // since the null resource stream is wrapped in a BufferedInputStream
+//        InputSource inputSource=cr.getResourceInputSource();
+//        if (inputSource==null) return null;
+//        InputStream is = inputSource.getByteStream();
+//        if (is==null) return null;
+//        try {
+//            return parse(new InputStreamReader(is, "UTF-8"), info);
+//        } catch (UnsupportedEncodingException e) {
+//            // Shouldn't happen
+//            throw new RuntimeException(e.getMessage(), e);
+//        } finally {
+//            if (is != null) {
+//                try {
+//                    is.close();
+//                } catch (IOException e) {
+//                    // ignore
+//                }
+//            }
+//        }
     }
 
     public synchronized Ruleset parseStyleDeclaration(int origin, String styleDeclaration) {

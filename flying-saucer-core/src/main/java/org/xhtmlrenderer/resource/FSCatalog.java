@@ -20,6 +20,7 @@
  */
 package org.xhtmlrenderer.resource;
 
+import org.xhtmlrenderer.parser.XHTMLJavaSAXParser;
 import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.util.XRRuntimeException;
 import org.xml.sax.*;
@@ -46,8 +47,8 @@ import java.util.logging.Level;
  * <p/>
  * <p>To use, instantiate the class, and call {@link #parseCatalog(InputSource)}
  * to retrieve a {@link java.util.Map} keyed by public ids. The class uses
- * an XMLReader instance retrieved via {@link XMLResource#newXMLReader()}, so
- * XMLReader configuration (and specification) follows that of the standard XML
+ * an XMLReader instance retrieved via {@link DocumentResource#newXMLReader()}, so
+ * XMLReader configuration (and specification) fXMLResourceollows that of the standard XML
  * parsing in Flying Saucer.
  * <p/>
  * <p>This class is not safe for multi-threaded access.
@@ -97,7 +98,7 @@ public class FSCatalog {
      * @param inputSource A SAX InputSource to a catalog XML file on the classpath.
      */
     public Map parseCatalog(InputSource inputSource) {
-        XMLReader xmlReader = XMLResource.newXMLReader();
+        XMLReader xmlReader = XHTMLJavaSAXParser.newXMLReader();
 
         CatalogContentHandler ch = new CatalogContentHandler();
         addHandlers(xmlReader, ch);

@@ -387,8 +387,12 @@ public class BrowserMenuBar extends JMenuBar {
 
     private ScaleFactor[] initializeScales() {
 //        ScaleFactor[] scales = new ScaleFactor[11];
-        ScaleFactor[] scales = new ScaleFactor[10];
+        ScaleFactor[] scales = new ScaleFactor[14];
         int i = 0;
+        scales[i++] = new ScaleFactor(4.0d,  "400%");
+        scales[i++] = new ScaleFactor(3.5d,  "350%");
+        scales[i++] = new ScaleFactor(3.0d,  "300%");
+        scales[i++] = new ScaleFactor(2.5d,  "250%");
         scales[i++] = new ScaleFactor(2.0d,  "200%");
         scales[i++] = new ScaleFactor(1.75d, "175%");
         scales[i++] = new ScaleFactor(1.5d,  "150%");

@@ -21,11 +21,11 @@ import com.lowagie.text.DocumentException;
 import org.xhtmlrenderer.pdf.ITextOutputDevice;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xhtmlrenderer.pdf.ITextUserAgent;
-import org.xhtmlrenderer.resource.XMLResource;
 import org.xhtmlrenderer.dom.Document;
 import org.xml.sax.InputSource;
 
 import java.io.*;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 public class PDFRender {
     public static void main(String[] args) throws IOException, DocumentException {
@@ -63,7 +63,7 @@ public class PDFRender {
             callback.setSharedContext(renderer.getSharedContext());
             renderer.getSharedContext ().setUserAgentCallback(callback);
 
-            Document doc = XMLResource.load(new InputSource(url)).getDocument();
+            Document doc = XMLDocumentResource.load(url, new InputSource(url)).getDocument();
 
             renderer.setDocument(doc, url);
             renderer.layout();

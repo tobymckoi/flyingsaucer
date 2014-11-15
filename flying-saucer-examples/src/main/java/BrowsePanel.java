@@ -20,7 +20,7 @@
 import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.event.DefaultDocumentListener;
 import org.xhtmlrenderer.extend.UserAgentCallback;
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
 import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.swing.SwingReplacedElementFactory;
@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.swing.NaiveUserAgent;
 
 /**
@@ -119,11 +120,11 @@ public class BrowsePanel {
         });
     }
 
-    private XMLResource getErrorDocument(String reason) {
-        XMLResource xr;
+    private DocumentResource getErrorDocument(String reason) {
+        DocumentResource xr;
         String cleanUri = GeneralUtil.escapeHTML(uri);
         String notFound = "<html><h1>Document not found</h1><p>Could not load URI <pre>" + cleanUri + "</pre>, because: " + reason + "</p></html>";
-        xr = XMLResource.load(new StringReader(notFound));
+        xr = XMLDocumentResource.load(uri, new StringReader(notFound));
         return xr;
     }
 
@@ -134,7 +135,7 @@ public class BrowsePanel {
                 final Document doc;
                 try {
                     if (panel != null ) panel.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-                    doc = getUAC().getXMLResource(uri).getDocument();
+                    doc = getUAC().getDocumentResource(uri).getDocument();
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.err.println("Can't load document");

@@ -19,7 +19,7 @@
  */
 package org.xhtmlrenderer.demo.browser;
 
-import org.xhtmlrenderer.resource.XMLResource;
+import org.xhtmlrenderer.resource.DocumentResource;
 import org.xhtmlrenderer.util.Uu;
 import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.util.GeneralUtil;
@@ -29,6 +29,7 @@ import javax.xml.transform.sax.SAXSource;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.swing.NaiveUserAgent;
 
 
@@ -100,7 +101,7 @@ public class PanelManager extends NaiveUserAgent {
 	/**
 	 * {@inheritDoc}
 	 */
-	public XMLResource getXMLResource(String uri) {
+    public DocumentResource getDocumentResource(String uri) {
         uri = resolveURI(uri);
         if (uri != null && uri.startsWith("file:")) {
             File file = null;
@@ -116,10 +117,10 @@ public class PanelManager extends NaiveUserAgent {
             }
             if (file.isDirectory()) {
                 String dirlist = DirectoryLister.list(file);
-                return XMLResource.load(new StringReader(dirlist));
+                return XMLDocumentResource.load(uri, new StringReader(dirlist));
             }
         }
-        XMLResource xr = null;
+        DocumentResource xr = null;
         URLConnection uc = null;
         InputStream inputStream = null;
         try {
@@ -130,13 +131,13 @@ public class PanelManager extends NaiveUserAgent {
             if (contentType.equals("text/plain") || contentType.equals("content/unknown")) {
                 inputStream = uc.getInputStream();
                 SAXSource source = new SAXSource(new PlainTextXMLReader(inputStream), new InputSource());
-                xr = XMLResource.load(source);
+                xr = XMLDocumentResource.load(uri, source);
             } else if (contentType.startsWith("image")) {
                 String doc = "<img src='" + uri + "'/>";
-                xr = XMLResource.load(new StringReader(doc));
+                xr = XMLDocumentResource.load(uri, new StringReader(doc));
             } else {
                 inputStream = uc.getInputStream();
-                xr = XMLResource.load(inputStream);
+                xr = XMLDocumentResource.load(uri, inputStream);
             }
         } catch (MalformedURLException e) {
             XRLog.exception("bad URL given: " + uri, e);
@@ -165,14 +166,14 @@ public class PanelManager extends NaiveUserAgent {
 	 *
 	 * @return An XMLResource containing XML which about the failure.
 	 */
-	private XMLResource getNotFoundDocument(String uri) {
-        XMLResource xr;
+	private DocumentResource getNotFoundDocument(String uri) {
+        DocumentResource xr;
 
         // URI may contain & symbols which can "break" the XHTML we're creating
         String cleanUri = GeneralUtil.escapeHTML(uri);
         String notFound = "<html><h1>Document not found</h1><p>Could not access URI <pre>" + cleanUri + "</pre></p></html>";
 
-        xr = XMLResource.load(new StringReader(notFound));
+        xr = XMLDocumentResource.load(uri, new StringReader(notFound));
         return xr;
     }
 
