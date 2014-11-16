@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.xhtmlrenderer.parser.jsoup.HTMLJsoupParser;
 import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 
@@ -166,6 +167,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 
 
 		manager = new PanelManager();
+                manager.setDocumentParser(new HTMLJsoupParser());
                 manager.setDeferredImageLoadingEnabled(true);
         view = new XHTMLPanel(manager);
 //        manager.setRepaintListener(view);

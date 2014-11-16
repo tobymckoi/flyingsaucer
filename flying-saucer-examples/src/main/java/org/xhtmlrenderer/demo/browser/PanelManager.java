@@ -128,7 +128,7 @@ public class PanelManager extends NaiveUserAgent {
             uc.connect();
             String contentType = uc.getContentType();
             //Maybe should popup a choice when content/unknown!
-            if (contentType.equals("text/plain") || contentType.equals("content/unknown")) {
+            if (contentType.contains("text/plain") || contentType.contains("content/unknown")) {
                 inputStream = uc.getInputStream();
                 SAXSource source = new SAXSource(new PlainTextXMLReader(inputStream), new InputSource());
                 xr = XMLDocumentResource.load(uri, source);
@@ -137,7 +137,7 @@ public class PanelManager extends NaiveUserAgent {
                 xr = XMLDocumentResource.load(uri, new StringReader(doc));
             } else {
                 inputStream = uc.getInputStream();
-                xr = XMLDocumentResource.load(uri, inputStream);
+                xr = getDocumentResource(uri, contentType, inputStream);
             }
         } catch (MalformedURLException e) {
             XRLog.exception("bad URL given: " + uri, e);

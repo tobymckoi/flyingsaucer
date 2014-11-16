@@ -20,14 +20,11 @@
  */
 package org.xhtmlrenderer.util;
 
-import java.io.File;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.xhtmlrenderer.dom.Document;
-import org.xhtmlrenderer.dom.FSW3CDomBuilder;
 
 /**
  * Booch utility class for XML processing using DOM

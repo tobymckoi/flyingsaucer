@@ -19,7 +19,6 @@
 
 package org.xhtmlrenderer.parser;
 
-import org.xhtmlrenderer.dom.FSW3CDomBuilder;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.logging.Level;
@@ -28,6 +27,7 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.sax.SAXSource;
 
 import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.FSSAXHandler;
 import org.xhtmlrenderer.resource.FSEntityResolver;
 import org.xhtmlrenderer.util.Configuration;
 import org.xhtmlrenderer.util.XRLog;
@@ -104,11 +104,35 @@ public class XHTMLJavaSAXParser implements Parser {
      * @throws java.io.IOException 
      */
     public Document createDocument(SAXSource saxSource) throws IOException {
-        // Create a flying saucer DOM builder from the SAX input source,
-        FSW3CDomBuilder builder = new FSW3CDomBuilder(saxSource);
-        return builder.build();
-    }
 
+        // Create a flying saucer DOM builder from the SAX input source,
+        InputSource source = saxSource.getInputSource();
+        XMLReader xmlreader = saxSource.getXMLReader();
+        try {
+
+            // Create the SAX handler,
+            FSSAXHandler handler = new FSSAXHandler();
+            // Set the content handler in the XML reader,
+            xmlreader.setContentHandler(handler);
+            // Make sure we receive lexical information (comments)
+            xmlreader.setProperty("http://xml.org/sax/properties/lexical-handler",
+                                  handler); 
+            // Parse using the XMLReader interface,
+            xmlreader.parse(source);
+
+            // Fetch the create document and return it,
+            Document doc = handler.getDocument();
+//            Utils.dump(2, doc);
+            return doc;
+
+        }
+        catch (SAXException ex) {
+            throw new XRRuntimeException(
+                    "Can't load the XML resource (using TRaX transformer). " +
+                            ex.getMessage(), ex);
+        }
+
+    }
 
 
     public static final XMLReader newXMLReader() {

@@ -86,7 +86,7 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
     // The parser for style sheet creation.
     private final CSSParser _cssParser;
     // The parser for DOM creation. This is the Java XML parser by default.
-    private final Parser _xmlParser;
+    private Parser _documentParser;
 
     private boolean deferredImageLoading = false;
     private final List<ImageProgressListener> imageProgressListeners = new ArrayList();
@@ -129,7 +129,30 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
                 XRLog.cssParse(Level.WARNING, "(" + uri + ") " + message);
             }
         });
-        this._xmlParser = new XHTMLJavaSAXParser();
+        this._documentParser = new XHTMLJavaSAXParser();
+    }
+
+    /**
+     * Sets the document parser used by this user agent when document resources
+     * are fetched. By default this is an XHTMLJavaSAXParser.
+     * 
+     * ISSUE: Do we want to expand this to a more general mechanism so that
+     *   this agent picks a parser depending on content type, or file
+     *   name?
+     * 
+     * @param parser
+     */
+    public void setDocumentParser(Parser parser) {
+        this._documentParser = parser;
+    }
+
+    /**
+     * Returns the current document parser.
+     * 
+     * @return 
+     */
+    public Parser getDocumentParser() {
+        return this._documentParser;
     }
 
     /**
@@ -303,6 +326,40 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
     }
 
     /**
+     * Converts an InputStream to a Reader given a content type and uri string.
+     * 
+     * @param uri
+     * @param contentType
+     * @param ins
+     * @return
+     * @throws IOException 
+     */
+    protected Reader inputStreamToReader(
+                String uri, String contentType, InputStream ins)
+                                                        throws IOException {
+
+        // Decode any parameters in 'content-type'
+        Map<String, String> contentParams = new HashMap(4);
+        String[] paramsSplit = contentType.split("\\;");
+        for (int i = 1; i < paramsSplit.length; ++i) {
+            String param = paramsSplit[i];
+            int delim = param.indexOf("=");
+            if (delim != -1) {
+                contentParams.put(param.substring(0, delim).trim().toLowerCase(Locale.ENGLISH),
+                                  param.substring(delim + 1).trim());
+            }
+        }
+
+        String charset = contentParams.get("charset");
+        // If no charset given then default to utf-8,
+        if (charset == null) {
+            charset = "utf-8";
+        }
+
+        return new InputStreamReader(ins, charset);
+    }
+
+    /**
      * Gets a Reader for the resource identified.
      * 
      * @param uri
@@ -318,25 +375,8 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
 
             String contentType = urlConnection.getContentType();
 
-            // Decode any parameters in 'content-type'
-            Map<String, String> contentParams = new HashMap(4);
-            String[] paramsSplit = contentType.split("\\;");
-            for (int i = 1; i < paramsSplit.length; ++i) {
-                String param = paramsSplit[i];
-                int delim = param.indexOf("=");
-                if (delim != -1) {
-                    contentParams.put(param.substring(0, delim).trim().toLowerCase(Locale.ENGLISH),
-                                      param.substring(delim + 1).trim());
-                }
-            }
-
-            String charset = contentParams.get("charset");
-            // If no charset given then default to utf-8,
-            if (charset == null) {
-                charset = "utf-8";
-            }
-
-            reader = new InputStreamReader(urlConnection.getInputStream(), charset);
+            return inputStreamToReader(
+                            uri, contentType, urlConnection.getInputStream());
 
         } catch (java.net.MalformedURLException e) {
             XRLog.exception("bad URL given: " + uri, e);
@@ -396,7 +436,7 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
      * @throws java.io.IOException
      */
     public Document parseDocument(Reader reader, String uri) throws IOException {
-        return _xmlParser.createDocument(reader);
+        return _documentParser.createDocument(reader);
     }
 
     /**
@@ -539,7 +579,7 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
             return docResource;
 
         } catch (IOException ex) {
-            throw new XRRuntimeException("Failed to parse XML Document.", ex);
+            throw new XRRuntimeException("Failed to parse Document.", ex);
         } finally {
             try {
                 inputReader.close();
@@ -548,6 +588,39 @@ public abstract class AbstractUserAgent implements UserAgentCallback {
             }
         }
     }
+
+    public DocumentResource getDocumentResource(
+                            String uri, String contentType, InputStream ins) {
+
+        try {
+
+            // Timing metrics,
+            long st = System.currentTimeMillis();
+            Reader r = inputStreamToReader(uri, contentType, ins);
+            // Parse the document,
+            Document document = parseDocument(r, uri);
+            long end = System.currentTimeMillis();
+
+            // Return it as a document resource,
+            DocumentResource docResource = new DocumentResource(uri, document);
+
+            docResource.setElapsedLoadTime(end - st);
+            XRLog.load("Loaded document in ~" + docResource.getElapsedLoadTime() + "ms");
+
+            return docResource;
+
+        } catch (IOException ex) {
+            throw new XRRuntimeException("Failed to parse Document.", ex);
+        } finally {
+            try {
+                ins.close();
+            } catch (IOException e) {
+                // swallow
+            }
+        }
+
+    }
+    
 
     @Override
     public byte[] getBinaryResource(String uri) {

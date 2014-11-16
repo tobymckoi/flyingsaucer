@@ -235,10 +235,11 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             fill(borderBounds);
         }
 
-        Shape oldclip = getClip();
-        clip(borderBounds);
-
         if (backgroundImage != null) {
+
+            Shape oldclip = getClip();
+            clip(borderBounds);
+
             FSImage fsImage = backgroundImage.getImage();
 
             Rectangle localBGImageContainer = bgImageContainer;
@@ -309,8 +310,9 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 }
             }
 
+            setClip(oldclip);
+
         }
-        setClip(oldclip);
     }
 
     private int adjustTo(int target, int current, int imageDim) {
