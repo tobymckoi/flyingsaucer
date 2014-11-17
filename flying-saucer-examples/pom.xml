@@ -32,11 +32,6 @@
       <artifactId>flying-saucer-pdf</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.xhtmlrenderer</groupId>
-      <artifactId>flying-saucer-jsoup</artifactId>
-      <version>${project.version}</version>
-    </dependency>
   </dependencies>
 
   <build>

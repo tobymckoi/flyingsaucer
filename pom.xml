@@ -35,7 +35,7 @@
     <module>flying-saucer-swt</module>
     <module>flying-saucer-swt-examples</module>
     <module>flying-saucer-examples</module>
-    <module>flying-saucer-jsoup</module>
+    <module>flying-saucer-invader</module>
   </modules>
 
   <scm>

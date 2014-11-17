@@ -26,6 +26,7 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xhtmlrenderer.pdf.PDFCreationListener;
 import org.xhtmlrenderer.pdf.util.XHtmlMetaToPdfInfoAdapter;
 import org.xhtmlrenderer.resource.DocumentResource;
+import org.xhtmlrenderer.resource.XMLDocumentResource;
 import org.xhtmlrenderer.simple.FSScrollPane;
 import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.swing.SwingReplacedElementFactory;
@@ -48,8 +49,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.xhtmlrenderer.parser.jsoup.HTMLJsoupParser;
-import org.xhtmlrenderer.resource.XMLDocumentResource;
 
 
 /**
@@ -144,7 +143,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 	/**
 	 * Description of the Method
 	 */
-	public void init() {
+	public void init(PanelManager panelManager) {
 		forward = new JButton();
 		backward = new JButton();
 		stop = new JButton();
@@ -166,9 +165,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 		});
 
 
-		manager = new PanelManager();
-                manager.setDocumentParser(new HTMLJsoupParser());
-                manager.setDeferredImageLoadingEnabled(true);
+		manager = panelManager;
         view = new XHTMLPanel(manager);
 //        manager.setRepaintListener(view);
 //        ImageResourceLoader irl = new ImageResourceLoader();
@@ -176,6 +173,7 @@ public class BrowserPanel extends JPanel implements DocumentListener {
 //        manager.setImageResourceLoader(irl);
 //        view.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory(view, irl));
         view.getSharedContext().setReplacedElementFactory(new SwingReplacedElementFactory());
+        view.getSharedContext().getTextRenderer().setSmoothingThreshold(-1);
         view.addDocumentListener(manager);
         view.setCenteredPagedView(true);
         view.setBackground(Color.LIGHT_GRAY);

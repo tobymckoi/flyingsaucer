@@ -193,8 +193,8 @@ public class BrowserMenuBar extends JMenuBar {
 
         JMenu anti = new JMenu("Anti Aliasing");
         ButtonGroup anti_level = new ButtonGroup();
-        addAALevel(anti, anti_level, "None", -1);
-        addAALevel(anti, anti_level, "Low", 25).setSelected(true);
+        addAALevel(anti, anti_level, "None", -1).setSelected(true);
+        addAALevel(anti, anti_level, "Low", 25);
         addAALevel(anti, anti_level, "Medium", 12);
         addAALevel(anti, anti_level, "High", 0);
         debug.add(anti);

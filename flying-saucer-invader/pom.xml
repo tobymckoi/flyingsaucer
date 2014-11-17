@@ -9,12 +9,12 @@
     <version>9.0.8.RBPatch-SNAPSHOT</version>
   </parent>
 
-  <artifactId>flying-saucer-jsoup</artifactId>
-  <description>Integration of the jsoup HTML renderer into Flying Saucer.</description>
+  <artifactId>flying-saucer-invader</artifactId>
+  <description>Various plug-in enhancements to Flying Saucer using a variety of third-party applications.</description>
 
   <packaging>jar</packaging>
 
-  <name>Flying Saucer jsoup HTML Parser</name>
+  <name>Flying Saucer Invader</name>
 
     <build>
         <plugins>
@@ -29,6 +29,7 @@
             </plugin>
         </plugins>
     </build>
+
     <dependencies>
 
         <dependency>

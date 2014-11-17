@@ -111,7 +111,8 @@ public class BrowserStartup {
         actions.init();
 
         panel = new BrowserPanel(this, new FrameBrowserPanelListener());
-        panel.init();
+        PanelManager panelManager = initPanelManager();
+        panel.init(panelManager);
         panel.createActions();
 
         menu = new BrowserMenuBar(this);
@@ -127,6 +128,16 @@ public class BrowserStartup {
         frame.getContentPane().add(panel.status, BorderLayout.PAGE_END);
         frame.pack();
         frame.setSize(1024, 768);
+    }
+
+    /**
+     * Returns a panel manager for this browser. This can be overridden to
+     * customize the behaviour of the user agent.
+     */
+    protected PanelManager initPanelManager() {
+        PanelManager manager = new PanelManager();
+        manager.setDeferredImageLoadingEnabled(true);
+        return manager;
     }
 
     /**

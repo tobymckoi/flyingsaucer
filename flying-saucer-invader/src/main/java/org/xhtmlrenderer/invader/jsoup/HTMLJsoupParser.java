@@ -17,7 +17,7 @@
  * MA 02110-1301  USA
  */
 
-package org.xhtmlrenderer.parser.jsoup;
+package org.xhtmlrenderer.invader.jsoup;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -34,7 +34,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.nodes.XmlDeclaration;
-import org.jsoup.select.Elements;
 
 import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.dom.FSSAXHandler;
