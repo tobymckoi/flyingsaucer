@@ -227,4 +227,26 @@ public class BoxCollector {
         return false;
     }
 
+    public String toString() {
+        StringBuilder b = new StringBuilder();
+        int i = 1;
+        b.append("blockContent:\n");
+        for (Box block : blockContent) {
+            b.append("[");
+            b.append(i);
+            b.append("] ");
+            b.append(block);
+            b.append("\n");
+        }
+        b.append("inlineContent:\n");
+        for (Box inline : inlineContent) {
+            b.append("[");
+            b.append(i);
+            b.append("] ");
+            b.append(inline);
+            b.append("\n");
+        }
+        return b.toString();
+    }
+
 }

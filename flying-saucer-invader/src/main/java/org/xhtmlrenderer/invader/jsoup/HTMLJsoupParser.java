@@ -20,10 +20,7 @@
 package org.xhtmlrenderer.invader.jsoup;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.List;
 
 import org.jsoup.Jsoup;
@@ -37,7 +34,6 @@ import org.jsoup.nodes.XmlDeclaration;
 
 import org.xhtmlrenderer.dom.Document;
 import org.xhtmlrenderer.dom.FSSAXHandler;
-import org.xhtmlrenderer.dom.Utils;
 import org.xhtmlrenderer.util.XRRuntimeException;
 
 import org.xml.sax.SAXException;
@@ -189,31 +185,6 @@ public class HTMLJsoupParser implements org.xhtmlrenderer.parser.Parser {
         // End the element,
         handler.endElement(uri, localName, qName);
 
-    }
-
-    /**
-     * For testing.
-     */
-    public static void main(String[] args) {
-        try {
-            URL url = new URL("http://www.gnu.org/licenses/license-list.html");
-
-            URLConnection c = url.openConnection();
-            c.connect();
-            
-            HTMLJsoupParser p = new HTMLJsoupParser();
-
-            Document document = p.createDocument(
-                        new InputStreamReader(c.getInputStream(), "utf-8"));
-
-            System.out.println("FINISHING WITH RESULT: " + document);
-            
-            Utils.dump(0, document);
-
-        }
-        catch (Exception ex) {
-            ex.printStackTrace(System.err);
-        }
     }
 
 }

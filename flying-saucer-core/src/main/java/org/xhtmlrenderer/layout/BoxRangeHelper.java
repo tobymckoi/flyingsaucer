@@ -19,6 +19,9 @@
  */
 package org.xhtmlrenderer.layout;
 
+import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -52,28 +55,63 @@ public class BoxRangeHelper {
     }
     
     public void pushClipRegion(RenderingContext c, int contentIndex) {
+        Rectangle preClip = (Rectangle) _outputDevice.getClip();
+        List<Rectangle> clips = new ArrayList(4);
         while (_current != null && _current.getRange().getStart() == contentIndex) {
-            _current.setClip(_outputDevice.getClip());
+
+            Rectangle clipEdge = _current.getBox().getChildrenClipEdge(c);
+
+            _current.setClip(preClip);
             _clipRegionStack.add(_current);
-            
-            _outputDevice.clip(_current.getBox().getChildrenClipEdge(c));
-            
+
+            clips.add(clipEdge);
+
             if (_rangeIndex == _rangeList.size() - 1) {
                 _current = null;
             } else {
                 _current = _rangeList.get(++_rangeIndex);
             }
         }
+        
+        // Clip against a union of the clip edges found,
+        if (!clips.isEmpty()) {
+            Iterator<Rectangle> iterator = clips.iterator();
+            Rectangle first = iterator.next();
+            if (!iterator.hasNext()) {
+                // This is the most common case, just a single clip.
+                _outputDevice.clip(first);
+            }
+            else {
+                // Otherwise we create a union of all the clips in this range
+                // and clip against that rectangle.
+                Rectangle aggregateClip = new Rectangle(first);
+                while (iterator.hasNext()) {
+                    aggregateClip = aggregateClip.union(iterator.next());
+                }
+                _outputDevice.clip(aggregateClip);
+            }
+        }
+
     }
     
     public void popClipRegions(RenderingContext c, int contentIndex) {
-        while (_clipRegionStack.size() > 0) {
-            BoxRangeData data = _clipRegionStack.getLast();
-            if (data.getRange().getEnd() == contentIndex) {
-                _outputDevice.setClip(data.getClip());
-                _clipRegionStack.removeLast();
-            } else {
-                break;
+        if (_clipRegionStack.isEmpty()) {
+            return;
+        }
+        // Make sure to pop all the regions we pushed for the given content
+        // index.
+        BoxRangeData data = _clipRegionStack.getLast();
+        if (data.getRange().getEnd() == contentIndex) {
+            int contentStart = data.getRange().getStart();
+            
+            while (_clipRegionStack.size() > 0) {
+                data = _clipRegionStack.getLast();
+                if (data.getRange().getStart() == contentStart) {
+                    _outputDevice.setClip(data.getClip());
+                    _clipRegionStack.removeLast();
+                } else {
+                    break;
+                }
             }
         }
     }
