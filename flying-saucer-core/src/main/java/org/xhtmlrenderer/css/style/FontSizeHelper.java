@@ -103,4 +103,16 @@ public class FontSizeHelper {
         }
         return false;
     }
+
+    /**
+     * Returns the PX size of the given fixed font identifier.
+     * 
+     * @param fontSize
+     * @return 
+     */
+    public static float getFixedFontPXSize(IdentValue fontSize) {
+        PropertyValue pvalue = (PropertyValue)FIXED_FONT_SIZES.get(fontSize);
+        return pvalue.getFloatValue();
+    }
+
 }

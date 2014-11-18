@@ -42,11 +42,9 @@ public class DerivedValueFactory {
             case PropertyValue.VALUE_TYPE_LENGTH:
                 return new LengthValue(style, cssName, value);
             case PropertyValue.VALUE_TYPE_IDENT:
-                IdentValue ident = value.getIdentValue();
-                if (ident == null) {
-                    ident = IdentValue.getByIdentString(value.getStringValue());
-                }
-                return ident;
+                return getIdentValue(value);
+            case PropertyValue.VALUE_TYPE_MODIFIER_IDENT:
+                return new ModifierIdentValue(style, cssName, value);
             case PropertyValue.VALUE_TYPE_STRING:
                 return new StringValue(cssName, value);
             case PropertyValue.VALUE_TYPE_NUMBER:
@@ -66,4 +64,13 @@ public class DerivedValueFactory {
                 throw new IllegalArgumentException();
         }
     }
+
+    static IdentValue getIdentValue(PropertyValue value) {
+        IdentValue ident = value.getIdentValue();
+        if (ident == null) {
+            ident = IdentValue.getByIdentString(value.getStringValue());
+        }
+        return ident;
+    }
+
 }

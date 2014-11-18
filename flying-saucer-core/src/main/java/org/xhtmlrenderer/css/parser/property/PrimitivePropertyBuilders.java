@@ -959,6 +959,15 @@ public class PrimitivePropertyBuilders {
                 if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
                     IdentValue ident = checkIdent(cssName, value);
                     checkValidity(cssName, ALLOWED, ident);
+
+                    // Change the LARGER or SMALLER property value to a modifier
+                    // identifier.
+                    IdentValue idVal = value.getIdentValue();
+                    if ( idVal == IdentValue.LARGER ||
+                         idVal == IdentValue.SMALLER ) {
+                        value = new PropertyValue(idVal, true);
+                    }
+
                 } else if (value.getFloatValue() < 0.0f) {
                     throw new CSSParseException("font-size may not be negative", -1);
                 }

@@ -39,6 +39,10 @@ public class PropertyValue implements CSSPrimitiveValue {
     public static final short VALUE_TYPE_STRING = 5;
     public static final short VALUE_TYPE_LIST = 6;
     public static final short VALUE_TYPE_FUNCTION = 7;
+    // A MODIFIER ident is like 'IDENT' except it also references
+    // the selector it's defined at. This allows for values that modify
+    // the parent style (such as 'larger' and 'smaller' font-size).
+    public static final short VALUE_TYPE_MODIFIER_IDENT = 32;
     
     private short _type;
     private short _cssValueType;
@@ -96,17 +100,22 @@ public class PropertyValue implements CSSPrimitiveValue {
             _propertyValueType = VALUE_TYPE_STRING;
         }
     }
-    
-    public PropertyValue(IdentValue ident) {
+
+    public PropertyValue(IdentValue ident, boolean modifier) {
         _type = CSSPrimitiveValue.CSS_IDENT;
         _stringValue = ident.toString();
         _cssValueType = _stringValue.equals("inherit") ? CSSValue.CSS_INHERIT : CSSValue.CSS_PRIMITIVE_VALUE;
         _cssText = ident.toString();
-        
-        _propertyValueType = VALUE_TYPE_IDENT;
+
+        _propertyValueType = modifier ? VALUE_TYPE_MODIFIER_IDENT :
+                                        VALUE_TYPE_IDENT;
         _identValue = ident;
     }
-    
+
+    public PropertyValue(IdentValue ident) {
+        this(ident, false);
+    }
+
     public PropertyValue(List values) {
         _type = CSSPrimitiveValue.CSS_UNKNOWN; // HACK
         _cssValueType = CSSValue.CSS_CUSTOM;
