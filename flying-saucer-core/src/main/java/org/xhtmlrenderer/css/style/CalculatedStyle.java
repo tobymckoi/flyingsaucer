@@ -374,21 +374,22 @@ public class CalculatedStyle {
     public FontSpecification getFont(CssContext ctx) {
         if (_font == null) {
 
-//            System.out.println(dump(new StringBuilder(), "  "));
-
             String[] families = valueByName(CSSName.FONT_FAMILY).asStringArray();
             float size;
 
             FSDerivedValue fontSize = valueByName(CSSName.FONT_SIZE);
             // If it's a font size modifier (such as 'larger' or 'smaller'),
             if (fontSize instanceof ModifierIdentValue) {
-                size = getResolvedFontSize(ctx, (ModifierIdentValue) fontSize);
+                size = FontSizeHelper.resolveFontSizeModifier(
+                                    ctx, (ModifierIdentValue) fontSize,
+                                    FontSizeHelper.isMonospace(families));
             }
             else if (fontSize instanceof IdentValue) {
                 PropertyValue replacement;
-                IdentValue resolved = resolveAbsoluteFontSize();
+                IdentValue resolved = getAbsoluteFontSize(fontSize);
                 if (resolved != null) {
-                    replacement = FontSizeHelper.resolveAbsoluteFontSize(resolved, families);
+                    replacement = FontSizeHelper.resolveAbsoluteFontSize(
+                                resolved, FontSizeHelper.isMonospace(families));
                 } else {
                     replacement = FontSizeHelper.getDefaultRelativeFontSize((IdentValue) fontSize);
                 }
@@ -414,113 +415,12 @@ public class CalculatedStyle {
         return _font;
     }
 
-    private IdentValue resolveAbsoluteFontSize() {
-        FSDerivedValue fontSize = valueByName(CSSName.FONT_SIZE);
-        if (! (fontSize instanceof IdentValue)) {
-            return null;
-        }
-        IdentValue fontSizeIdent = (IdentValue) fontSize;
+    private IdentValue getAbsoluteFontSize(FSDerivedValue fontSize) {
+        IdentValue fontSizeIdent = fontSize.asIdentValue();
         if (PrimitivePropertyBuilders.ABSOLUTE_FONT_SIZES.get(fontSizeIdent.FS_ID)) {
             return fontSizeIdent;
         }
-
-        IdentValue parent = getParent().resolveAbsoluteFontSize();
-        if (parent != null) {
-            if (fontSizeIdent == IdentValue.SMALLER) {
-                return FontSizeHelper.getNextSmaller(parent);
-            } else if (fontSize == IdentValue.LARGER) {
-                return FontSizeHelper.getNextLarger(parent);
-            }
-        }
-
         return null;
-    }
-
-    private float getResolvedFontSize(CssContext ctx, ModifierIdentValue modifierValue) {
-        // Either 'larger' or 'smaller',
-        List<IdentValue> modifiersList = new ArrayList(4);
-        modifiersList.add(modifierValue.asIdentValue());
-
-        CalculatedStyle parentStyle = modifierValue.getStyle().getParent();
-
-        CalculatedStyle baseStyle = null;
-        FSDerivedValue baseFontSize = null;
-        
-        while (parentStyle != null) {
-            FSDerivedValue parentFontSize = parentStyle.valueByName(CSSName.FONT_SIZE);
-            if (parentFontSize == null) {
-                break;
-            }
-            if (!(parentFontSize instanceof ModifierIdentValue)) {
-                baseFontSize = parentFontSize;
-                baseStyle = parentStyle;
-                break;
-            }
-            ModifierIdentValue parentModifier = (ModifierIdentValue) parentFontSize;
-            modifiersList.add(parentModifier.asIdentValue());
-
-            // Go back to parent,
-            parentStyle = parentModifier.getStyle().getParent();
-        }
-
-        // So now 'modifiersList' contains the list of modifiers to apply to
-        // a base size.
-
-        if (baseStyle != null && baseFontSize instanceof IdentValue) {
-
-            IdentValue psize = (IdentValue) baseFontSize;
-            
-            // Apply modifiers,
-            Iterator<IdentValue> modifiersIterator = modifiersList.iterator();
-            while (psize != null && modifiersIterator.hasNext()) {
-                IdentValue mod = modifiersIterator.next();
-                if (mod == IdentValue.LARGER) {
-                    psize = FontSizeHelper.getNextLarger(psize);
-                }
-                else if (mod == IdentValue.SMALLER) {
-                    psize = FontSizeHelper.getNextSmaller(psize);
-                }
-            }
-
-            if (psize != null) {
-                float sizePx = FontSizeHelper.getFixedFontPXSize(psize);
-                return sizePx * ctx.getDotsPerPixel();
-            }
-
-        }
-        
-        // If no base size or base size is not ident value,
-        Iterator<IdentValue> modifiersIterator = modifiersList.iterator();
-
-        // We set base size to a default value if necessary,
-        float sizePx;
-        if (baseStyle != null && baseFontSize instanceof IdentValue) {
-            sizePx = FontSizeHelper.getFixedFontPXSize((IdentValue) baseFontSize) * ctx.getDotsPerPixel();
-        }
-        else if (baseStyle == null) {
-            IdentValue iv = modifiersIterator.next();
-            sizePx = (iv == IdentValue.LARGER) ?
-                                ctx.getDotsPerPixel() * 18f :
-                                ctx.getDotsPerPixel() * 13f;
-        }
-        else {
-            // So resolve to a font size,
-            sizePx = baseStyle.getFloatPropertyProportionalTo(
-                                                CSSName.FONT_SIZE, 0, ctx);
-        }
-        // Apply modifiers,
-        while (modifiersIterator.hasNext()) {
-            IdentValue mod = modifiersIterator.next();
-            if (mod == IdentValue.LARGER) {
-                sizePx = sizePx * 1.2f;
-            }
-            else if (mod == IdentValue.SMALLER) {
-                sizePx = sizePx * 0.8f;
-            }
-        }
-
-        return sizePx;
-        
     }
 
     public float getFloatPropertyProportionalTo(CSSName cssName, float baseValue, CssContext ctx) {

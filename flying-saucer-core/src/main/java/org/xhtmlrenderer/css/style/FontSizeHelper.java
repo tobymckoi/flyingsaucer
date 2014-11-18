@@ -19,12 +19,17 @@
  */
 package org.xhtmlrenderer.css.style;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.w3c.dom.css.CSSPrimitiveValue;
+import org.xhtmlrenderer.css.constants.CSSName;
 import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.parser.PropertyValue;
+import org.xhtmlrenderer.css.style.derived.ModifierIdentValue;
 
 public class FontSizeHelper {
     private static final LinkedHashMap PROPORTIONAL_FONT_SIZES = new LinkedHashMap();
@@ -53,9 +58,10 @@ public class FontSizeHelper {
         FIXED_FONT_SIZES.put(IdentValue.XX_LARGE, new PropertyValue(CSSPrimitiveValue.CSS_PX, 26f, "26px"));        
     }
     
-    public static IdentValue getNextSmaller(IdentValue absFontSize) {
+    public static IdentValue getNextSmaller(IdentValue absFontSize, boolean monospace) {
+        Map fontSizeMap = monospace ? FIXED_FONT_SIZES : PROPORTIONAL_FONT_SIZES;
         IdentValue prev = null;
-        for (Iterator i = PROPORTIONAL_FONT_SIZES.keySet().iterator(); i.hasNext(); ) {
+        for (Iterator i = fontSizeMap.keySet().iterator(); i.hasNext(); ) {
             IdentValue ident = (IdentValue)i.next();
             if (ident == absFontSize) {
                 return prev;
@@ -65,8 +71,9 @@ public class FontSizeHelper {
         return null;
     }
     
-    public static IdentValue getNextLarger(IdentValue absFontSize) {
-        for (Iterator i = PROPORTIONAL_FONT_SIZES.keySet().iterator(); i.hasNext(); ) {
+    public static IdentValue getNextLarger(IdentValue absFontSize, boolean monospace) {
+        Map fontSizeMap = monospace ? FIXED_FONT_SIZES : PROPORTIONAL_FONT_SIZES;
+        for (Iterator i = fontSizeMap.keySet().iterator(); i.hasNext(); ) {
             IdentValue ident = (IdentValue)i.next();
             if (ident == absFontSize && i.hasNext()) {
                 return (IdentValue)i.next();
@@ -75,9 +82,7 @@ public class FontSizeHelper {
         return null;
     }
     
-    public static PropertyValue resolveAbsoluteFontSize(IdentValue fontSize, String[] fontFamilies) {
-        boolean monospace = isMonospace(fontFamilies);
-        
+    public static PropertyValue resolveAbsoluteFontSize(IdentValue fontSize, boolean monospace) {
         if (monospace) {
             return (PropertyValue)FIXED_FONT_SIZES.get(fontSize);
         } else {
@@ -95,7 +100,7 @@ public class FontSizeHelper {
         }
     }
     
-    private static boolean isMonospace(String[] fontFamilies) {
+    public static boolean isMonospace(String[] fontFamilies) {
         for (int i = 0; i < fontFamilies.length; i++) {
             if (fontFamilies[i].equals("monospace")) {
                 return true;
@@ -108,11 +113,118 @@ public class FontSizeHelper {
      * Returns the PX size of the given fixed font identifier.
      * 
      * @param fontSize
+     * @param monospace
      * @return 
      */
-    public static float getFixedFontPXSize(IdentValue fontSize) {
-        PropertyValue pvalue = (PropertyValue)FIXED_FONT_SIZES.get(fontSize);
+    public static float getFixedFontPXSize(IdentValue fontSize, boolean monospace) {
+        PropertyValue pvalue = resolveAbsoluteFontSize(fontSize, monospace);
         return pvalue.getFloatValue();
+    }
+
+    /**
+     * Resolves a 'larger' or 'smaller' font size modifier and returns the
+     * absolute size of the font. This works by walking back through the parent
+     * style hierarchy until a none modifier font-size is found. This is used
+     * as a base font on which the modifier chain is applied.
+     * <p>
+     * If the base font-size is an identity (eg. 'x-small', 'large', etc) then
+     * the modifiers adjust the resulting font size based on the identity map.
+     * Otherwise, it falls back to adjusting the base font size by x1.2 and
+     * x0.8 for 'larger' and 'smaller' respectively.
+     * 
+     * @param ctx
+     * @param modifierValue
+     * @param isMonospaceFont
+     * @return 
+     */
+    public static float resolveFontSizeModifier(CssContext ctx,
+                ModifierIdentValue modifierValue, boolean isMonospaceFont) {
+
+        // Either 'larger' or 'smaller',
+        List<IdentValue> modifiersList = new ArrayList(4);
+        modifiersList.add(modifierValue.asIdentValue());
+
+        CalculatedStyle parentStyle = modifierValue.getStyle().getParent();
+
+        CalculatedStyle baseStyle = null;
+        FSDerivedValue baseFontSize = null;
+        
+        while (parentStyle != null) {
+            FSDerivedValue parentFontSize = parentStyle.valueByName(CSSName.FONT_SIZE);
+            if (parentFontSize == null) {
+                break;
+            }
+            if (!(parentFontSize instanceof ModifierIdentValue)) {
+                baseFontSize = parentFontSize;
+                baseStyle = parentStyle;
+                break;
+            }
+            ModifierIdentValue parentModifier = (ModifierIdentValue) parentFontSize;
+            modifiersList.add(parentModifier.asIdentValue());
+
+            // Go back to parent,
+            parentStyle = parentModifier.getStyle().getParent();
+        }
+
+        // So now 'modifiersList' contains the list of modifiers to apply to
+        // a base size.
+
+        if (baseStyle != null && baseFontSize instanceof IdentValue) {
+
+            IdentValue psize = (IdentValue) baseFontSize;
+            
+            // Apply modifiers,
+            Iterator<IdentValue> modifiersIterator = modifiersList.iterator();
+            while (psize != null && modifiersIterator.hasNext()) {
+                IdentValue mod = modifiersIterator.next();
+                if (mod == IdentValue.LARGER) {
+                    psize = FontSizeHelper.getNextLarger(psize, isMonospaceFont);
+                }
+                else if (mod == IdentValue.SMALLER) {
+                    psize = FontSizeHelper.getNextSmaller(psize, isMonospaceFont);
+                }
+            }
+
+            if (psize != null) {
+                float sizePx = FontSizeHelper.getFixedFontPXSize(psize, isMonospaceFont);
+                return sizePx * ctx.getDotsPerPixel();
+            }
+
+        }
+        
+        // If no base size or base size is not ident value,
+        Iterator<IdentValue> modifiersIterator = modifiersList.iterator();
+
+        // We set base size to a default value if necessary,
+        float sizePx;
+        if (baseStyle != null && baseFontSize instanceof IdentValue) {
+            sizePx = FontSizeHelper.getFixedFontPXSize(
+                    (IdentValue) baseFontSize, isMonospaceFont) * ctx.getDotsPerPixel();
+        }
+        else if (baseStyle == null) {
+            IdentValue iv = modifiersIterator.next();
+            sizePx = (iv == IdentValue.LARGER) ?
+                                ctx.getDotsPerPixel() * 18f :
+                                ctx.getDotsPerPixel() * 13f;
+        }
+        else {
+            // So resolve to a font size,
+            sizePx = baseStyle.getFloatPropertyProportionalTo(
+                                                CSSName.FONT_SIZE, 0, ctx);
+        }
+        // Apply modifiers,
+        while (modifiersIterator.hasNext()) {
+            IdentValue mod = modifiersIterator.next();
+            if (mod == IdentValue.LARGER) {
+                sizePx = sizePx * 1.2f;
+            }
+            else if (mod == IdentValue.SMALLER) {
+                sizePx = sizePx * 0.8f;
+            }
+        }
+
+        return sizePx;
+        
     }
 
 }
