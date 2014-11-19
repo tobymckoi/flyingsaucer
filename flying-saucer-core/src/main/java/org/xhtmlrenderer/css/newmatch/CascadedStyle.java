@@ -19,10 +19,10 @@
  */
 package org.xhtmlrenderer.css.newmatch;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -59,7 +59,7 @@ public class CascadedStyle {
     /**
      * Map of PropertyDeclarations, keyed by {@link CSSName}
      */
-    private Map cascadedProperties;
+    private Map<CSSName, PropertyDeclaration> cascadedProperties;
     
     private String fingerprint;
     
@@ -142,18 +142,18 @@ public class CascadedStyle {
      * @param iter An Iterator containing PropertyDeclarations in order of
      *             specificity.
      */
-    CascadedStyle(java.util.Iterator iter) {
+    CascadedStyle(Iterator iter) {
         this();
 
         addProperties(iter);
     }
 
-    private void addProperties(java.util.Iterator iter) {
+    private void addProperties(Iterator iter) {
         //do a bucket-sort on importance and origin
         //properties should already be in order of specificity
-        java.util.List[] buckets = new java.util.List[PropertyDeclaration.IMPORTANCE_AND_ORIGIN_COUNT];
+        List[] buckets = new List[PropertyDeclaration.IMPORTANCE_AND_ORIGIN_COUNT];
         for (int i = 0; i < buckets.length; i++) {
-            buckets[i] = new java.util.LinkedList();
+            buckets[i] = new LinkedList();
         }
 
         while (iter.hasNext()) {
@@ -170,6 +170,7 @@ public class CascadedStyle {
     }
     
     private CascadedStyle(CascadedStyle startingPoint, Iterator props) {
+        // Note that we need a map here that sorts by key order,
         cascadedProperties = new TreeMap(startingPoint.cascadedProperties);
         
         addProperties(props);
@@ -182,6 +183,7 @@ public class CascadedStyle {
      * properties.
      */
     private CascadedStyle() {
+        // Note that we need a map here that sorts by key order,
         cascadedProperties = new TreeMap();
     }
 
@@ -239,20 +241,20 @@ public class CascadedStyle {
      *
      * @return Iterator over a set of properly cascaded PropertyDeclarations.
      */
-    public java.util.Iterator getCascadedPropertyDeclarations() {
-        List list = new ArrayList(cascadedProperties.size());
-        Iterator iter = cascadedProperties.values().iterator();
-        while ( iter.hasNext()) {
-            list.add(iter.next());
-        }
-        return list.iterator();
+    public Iterator<PropertyDeclaration> getCascadedPropertyDeclarations() {
+        return cascadedProperties.values().iterator();
     }
 
     public int countAssigned() { return cascadedProperties.size(); }
 
     public String getFingerprint() {
         if (this.fingerprint == null) {
-            StringBuffer sb = new StringBuffer();
+            if (cascadedProperties.isEmpty()) {
+                return "";
+            }
+            // Size estimate for the string builder,
+            int capacity = Math.min(cascadedProperties.size() * 10, 32);
+            StringBuilder sb = new StringBuilder(capacity);
             Iterator iter = cascadedProperties.values().iterator();
             while (iter.hasNext()) {
                 sb.append(((PropertyDeclaration)iter.next()).getFingerprint());

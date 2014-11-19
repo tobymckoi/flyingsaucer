@@ -398,16 +398,18 @@ public class BorderPainter {
             throw new IllegalStateException("Invalid 'currentSide' value.");
         }
 
+        Shape edgeShape = stroke.createStrokedShape(path);
+        outputDevice.fill(edgeShape);
+
 //        Shape oldClip = outputDevice.getClip();
 //        Path2D clipShape = generateBorderShape(bounds, currentSide, border, true, 0, 1);
 //        outputDevice.clip(clipShape);
 
-        Shape edgeShape = stroke.createStrokedShape(path);
-        Area edgeArea = new Area(edgeShape);
-// [Enable this for great render quality, but terrible performance]
+//        Shape edgeShape = stroke.createStrokedShape(path);
+//        Area edgeArea = new Area(edgeShape);
 //        Path2D clipShape = generateBorderShape(bounds, currentSide, border, true, 0, 1);
 //        edgeArea.intersect(new Area(clipShape));
-        outputDevice.fill(edgeArea);
+//        outputDevice.fill(edgeArea);
 
 // [The draw path method]
 //        Stroke oldStroke = outputDevice.getStroke();

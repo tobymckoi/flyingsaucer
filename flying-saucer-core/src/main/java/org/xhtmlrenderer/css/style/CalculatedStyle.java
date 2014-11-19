@@ -22,8 +22,10 @@ package org.xhtmlrenderer.css.style;
 
 import java.awt.Cursor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.xhtmlrenderer.css.constants.CSSName;
@@ -92,7 +94,7 @@ public class CalculatedStyle {
     /**
      * Cache child styles of this style that have the same cascaded properties
      */
-    private final java.util.HashMap _childCache = new java.util.HashMap();
+    private final Map<String, CalculatedStyle> _childCache = new HashMap();
     /*private java.util.HashMap _childCache = new java.util.LinkedHashMap(5, 0.75f, true) {
         private static final int MAX_ENTRIES = 10;
 
@@ -175,7 +177,7 @@ public class CalculatedStyle {
      * @param matched the CascadedStyle to apply
      * @return The derived child style
      */
-    public synchronized CalculatedStyle deriveStyle(CascadedStyle matched) {
+    public CalculatedStyle deriveStyle(CascadedStyle matched) {
         String fingerprint = matched.getFingerprint();
         CalculatedStyle cs = (CalculatedStyle) _childCache.get(fingerprint);
 

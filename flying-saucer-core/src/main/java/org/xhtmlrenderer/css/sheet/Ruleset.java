@@ -21,7 +21,6 @@ package org.xhtmlrenderer.css.sheet;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.xhtmlrenderer.css.newmatch.Selector;
@@ -33,14 +32,14 @@ import org.xhtmlrenderer.css.newmatch.Selector;
  */
 public class Ruleset {
     private int _origin;
-    private java.util.List _props;
 
-    private List _fsSelectors = new ArrayList();
+    private final List<Selector> _fsSelectors;
+    private final List<PropertyDeclaration> _props;
 
     public Ruleset(int orig) {
         _origin = orig;
-        _props = new LinkedList();
-        _fsSelectors = new LinkedList();
+        _props = new ArrayList(4);
+        _fsSelectors = new ArrayList(3);
     }
 
     /**
@@ -57,7 +56,7 @@ public class Ruleset {
         _props.add(decl);
     }
     
-    public void addAllProperties(List props) {
+    public void addAllProperties(List<PropertyDeclaration> props) {
         _props.addAll(props);
     }
     
@@ -65,8 +64,8 @@ public class Ruleset {
         _fsSelectors.add(selector);
     }
     
-    public List getFSSelectors() {
-        return _fsSelectors;
+    public List<Selector> getFSSelectors() {
+        return Collections.unmodifiableList(_fsSelectors);
     }
     
     public int getOrigin() {

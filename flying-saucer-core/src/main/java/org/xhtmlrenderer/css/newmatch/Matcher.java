@@ -160,13 +160,13 @@ public class Matcher {
     }
 
     Mapper createDocumentMapper(List stylesheets, String medium) {
-        java.util.TreeMap sorter = new java.util.TreeMap();
+        TreeMap<String, Selector> sorter = new TreeMap();
         addAllStylesheets(stylesheets, sorter, medium);
         XRLog.match("Matcher created with " + sorter.size() + " selectors");
         return new Mapper(sorter.values());
     }
     
-    private void addAllStylesheets(List stylesheets, TreeMap sorter, String medium) {
+    private void addAllStylesheets(List stylesheets, TreeMap<String, Selector> sorter, String medium) {
         int count = 0;
         int pCount = 0;
         for (Iterator i = stylesheets.iterator(); i.hasNext(); ) {
@@ -319,17 +319,21 @@ public class Matcher {
      * @author Torbjoern Gannholm
      */
     class Mapper {
-        java.util.List axes;
+        private final List axes;
         private HashMap pseudoSelectors;
         private List mappedSelectors;
         private HashMap children;
 
         Mapper(java.util.Collection selectors) {
-            axes = new java.util.ArrayList(selectors.size());
-            axes.addAll(selectors);
+            axes = new ArrayList(selectors);
         }
 
-        private Mapper() {
+        private Mapper(List axes, boolean nocopy) {
+            if (nocopy) {
+                this.axes = axes;
+            } else {
+                this.axes = new ArrayList(axes);
+            }
         }
 
         /**
@@ -341,10 +345,10 @@ public class Matcher {
          */
         Mapper mapChild(Object e) {
             //Mapper childMapper = new Mapper();
-            java.util.List childAxes = new ArrayList(axes.size() + 10);
-            java.util.HashMap pseudoSelectors = new java.util.HashMap();
-            java.util.List mappedSelectors = new java.util.LinkedList();
-            StringBuffer key = new StringBuffer();
+            List childAxes = new ArrayList(axes.size() + 10);
+            HashMap pseudoSelectors = new HashMap();
+            List mappedSelectors = new ArrayList(10);
+            StringBuilder key = new StringBuilder();
             for (int i = 0, size = axes.size(); i < size; i++) {
                 Selector sel = (Selector) axes.get(i);
                 if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
@@ -396,8 +400,7 @@ public class Matcher {
             if (children == null) children = new HashMap();
             Mapper childMapper = (Mapper) children.get(key.toString());
             if (childMapper == null) {
-                childMapper = new Mapper();
-                childMapper.axes = childAxes;
+                childMapper = new Mapper(childAxes, true);
                 childMapper.pseudoSelectors = pseudoSelectors;
                 childMapper.mappedSelectors = mappedSelectors;
                 children.put(key.toString(), childMapper);

@@ -24,6 +24,8 @@ import org.xhtmlrenderer.css.extend.TreeResolver;
 import org.xhtmlrenderer.css.sheet.Ruleset;
 import org.xhtmlrenderer.util.XRLog;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 
@@ -51,7 +53,7 @@ public class Selector {
 
     private int _pos;//to distinguish between selectors of same specificity
 
-    private java.util.List conditions;
+    private List conditions;
 
     public final static int DESCENDANT_AXIS = 0;
     public final static int CHILD_AXIS = 1;
@@ -421,7 +423,7 @@ public class Selector {
      */
     private void addCondition(Condition c) {
         if (conditions == null) {
-            conditions = new java.util.ArrayList();
+            conditions = new ArrayList(3);
         }
         if (_pe != null) {
             conditions.add(Condition.createUnsupportedCondition());
