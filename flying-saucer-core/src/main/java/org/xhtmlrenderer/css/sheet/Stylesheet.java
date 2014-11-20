@@ -44,9 +44,9 @@ public class Stylesheet implements RulesetContainer {
      */
     private int _origin;
 
-    private List _fontFaceRules = new ArrayList();
-    private List _importRules = new ArrayList();
-    private List _contents = new ArrayList();
+    private List<FontFaceRule> _fontFaceRules = new ArrayList();
+    private List<StylesheetInfo> _importRules = new ArrayList();
+    private List<Object> _contents = new ArrayList();
 
     /**
      * Creates a new instance of Stylesheet
@@ -89,7 +89,7 @@ public class Stylesheet implements RulesetContainer {
         _contents.add(rule);
     }
     
-    public List getContents() {
+    public List<Object> getContents() {
         return _contents;
     }
     
@@ -97,7 +97,7 @@ public class Stylesheet implements RulesetContainer {
         _importRules.add(info);
     }
     
-    public List getImportRules() {
+    public List<StylesheetInfo> getImportRules() {
         return _importRules;
     }
     
@@ -105,7 +105,7 @@ public class Stylesheet implements RulesetContainer {
         _fontFaceRules.add(rule);
     }
     
-    public List getFontFaceRules() {
+    public List<FontFaceRule> getFontFaceRules() {
         return _fontFaceRules;
     }
 

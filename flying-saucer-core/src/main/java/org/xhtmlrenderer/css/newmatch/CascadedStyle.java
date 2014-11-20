@@ -142,13 +142,13 @@ public class CascadedStyle {
      * @param iter An Iterator containing PropertyDeclarations in order of
      *             specificity.
      */
-    CascadedStyle(Iterator iter) {
+    CascadedStyle(Iterator<PropertyDeclaration> iter) {
         this();
 
         addProperties(iter);
     }
 
-    private void addProperties(Iterator iter) {
+    private void addProperties(Iterator<PropertyDeclaration> iter) {
         //do a bucket-sort on importance and origin
         //properties should already be in order of specificity
         List[] buckets = new List[PropertyDeclaration.IMPORTANCE_AND_ORIGIN_COUNT];

@@ -54,6 +54,9 @@ public class BorderPainter {
      * @return A Path that is all sides of the round rectangle
      */
     public static Shape generateBorderBounds(Rectangle bounds, BorderPropertySet border, boolean inside) {
+        if (!border.hasBorderRadius() && !inside) {
+            return bounds;
+        }
         Path2D path = generateBorderShape(bounds, TOP, border, false, inside ? 1 : 0, 1);
         path.append(generateBorderShape(bounds, RIGHT, border, false, inside ? 1 : 0, 1), true);
         path.append(generateBorderShape(bounds, BOTTOM, border, false, inside ? 1 : 0, 1), true);
