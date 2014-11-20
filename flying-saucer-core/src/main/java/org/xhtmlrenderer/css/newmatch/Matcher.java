@@ -21,6 +21,7 @@
 package org.xhtmlrenderer.css.newmatch;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -162,8 +163,14 @@ public class Matcher {
     Mapper createDocumentMapper(List stylesheets, String medium) {
         TreeMap<String, Selector> sorter = new TreeMap();
         addAllStylesheets(stylesheets, sorter, medium);
+
+        // Create and populate the mapper index,
+        MapperIndex mapperIndex = new MapperIndex();
+        mapperIndex.populate(sorter.values());
+
         XRLog.match("Matcher created with " + sorter.size() + " selectors");
-        return new Mapper(sorter.values());
+
+        return new Mapper(mapperIndex, sorter.values());
     }
     
     private void addAllStylesheets(List stylesheets, TreeMap<String, Selector> sorter, String medium) {
@@ -312,6 +319,43 @@ public class Matcher {
         }
     }
 
+
+    /**
+     * A Selector with an accompanying index representing its position relative
+     * to the original specificity order. Used for chained selectors.
+     */
+    private static class IndexedSelector implements Comparable<IndexedSelector> {
+        private final Integer index;
+        private final Selector selector;
+        public IndexedSelector(Integer index, Selector selector) {
+            this.index = index;
+            this.selector = selector;
+        }
+
+        @Override
+        public int compareTo(IndexedSelector o) {
+            return index.compareTo(o.index);
+        }
+
+        @Override
+        public int hashCode() {
+            return index.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final IndexedSelector other = (IndexedSelector) obj;
+            return index.equals(other.index);
+        }
+
+    }
+
     /**
      * Mapper represents a local CSS for a Node that is used to match the Node's
      * children.
@@ -319,21 +363,27 @@ public class Matcher {
      * @author Torbjoern Gannholm
      */
     class Mapper {
-        private final List axes;
+        private final MapperIndex baseIndex;
+
+        private final List<IndexedSelector> additionalAxes;
+        private final List<Selector> discountedAxes;
+
         private HashMap pseudoSelectors;
         private List mappedSelectors;
         private HashMap children;
 
-        Mapper(java.util.Collection selectors) {
-            axes = new ArrayList(selectors);
+        Mapper(MapperIndex mapperIndex, Collection selectors) {
+            this.baseIndex = mapperIndex;
+            additionalAxes = Collections.EMPTY_LIST;
+            discountedAxes = Collections.EMPTY_LIST;
         }
 
-        private Mapper(List axes, boolean nocopy) {
-            if (nocopy) {
-                this.axes = axes;
-            } else {
-                this.axes = new ArrayList(axes);
-            }
+        private Mapper(MapperIndex mapperIndex,
+                        List<IndexedSelector> additionalAxes,
+                        List<Selector> discountedAxes) {
+            this.baseIndex = mapperIndex;
+            this.additionalAxes = additionalAxes;
+            this.discountedAxes = discountedAxes;
         }
 
         /**
@@ -344,28 +394,82 @@ public class Matcher {
          *         (more correct: preserves the sort order from Matcher creation)
          */
         Mapper mapChild(Object e) {
-            //Mapper childMapper = new Mapper();
-            List childAxes = new ArrayList(axes.size() + 10);
+
+            List<Integer> possibleSelectors =
+                    baseIndex.getPossibleMatchedSelectors(e, _attRes, _treeRes);
+
+            List<Selector> childDiscountedAxes = null;
+            List<IndexedSelector> childAdditionalAxes = null;
+
             HashMap pseudoSelectors = new HashMap();
             List mappedSelectors = new ArrayList(10);
+
+            // Create a list of selectors including the additional axes and
+            // not including any discounted axes,
+            List<IndexedSelector> selList = new ArrayList(possibleSelectors.size() + 10);
+            int checkFrom = 0;
+            // The list of possible selectors,
+            for (Integer selectorIndex : possibleSelectors) {
+                // Add any additional selectors from before this index,
+                for (int i = checkFrom; i < additionalAxes.size(); ++i) {
+                    IndexedSelector caxe = additionalAxes.get(i);
+                    if (caxe.index < selectorIndex.intValue()) {
+                        if (!discountedAxes.contains(caxe.selector)) {
+                            selList.add(caxe);
+                        }
+                        checkFrom = i + 1;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                Selector sel = baseIndex.getSelector(selectorIndex);
+                if (!discountedAxes.contains(sel)) {
+                    selList.add(new IndexedSelector(selectorIndex, sel));
+                }
+            }
+            for (int i = checkFrom; i < additionalAxes.size(); ++i) {
+                IndexedSelector caxe = additionalAxes.get(i);
+                Selector sel = caxe.selector;
+                if (!discountedAxes.contains(sel)) {
+                    selList.add(caxe);
+                }
+            }
+
+            if (additionalAxes.size() > 1) {
+                System.out.println("-----");
+            }
+
             StringBuilder key = new StringBuilder();
-            for (int i = 0, size = axes.size(); i < size; i++) {
-                Selector sel = (Selector) axes.get(i);
-                if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
-                    //carry it forward to other descendants
-                    childAxes.add(sel);
-                } else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+
+            // For each indexed selector,
+            for (IndexedSelector indexedSel : selList) {
+
+                Selector sel = indexedSel.selector;
+
+                // This is discounted in the children,
+                if (sel.getAxis() == Selector.CHILD_AXIS) {
+                    if (childDiscountedAxes == null) {
+                        childDiscountedAxes = new ArrayList(discountedAxes);
+                    }
+                    childDiscountedAxes.add(sel);
+                }
+                else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
                 }
+
+                // Check for match,
                 if (!sel.matches(e, _attRes, _treeRes)) {
+                    // No match so loop back,
                     continue;
                 }
+
                 //Assumption: if it is a pseudo-element, it does not also have dynamic pseudo-class
                 String pseudoElement = sel.getPseudoElement();
                 if (pseudoElement != null) {
-                    java.util.List l = (java.util.List) pseudoSelectors.get(pseudoElement);
+                    List l = (List) pseudoSelectors.get(pseudoElement);
                     if (l == null) {
-                        l = new java.util.LinkedList();
+                        l = new LinkedList();
                         pseudoSelectors.put(pseudoElement, l);
                     }
                     l.add(sel);
@@ -394,13 +498,26 @@ public class Matcher {
                 } else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
                 } else {
-                    childAxes.add(chain);
+                    if (childAdditionalAxes == null) {
+                        childAdditionalAxes = new ArrayList(additionalAxes);
+                    }
+                    childAdditionalAxes.add(new IndexedSelector(
+                                                    indexedSel.index, chain));
                 }
+
             }
+
             if (children == null) children = new HashMap();
             Mapper childMapper = (Mapper) children.get(key.toString());
             if (childMapper == null) {
-                childMapper = new Mapper(childAxes, true);
+                if (childAdditionalAxes != null) {
+                    Collections.sort(childAdditionalAxes);
+                }
+                childMapper = new Mapper(baseIndex,
+                                childAdditionalAxes == null ?
+                                        additionalAxes : childAdditionalAxes,
+                                childDiscountedAxes == null ?
+                                        discountedAxes : childDiscountedAxes);
                 childMapper.pseudoSelectors = pseudoSelectors;
                 childMapper.mappedSelectors = mappedSelectors;
                 children.put(key.toString(), childMapper);
@@ -465,6 +582,170 @@ public class Matcher {
             }
             return cs;
         }
+
     }
+
+
+
+//    /**
+//     * Mapper represents a local CSS for a Node that is used to match the Node's
+//     * children.
+//     *
+//     * @author Torbjoern Gannholm
+//     */
+//    class Mapper {
+//        private final MapperIndex baseIndex;
+//
+//        private final List axes;
+//        private HashMap pseudoSelectors;
+//        private List mappedSelectors;
+//        private HashMap children;
+//
+//        Mapper(MapperIndex mapperIndex, Collection selectors) {
+//            this.baseIndex = mapperIndex;
+//            axes = new ArrayList(selectors);
+//        }
+//
+//        private Mapper(MapperIndex mapperIndex, List axes, boolean nocopy) {
+//            this.baseIndex = mapperIndex;
+//            if (nocopy) {
+//                this.axes = axes;
+//            } else {
+//                this.axes = new ArrayList(axes);
+//            }
+//        }
+//
+//        /**
+//         * Side effect: creates and stores a Mapper for the element
+//         *
+//         * @param e
+//         * @return The selectors that matched, sorted according to specificity
+//         *         (more correct: preserves the sort order from Matcher creation)
+//         */
+//        Mapper mapChild(Object e) {
+//            //Mapper childMapper = new Mapper();
+//            List childAxes = new ArrayList(axes.size() + 10);
+//            HashMap pseudoSelectors = new HashMap();
+//            List mappedSelectors = new ArrayList(10);
+//            StringBuilder key = new StringBuilder();
+//            for (int i = 0, size = axes.size(); i < size; i++) {
+//                Selector sel = (Selector) axes.get(i);
+//                if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
+//                    //carry it forward to other descendants
+//                    childAxes.add(sel);
+//                } else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+//                    throw new RuntimeException();
+//                }
+//                if (!sel.matches(e, _attRes, _treeRes)) {
+//                    continue;
+//                }
+//                //Assumption: if it is a pseudo-element, it does not also have dynamic pseudo-class
+//                String pseudoElement = sel.getPseudoElement();
+//                if (pseudoElement != null) {
+//                    java.util.List l = (java.util.List) pseudoSelectors.get(pseudoElement);
+//                    if (l == null) {
+//                        l = new java.util.LinkedList();
+//                        pseudoSelectors.put(pseudoElement, l);
+//                    }
+//                    l.add(sel);
+//                    key.append(sel.getSelectorID()).append(":");
+//                    continue;
+//                }
+//                if (sel.isPseudoClass(Selector.VISITED_PSEUDOCLASS)) {
+//                    _visitElements.add(e);
+//                }
+//                if (sel.isPseudoClass(Selector.ACTIVE_PSEUDOCLASS)) {
+//                    _activeElements.add(e);
+//                }
+//                if (sel.isPseudoClass(Selector.HOVER_PSEUDOCLASS)) {
+//                    _hoverElements.add(e);
+//                }
+//                if (sel.isPseudoClass(Selector.FOCUS_PSEUDOCLASS)) {
+//                    _focusElements.add(e);
+//                }
+//                if (!sel.matchesDynamic(e, _attRes, _treeRes)) {
+//                    continue;
+//                }
+//                key.append(sel.getSelectorID()).append(":");
+//                Selector chain = sel.getChainedSelector();
+//                if (chain == null) {
+//                    mappedSelectors.add(sel);
+//                } else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+//                    throw new RuntimeException();
+//                } else {
+//                    childAxes.add(chain);
+//                }
+//            }
+//            if (children == null) children = new HashMap();
+//            Mapper childMapper = (Mapper) children.get(key.toString());
+//            if (childMapper == null) {
+//                childMapper = new Mapper(baseIndex, childAxes, true);
+//                childMapper.pseudoSelectors = pseudoSelectors;
+//                childMapper.mappedSelectors = mappedSelectors;
+//                children.put(key.toString(), childMapper);
+//            }
+//            link(e, childMapper);
+//            return childMapper;
+//        }
+//
+//        CascadedStyle getCascadedStyle(Object e) {
+//            CascadedStyle result;
+//            synchronized (e) {
+//                CascadedStyle cs = null;
+//                org.xhtmlrenderer.css.sheet.Ruleset elementStyling = getElementStyle(e);
+//                org.xhtmlrenderer.css.sheet.Ruleset nonCssStyling = getNonCssStyle(e);
+//                List propList = new LinkedList();
+//                //specificity 0,0,0,0
+//                if (nonCssStyling != null) {
+//                    propList.addAll(nonCssStyling.getPropertyDeclarations());
+//                }
+//                //these should have been returned in order of specificity
+//                for (Iterator i = getMatchedRulesets(mappedSelectors); i.hasNext();) {
+//                    org.xhtmlrenderer.css.sheet.Ruleset rs = (org.xhtmlrenderer.css.sheet.Ruleset) i.next();
+//                    propList.addAll(rs.getPropertyDeclarations());
+//                }
+//                //specificity 1,0,0,0
+//                if (elementStyling != null) {
+//                    propList.addAll(elementStyling.getPropertyDeclarations());
+//                }
+//                if (propList.isEmpty())
+//                    cs = CascadedStyle.emptyCascadedStyle;
+//                else {
+//                    cs = new CascadedStyle(propList.iterator());
+//                }
+//
+//                result = cs;
+//            }
+//            return result;
+//        }
+//
+//        /**
+//         * May return null.
+//         * We assume that restyle has already been done by a getCascadedStyle if necessary.
+//         */
+//        public CascadedStyle getPECascadedStyle(Object e, String pseudoElement) {
+//            java.util.Iterator si = pseudoSelectors.entrySet().iterator();
+//            if (!si.hasNext()) {
+//                return null;
+//            }
+//            CascadedStyle cs = null;
+//            java.util.List pe = (java.util.List) pseudoSelectors.get(pseudoElement);
+//            if (pe == null) return null;
+//
+//            java.util.List propList = new java.util.LinkedList();
+//            for (java.util.Iterator i = getSelectedRulesets(pe); i.hasNext();) {
+//                org.xhtmlrenderer.css.sheet.Ruleset rs = (org.xhtmlrenderer.css.sheet.Ruleset) i.next();
+//                propList.addAll(rs.getPropertyDeclarations());
+//            }
+//            if (propList.size() == 0)
+//                cs = CascadedStyle.emptyCascadedStyle;//already internalized
+//            else {
+//                cs = new CascadedStyle(propList.iterator());
+//            }
+//            return cs;
+//        }
+//
+//    }
+
 }
 

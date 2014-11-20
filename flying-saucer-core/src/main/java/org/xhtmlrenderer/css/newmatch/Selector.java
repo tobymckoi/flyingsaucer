@@ -25,6 +25,7 @@ import org.xhtmlrenderer.css.sheet.Ruleset;
 import org.xhtmlrenderer.util.XRLog;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -53,7 +54,7 @@ public class Selector {
 
     private int _pos;//to distinguish between selectors of same specificity
 
-    private List conditions;
+    private List<Condition> conditions;
 
     public final static int DESCENDANT_AXIS = 0;
     public final static int CHILD_AXIS = 1;
@@ -449,7 +450,37 @@ public class Selector {
         _name = name;
         _specificityD++;
     }
-    
+
+    /**
+     * Returns the selector tag name (returns null if it matches against all
+     * element tags)
+     * 
+     * @return 
+     */
+    String getName() {
+        return _name;
+    }
+
+    /**
+     * Returns all the conditions that must pass for an element to match
+     * against this selector.
+     * @return 
+     */
+    List<Condition> getConditions() {
+        if (conditions == null) {
+            return null;
+        }
+        return Collections.unmodifiableList(conditions);
+    }
+
+    /**
+     * Returns the sibling selector. If this is not null then we must check
+     * it matches before this selector matches to match against an element.
+     */
+    Selector getSiblingSelector() {
+        return siblingSelector;
+    }
+
     public void setPos(int pos) {
         _pos = pos;
         if (siblingSelector != null) {

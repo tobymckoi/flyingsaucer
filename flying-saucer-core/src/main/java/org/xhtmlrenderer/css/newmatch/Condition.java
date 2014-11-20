@@ -192,6 +192,50 @@ abstract class Condition {
         return new UnsupportedCondition();
     }
     
+    /**
+     * Returns true if the given condition is a class check condition.
+     * 
+     * @param condition
+     * @return 
+     */
+    static boolean isClassCondition(Condition condition) {
+        return condition instanceof ClassCondition;
+    }
+
+    /**
+     * Returns the class name of the given condition (assumes it's a class
+     * condition).
+     * 
+     * @param condition
+     * @return 
+     */
+    static String getClassNameOfCondition(Condition condition) {
+        ClassCondition classCondition = (ClassCondition) condition;
+        return classCondition._className;
+    }
+
+    /**
+     * Returns true if the given condition is an id check condition.
+     * 
+     * @param condition
+     * @return 
+     */
+    static boolean isIdCondition(Condition condition) {
+        return condition instanceof IDCondition;
+    }
+
+    /**
+     * Returns the id name of the given condition (assumes it's an id
+     * condition).
+     * 
+     * @param condition
+     * @return 
+     */
+    static String getIDNameOfCondition(Condition condition) {
+        IDCondition idCondition = (IDCondition) condition;
+        return idCondition._id;
+    }
+
     private static abstract class AttributeCompareCondition extends Condition {
         private String _namespaceURI;
         private String _name;
@@ -216,6 +260,16 @@ abstract class Condition {
             
             return compare(val, _value);
         }
+
+        protected String getToStringName() {
+            return "AttributeCompare ";
+        }
+
+        @Override
+        public String toString() {
+            return getToStringName() + _name + ", " + _value;
+        }
+
     }
 
     private static class AttributeExistsCondition extends AttributeCompareCondition {
@@ -226,6 +280,12 @@ abstract class Condition {
         protected boolean compare(String attrValue, String conditionValue) {
             return ! attrValue.equals("");
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeExists ";
+        }
+
     }
     
     private static class AttributeEqualsCondition extends AttributeCompareCondition {
@@ -236,6 +296,12 @@ abstract class Condition {
         protected boolean compare(String attrValue, String conditionValue) {
             return attrValue.equals(conditionValue);
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeEquals ";
+        }
+
     }
     
     private static class AttributePrefixCondition extends AttributeCompareCondition {
@@ -246,6 +312,12 @@ abstract class Condition {
         protected boolean compare(String attrValue, String conditionValue) {
             return attrValue.startsWith(conditionValue);
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributePrefix ";
+        }
+
     }
     
     private static class AttributeSuffixCondition extends AttributeCompareCondition {
@@ -256,6 +328,12 @@ abstract class Condition {
         protected boolean compare(String attrValue, String conditionValue) {
             return attrValue.endsWith(conditionValue);
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeSuffix ";
+        }
+
     }
     
     private static class AttributeSubstringCondition extends AttributeCompareCondition {
@@ -266,6 +344,12 @@ abstract class Condition {
         protected boolean compare(String attrValue, String conditionValue) {
             return attrValue.indexOf(conditionValue) > -1;
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeSubstring ";
+        }
+
     }
     
     private static class AttributeMatchesListCondition extends AttributeCompareCondition {
@@ -283,6 +367,12 @@ abstract class Condition {
             }
             return matched;
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeMatches ";
+        }
+
     }
 
     private static class AttributeMatchesFirstPartCondition extends AttributeCompareCondition {
@@ -297,6 +387,12 @@ abstract class Condition {
             }
             return false;
         }
+
+        @Override
+        protected String getToStringName() {
+            return "AttributeMatchesFirstPart ";
+        }
+
     }
 
     private static class ClassCondition extends Condition {
@@ -339,6 +435,11 @@ abstract class Condition {
 
         }
 
+        @Override
+        public String toString() {
+            return "ClassCheck " + _className;
+        }
+
     }
 
     private static class IDCondition extends Condition {
@@ -357,6 +458,12 @@ abstract class Condition {
                 return false;
             }
             return true;
+        }
+
+
+        @Override
+        public String toString() {
+            return "IdCheck " + _id;
         }
 
     }
@@ -386,6 +493,11 @@ abstract class Condition {
             return false;
         }
 
+        @Override
+        public String toString() {
+            return "LangCheck " + _lang;
+        }
+
     }
 
     private static class FirstChildCondition extends Condition {
@@ -397,6 +509,11 @@ abstract class Condition {
             return treeRes.isFirstChildElement(e);
         }
 
+        @Override
+        public String toString() {
+            return "FirstChild";
+        }
+
     }
     
     private static class LastChildCondition extends Condition {
@@ -406,6 +523,11 @@ abstract class Condition {
 
         boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
             return treeRes.isLastChildElement(e);
+        }
+
+        @Override
+        public String toString() {
+            return "LastChild";
         }
 
     }
@@ -467,6 +589,12 @@ abstract class Condition {
                 }
             }
         }
+
+        @Override
+        public String toString() {
+            return "nthChild " + a + ", " + b;
+        }
+
     }
 
     private static class EvenChildCondition extends Condition {
@@ -478,6 +606,12 @@ abstract class Condition {
             int position = treeRes.getPositionOfElement(e);
             return position >= 0 && position % 2 == 0;
         }
+
+        @Override
+        public String toString() {
+            return "EvenChild";
+        }
+
     }
     
     private static class OddChildCondition extends Condition {
@@ -489,6 +623,12 @@ abstract class Condition {
             int position = treeRes.getPositionOfElement(e);
             return position >= 0 && position % 2 == 1;
         }
+
+        @Override
+        public String toString() {
+            return "OddChild";
+        }
+
     }
 
     private static class LinkCondition extends Condition {
@@ -498,6 +638,11 @@ abstract class Condition {
 
         boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
             return attRes.isLink(e);
+        }
+
+        @Override
+        public String toString() {
+            return "Link";
         }
 
     }
@@ -512,6 +657,11 @@ abstract class Condition {
 
         boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
             return false;
+        }
+
+        @Override
+        public String toString() {
+            return "Unsupported";
         }
 
     }
