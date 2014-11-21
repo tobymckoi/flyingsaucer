@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,11 +81,11 @@ public class Matcher {
     }
 
     private void newMaps() {
-        _map = Collections.synchronizedMap(new java.util.HashMap());
-        _hoverElements = Collections.synchronizedSet(new java.util.HashSet());
-        _activeElements = Collections.synchronizedSet(new java.util.HashSet());
-        _focusElements = Collections.synchronizedSet(new java.util.HashSet());
-        _visitElements = Collections.synchronizedSet(new java.util.HashSet());
+        _map = new HashMap();
+        _hoverElements = new HashSet();
+        _activeElements = new HashSet();
+        _focusElements = new HashSet();
+        _visitElements = new HashSet();
     }
 
     public void removeStyle(Object e) {
@@ -92,15 +93,13 @@ public class Matcher {
     }
 
     public CascadedStyle getCascadedStyle(Object e, boolean restyle) {
-        synchronized (e) {
-            Mapper em;
-            if (!restyle) {
-                em = getMapper(e);
-            } else {
-                em = matchElement(e);
-            }
-            return em.getCascadedStyle(e);
+        Mapper em;
+        if (!restyle) {
+            em = getMapper(e);
+        } else {
+            em = matchElement(e);
         }
+        return em.getCascadedStyle(e);
     }
 
     /**
@@ -108,10 +107,8 @@ public class Matcher {
      * We assume that restyle has already been done by a getCascadedStyle if necessary.
      */
     public CascadedStyle getPECascadedStyle(Object e, String pseudoElement) {
-        synchronized (e) {
-            Mapper em = getMapper(e);
-            return em.getPECascadedStyle(e, pseudoElement);
-        }
+        Mapper em = getMapper(e);
+        return em.getPECascadedStyle(e, pseudoElement);
     }
     
     public PageInfo getPageCascadedStyle(String pageName, String pseudoPage) {
@@ -156,17 +153,15 @@ public class Matcher {
     }
 
     Mapper matchElement(Object e) {
-        synchronized (e) {
-            Object parent = _treeRes.getParentElement(e);
-            Mapper child;
-            if (parent != null) {
-                Mapper m = getMapper(parent);
-                child = m.mapChild(e);
-            } else {//has to be document or fragment node
-                child = docMapper.mapChild(e);
-            }
-            return child;
+        Object parent = _treeRes.getParentElement(e);
+        Mapper child;
+        if (parent != null) {
+            Mapper m = getMapper(parent);
+            child = m.mapChild(e);
+        } else {//has to be document or fragment node
+            child = docMapper.mapChild(e);
         }
+        return child;
     }
 
     private Mapper createDocumentMapper(List stylesheets, String medium) {
@@ -246,31 +241,27 @@ public class Matcher {
     }
 
     private Ruleset getElementStyle(Object e) {
-        synchronized (e) {
-            if (_attRes == null || _styleFactory == null) {
-                return null;
-            }
-            
-            String style = _attRes.getElementStyling(e);
-            if (Util.isNullOrEmpty(style)) {
-                return null;
-            }
-            
-            return _styleFactory.parseStyleDeclaration(StylesheetInfo.AUTHOR, style);
+        if (_attRes == null || _styleFactory == null) {
+            return null;
         }
+
+        String style = _attRes.getElementStyling(e);
+        if (Util.isNullOrEmpty(style)) {
+            return null;
+        }
+
+        return _styleFactory.parseStyleDeclaration(StylesheetInfo.AUTHOR, style);
     }
 
     private org.xhtmlrenderer.css.sheet.Ruleset getNonCssStyle(Object e) {
-        synchronized (e) {
-            if (_attRes == null || _styleFactory == null) {
-                return null;
-            }
-            String style = _attRes.getNonCssStyling(e);
-            if (Util.isNullOrEmpty(style)) {
-                return null;
-            }
-            return _styleFactory.parseStyleDeclaration(org.xhtmlrenderer.css.sheet.StylesheetInfo.AUTHOR, style);
+        if (_attRes == null || _styleFactory == null) {
+            return null;
         }
+        String style = _attRes.getNonCssStyling(e);
+        if (Util.isNullOrEmpty(style)) {
+            return null;
+        }
+        return _styleFactory.parseStyleDeclaration(org.xhtmlrenderer.css.sheet.StylesheetInfo.AUTHOR, style);
     }
 
 
@@ -478,32 +469,32 @@ public class Matcher {
 
         CascadedStyle getCascadedStyle(Object e) {
             CascadedStyle result;
-            synchronized (e) {
-                CascadedStyle cs;
-                Ruleset elementStyling = getElementStyle(e);
-                Ruleset nonCssStyling = getNonCssStyle(e);
-                List<PropertyDeclaration> propList = new ArrayList();
-                //specificity 0,0,0,0
-                if (nonCssStyling != null) {
-                    propList.addAll(nonCssStyling.getPropertyDeclarations());
-                }
-                //these should have been returned in order of specificity
-                for (Selector selector : mappedSelectors) {
-                    Ruleset rs = selector.getRuleset();
-                    propList.addAll(rs.getPropertyDeclarations());
-                }
-                //specificity 1,0,0,0
-                if (elementStyling != null) {
-                    propList.addAll(elementStyling.getPropertyDeclarations());
-                }
-                if (propList.isEmpty())
-                    cs = CascadedStyle.emptyCascadedStyle;
-                else {
-                    cs = new CascadedStyle(propList.iterator());
-                }
 
-                result = cs;
+            CascadedStyle cs;
+            Ruleset elementStyling = getElementStyle(e);
+            Ruleset nonCssStyling = getNonCssStyle(e);
+            List<PropertyDeclaration> propList = new ArrayList();
+            //specificity 0,0,0,0
+            if (nonCssStyling != null) {
+                propList.addAll(nonCssStyling.getPropertyDeclarations());
             }
+            //these should have been returned in order of specificity
+            for (Selector selector : mappedSelectors) {
+                Ruleset rs = selector.getRuleset();
+                propList.addAll(rs.getPropertyDeclarations());
+            }
+            //specificity 1,0,0,0
+            if (elementStyling != null) {
+                propList.addAll(elementStyling.getPropertyDeclarations());
+            }
+            if (propList.isEmpty())
+                cs = CascadedStyle.emptyCascadedStyle;
+            else {
+                cs = new CascadedStyle(propList.iterator());
+            }
+
+            result = cs;
+
             return result;
         }
 
