@@ -62,7 +62,7 @@ public class NoNamespaceHandler implements NamespaceHandler {
                 return e.getAttribute(attrName);
             } else {
                 AttributeSet attrs = e.getAttributes();
-                for (Attribute attr : attrs.entrySet()) {
+                for (Attribute attr : attrs.getAttributes()) {
                     if (attrName.equals(attr.getLocalName())) {
                         return attr.getValue();
                     }

@@ -19,9 +19,10 @@
 
 package org.xhtmlrenderer.dom;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 /**
  *
@@ -29,14 +30,14 @@ import java.util.Set;
  */
 public class AttributeSetImpl implements AttributeSet {
 
-    private Set<Attribute> attributes = null;
+    private List<Attribute> attributes = null;
 
     @Override
-    public Set<Attribute> entrySet() {
+    public Collection<Attribute> getAttributes() {
         if (attributes == null) {
             return Collections.EMPTY_SET;
         }
-        return Collections.unmodifiableSet(attributes);
+        return Collections.unmodifiableCollection(attributes);
     }
 
     @Override
@@ -124,7 +125,7 @@ public class AttributeSetImpl implements AttributeSet {
 
     public Attribute fsAddAttribute(Attribute attribute) {
         if (attributes == null) {
-            attributes = new HashSet();
+            attributes = new ArrayList(8);
         }
         attributes.add(attribute);
         return attribute;

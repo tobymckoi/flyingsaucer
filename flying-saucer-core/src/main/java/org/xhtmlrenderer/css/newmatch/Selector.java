@@ -321,6 +321,15 @@ public class Selector {
     }
 
     /**
+     * Returns true if this has a pseudoclass element defined.
+     * 
+     * @return 
+     */
+    public boolean isPseudoClassDefined() {
+        return _pc != 0;
+    }
+
+    /**
      * Gets the pseudoElement attribute of the Selector object
      *
      * @return The pseudoElement value

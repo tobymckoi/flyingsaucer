@@ -19,7 +19,7 @@
 
 package org.xhtmlrenderer.dom;
 
-import java.util.Set;
+import java.util.Collection;
 
 /**
  *
@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public interface AttributeSet {
 
-    public Set<Attribute> entrySet();
+    public Collection<Attribute> getAttributes();
 
     public boolean hasAttribute(String key);
 

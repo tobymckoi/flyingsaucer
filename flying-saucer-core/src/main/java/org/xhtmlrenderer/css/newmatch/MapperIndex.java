@@ -190,6 +190,8 @@ class MapperIndex {
         return selectorOrder.get(selectorIndex.intValue());
     }
 
+//    private List<Integer> DEBUGoutput = null;
+
     /**
      * Returns a set of integers representing all the Selectors that *may*
      * match against the given element. This queries the information from the
@@ -198,6 +200,17 @@ class MapperIndex {
      */
     List<Integer> getPossibleMatchedSelectors(Object e,
                 AttributeResolver attrResolver, TreeResolver treeResolver) {
+
+// [NOTE: This is approximately how fast the previous algorithm worked]
+//        if (true) {
+//            if (DEBUGoutput == null) {
+//                DEBUGoutput = new ArrayList(selectorOrder.size());
+//                for (int i = 0; i < selectorOrder.size(); ++i) {
+//                    DEBUGoutput.add(i);
+//                }
+//            }
+//            return DEBUGoutput;
+//        }
 
         // Pull out information from the element,
         String classAttribute = attrResolver.getClass(e);

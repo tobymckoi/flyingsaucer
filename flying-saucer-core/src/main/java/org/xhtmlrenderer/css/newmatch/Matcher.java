@@ -21,7 +21,6 @@
 package org.xhtmlrenderer.css.newmatch;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -81,7 +80,7 @@ public class Matcher {
     }
 
     private void newMaps() {
-        _map = new HashMap();
+        _map = new HashMap(4096);
         _hoverElements = new HashSet();
         _activeElements = new HashSet();
         _focusElements = new HashSet();
@@ -174,7 +173,7 @@ public class Matcher {
 
         XRLog.match("Matcher created with " + sorter.size() + " selectors");
 
-        return new Mapper(mapperIndex, sorter.values());
+        return new Mapper(mapperIndex);
     }
     
     private void addAllStylesheets(List stylesheets, TreeMap<String, Selector> sorter, String medium) {
@@ -253,7 +252,7 @@ public class Matcher {
         return _styleFactory.parseStyleDeclaration(StylesheetInfo.AUTHOR, style);
     }
 
-    private org.xhtmlrenderer.css.sheet.Ruleset getNonCssStyle(Object e) {
+    private Ruleset getNonCssStyle(Object e) {
         if (_attRes == null || _styleFactory == null) {
             return null;
         }
@@ -261,7 +260,7 @@ public class Matcher {
         if (Util.isNullOrEmpty(style)) {
             return null;
         }
-        return _styleFactory.parseStyleDeclaration(org.xhtmlrenderer.css.sheet.StylesheetInfo.AUTHOR, style);
+        return _styleFactory.parseStyleDeclaration(StylesheetInfo.AUTHOR, style);
     }
 
 
@@ -270,8 +269,10 @@ public class Matcher {
      * to the original specificity order. Used for chained selectors.
      */
     private static class IndexedSelector implements Comparable<IndexedSelector> {
+
         private final Integer index;
         private final Selector selector;
+
         public IndexedSelector(Integer index, Selector selector) {
             this.index = index;
             this.selector = selector;
@@ -289,14 +290,15 @@ public class Matcher {
 
         @Override
         public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            if (obj instanceof IndexedSelector) {
+                final IndexedSelector other = (IndexedSelector) obj;
+                return index.equals(other.index);
             }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final IndexedSelector other = (IndexedSelector) obj;
-            return index.equals(other.index);
+            return false;
+        }
+
+        public boolean exactEquals(IndexedSelector that) {
+            return (index.equals(that.index) && selector == that.selector);
         }
 
     }
@@ -310,22 +312,23 @@ public class Matcher {
     class Mapper {
         private final MapperIndex baseIndex;
 
+        private HashMap<String, Mapper> children;
+
         private final List<IndexedSelector> additionalAxes;
         private final List<Selector> discountedAxes;
 
-        private HashMap<String, List<Selector>> pseudoSelectors;
+        private List<Selector> pseudoSelectors;
         private List<Selector> mappedSelectors;
-        private HashMap<String, Mapper> children;
 
-        Mapper(MapperIndex mapperIndex, Collection selectors) {
+        Mapper(MapperIndex mapperIndex) {
             this.baseIndex = mapperIndex;
             additionalAxes = Collections.EMPTY_LIST;
             discountedAxes = Collections.EMPTY_LIST;
         }
 
         private Mapper(MapperIndex mapperIndex,
-                        List<IndexedSelector> additionalAxes,
-                        List<Selector> discountedAxes) {
+                       List<IndexedSelector> additionalAxes,
+                       List<Selector> discountedAxes) {
             this.baseIndex = mapperIndex;
             this.additionalAxes = additionalAxes;
             this.discountedAxes = discountedAxes;
@@ -342,12 +345,6 @@ public class Matcher {
 
             List<Integer> possibleSelectors =
                     baseIndex.getPossibleMatchedSelectors(e, _attRes, _treeRes);
-
-            List<Selector> childDiscountedAxes = null;
-            List<IndexedSelector> childAdditionalAxes = null;
-
-            HashMap<String, List<Selector>> pseudoSelectors = new HashMap();
-            List<Selector> mappedSelectors = new ArrayList(10);
 
             // Create a list of selectors including the additional axes and
             // not including any discounted axes,
@@ -381,7 +378,76 @@ public class Matcher {
                 }
             }
 
+            Set<Selector> selectorsThatMatch = new HashSet(20);
+
+            // Create the key for this element,
             StringBuilder key = new StringBuilder();
+
+            // For each indexed selector,
+            for (IndexedSelector indexedSel : selList) {
+
+                Selector sel = indexedSel.selector;
+                if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                    throw new RuntimeException();
+                }
+
+                // Check for match,
+                if (sel.matches(e, _attRes, _treeRes)) {
+                    selectorsThatMatch.add(sel);
+                }
+                else {
+                    // No match so loop back,
+                    continue;
+                }
+
+                if (sel.isPseudoClass(Selector.VISITED_PSEUDOCLASS)) {
+                    _visitElements.add(e);
+                }
+                if (sel.isPseudoClass(Selector.ACTIVE_PSEUDOCLASS)) {
+                    _activeElements.add(e);
+                }
+                if (sel.isPseudoClass(Selector.HOVER_PSEUDOCLASS)) {
+                    _hoverElements.add(e);
+                }
+                if (sel.isPseudoClass(Selector.FOCUS_PSEUDOCLASS)) {
+                    _focusElements.add(e);
+                }
+                // Assumption: if it is a pseudo-element, it does not also
+                //   have dynamic pseudo-class
+                if (sel.getPseudoElement() == null &&
+                    !sel.matchesDynamic(e, _attRes, _treeRes)) {
+                    continue;
+                }
+
+                key.append(sel.getSelectorID()).append(":");
+
+            }
+            // The Element key links to all selectors in specificity order.
+            String keyString = key.toString();
+
+            // The calculated children map,
+            if (children == null) {
+                children = new HashMap();
+            }
+            Mapper childMapper = (Mapper) children.get(keyString);
+
+            // If the child mapper for this style already exists then link it
+            // to the element and return,
+            if (childMapper != null) {
+                link(e, childMapper);
+                return childMapper;
+            }
+
+            // Otherwise we need to generate a mapper for this element because
+            // it doesn't match a pattern we discovered before.
+
+            // There isn't a mapper for this child so create one,
+
+            List<Selector> childDiscountedAxes = null;
+            List<IndexedSelector> childAdditionalAxes = null;
+
+            List<Selector> pseudoSelectors = null;
+            List<Selector> mappedSelectors = new ArrayList(10);
 
             // For each indexed selector,
             for (IndexedSelector indexedSel : selList) {
@@ -395,12 +461,9 @@ public class Matcher {
                     }
                     childDiscountedAxes.add(sel);
                 }
-                else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
-                    throw new RuntimeException();
-                }
 
                 // Check for match,
-                if (!sel.matches(e, _attRes, _treeRes)) {
+                if (!selectorsThatMatch.contains(sel)) {
                     // No match so loop back,
                     continue;
                 }
@@ -408,78 +471,173 @@ public class Matcher {
                 //Assumption: if it is a pseudo-element, it does not also have dynamic pseudo-class
                 String pseudoElement = sel.getPseudoElement();
                 if (pseudoElement != null) {
-                    List<Selector> l = pseudoSelectors.get(pseudoElement);
-                    if (l == null) {
-                        l = new ArrayList();
-                        pseudoSelectors.put(pseudoElement, l);
+
+                    if (pseudoSelectors == null) {
+                        pseudoSelectors = new ArrayList(6);
                     }
-                    l.add(sel);
-                    key.append(sel.getSelectorID()).append(":");
+                    pseudoSelectors.add(sel);
                     continue;
-                }
-                if (sel.isPseudoClass(Selector.VISITED_PSEUDOCLASS)) {
-                    _visitElements.add(e);
-                }
-                if (sel.isPseudoClass(Selector.ACTIVE_PSEUDOCLASS)) {
-                    _activeElements.add(e);
-                }
-                if (sel.isPseudoClass(Selector.HOVER_PSEUDOCLASS)) {
-                    _hoverElements.add(e);
-                }
-                if (sel.isPseudoClass(Selector.FOCUS_PSEUDOCLASS)) {
-                    _focusElements.add(e);
+
                 }
                 if (!sel.matchesDynamic(e, _attRes, _treeRes)) {
                     continue;
                 }
-                key.append(sel.getSelectorID()).append(":");
+
+                // A chained selector is a selector that must proceed this
+                // selector for it to match.
                 Selector chain = sel.getChainedSelector();
                 if (chain == null) {
+                    // If the end of the chain is reached (or the selector was
+                    // not part of a chain) then we have matched this selector
+                    // to the element.
                     mappedSelectors.add(sel);
-                } else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                }
+                else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
-                } else {
+                }
+                else {
+                    // The chained selector is added as an additional selector
+                    // to match against in the child,
+                    IndexedSelector isel =
+                                new IndexedSelector(indexedSel.index, chain);
                     if (childAdditionalAxes == null) {
-                        childAdditionalAxes = new ArrayList(additionalAxes);
+                        childAdditionalAxes = new ArrayList();
                     }
-                    childAdditionalAxes.add(new IndexedSelector(
-                                                    indexedSel.index, chain));
+                    childAdditionalAxes.add(isel);
                 }
 
             }
 
-            if (children == null) children = new HashMap();
-            Mapper childMapper = (Mapper) children.get(key.toString());
-            if (childMapper == null) {
-                if (childAdditionalAxes != null) {
-                    Collections.sort(childAdditionalAxes);
+            // Sort the additional children axes if new axes were added to
+            // the child. The children are sorted by specificity of their
+            // root parent index.
+
+            // We need to be careful we preserve specificity and chained
+            // order here.
+
+            // We remove selectors that are duplicated in this child list.
+
+            if (childAdditionalAxes != null) {
+
+                // Copy this matcher's 'additionalAxes' into an array with
+                // the 'childAdditionalAxes'.
+                IndexedSelector[] arr = new IndexedSelector[additionalAxes.size() + childAdditionalAxes.size()];
+                Iterator<IndexedSelector> i1 = additionalAxes.iterator();
+                Iterator<IndexedSelector> i2 = childAdditionalAxes.iterator();
+
+                // Merges the sorted lists into the array,
+                int p = 0;
+                IndexedSelector v1 = i1.hasNext() ? i1.next() : null;
+                IndexedSelector v2 = i2.hasNext() ? i2.next() : null;
+                while (true) {
+                    if (v1 != null && v2 != null) {
+                        int c = v1.compareTo(v2);
+                        if (c < 0) {
+                            arr[p] = v1;
+                            v1 = i1.hasNext() ? i1.next() : null;
+                        }
+                        else if (c > 0) {
+                            arr[p] = v2;
+                            v2 = i2.hasNext() ? i2.next() : null;
+                        }
+                        else if (c == 0) {
+                            // If the selectors are equal, we don't copy from
+                            // the current child if the selector was created
+                            // in this match,
+                            // This ensures equal entries aren't duplicated.
+                            if (v1.selector != v2.selector) {
+                                arr[p] = v1;
+                            }
+                            else {
+                                --p;
+                            }
+                            v1 = i1.hasNext() ? i1.next() : null;
+                        }
+                    }
+                    else if (v1 != null) {
+                        arr[p] = v1;
+                        v1 = i1.hasNext() ? i1.next() : null;
+                    }
+                    else if (v2 != null) {
+                        arr[p] = v2;
+                        v2 = i2.hasNext() ? i2.next() : null;
+                    }
+                    else {
+                        break;
+                    }
+                    ++p;
                 }
-                childMapper = new Mapper(baseIndex,
-                                childAdditionalAxes == null ?
-                                        additionalAxes : childAdditionalAxes,
-                                childDiscountedAxes == null ?
-                                        discountedAxes : childDiscountedAxes);
-                childMapper.pseudoSelectors = pseudoSelectors;
-                childMapper.mappedSelectors = mappedSelectors;
-                children.put(key.toString(), childMapper);
+
+                // Clear the child axes list and copy our sorted/duplicate
+                // removed values into the list,
+                childAdditionalAxes.clear();
+                boolean listSame = (p == additionalAxes.size());
+                for (int i = 0; i < p; ++i) {
+                    IndexedSelector is = arr[i];
+                    if (listSame && !additionalAxes.get(i).exactEquals(is)) {
+                        listSame = false;
+                    }
+                    childAdditionalAxes.add(is);
+                }
+
+                // If the lists are the same then clear the child,
+                if (listSame) {
+                    childAdditionalAxes = null;
+                }
+//                else {
+//                    main:
+//                    for (int i = 0; i < childAdditionalAxes.size(); ++i) {
+//                        IndexedSelector is = childAdditionalAxes.get(i);
+//                        for (int n = i + 1; n < childAdditionalAxes.size(); ++n) {
+//                            IndexedSelector ip = childAdditionalAxes.get(n);
+//                            if (is.exactEquals(ip)) {
+//                                System.out.println("OOPS, DUPLICATE FOUND!");
+//                                break main;
+//                            }
+//                        }
+//                    }
+//                    System.out.println("LIST SIZE: " + childAdditionalAxes.size());
+//                }
+
             }
+
+            // Create and populate the child mapper,
+            childMapper = new Mapper(
+                            baseIndex,
+                            childAdditionalAxes == null ?
+                                    additionalAxes : childAdditionalAxes,
+                            childDiscountedAxes == null ?
+                                    discountedAxes : childDiscountedAxes);
+            childMapper.pseudoSelectors = pseudoSelectors;
+            childMapper.mappedSelectors = mappedSelectors;
+
+            // Put into the children map,
+            children.put(keyString, childMapper);
+            // Link the element to this mapper and return it.
             link(e, childMapper);
+
+//            System.out.print("MAP CHILD FOR: " + ((org.xhtmlrenderer.dom.Element) e).getTagName());
+//            System.out.println(" PUT: " + keyString);
+
             return childMapper;
+
         }
 
         CascadedStyle getCascadedStyle(Object e) {
-            CascadedStyle result;
 
-            CascadedStyle cs;
+            // Style rules that are not loaded from the stylesheet,
             Ruleset elementStyling = getElementStyle(e);
             Ruleset nonCssStyling = getNonCssStyle(e);
-            List<PropertyDeclaration> propList = new ArrayList();
+
+            // The list of property declarations,
+            List<PropertyDeclaration> propList = new ArrayList(32);
             //specificity 0,0,0,0
             if (nonCssStyling != null) {
                 propList.addAll(nonCssStyling.getPropertyDeclarations());
             }
             //these should have been returned in order of specificity
             for (Selector selector : mappedSelectors) {
+                // Add all the property declaration rules of the selector,
                 Ruleset rs = selector.getRuleset();
                 propList.addAll(rs.getPropertyDeclarations());
             }
@@ -487,15 +645,12 @@ public class Matcher {
             if (elementStyling != null) {
                 propList.addAll(elementStyling.getPropertyDeclarations());
             }
-            if (propList.isEmpty())
-                cs = CascadedStyle.emptyCascadedStyle;
-            else {
-                cs = new CascadedStyle(propList.iterator());
-            }
 
-            result = cs;
+            // Return the CascadedStyle,
+            return propList.isEmpty() ?
+                    CascadedStyle.emptyCascadedStyle :
+                    new CascadedStyle(propList.iterator());
 
-            return result;
         }
 
         /**
@@ -503,26 +658,29 @@ public class Matcher {
          * We assume that restyle has already been done by a getCascadedStyle if necessary.
          */
         public CascadedStyle getPECascadedStyle(Object e, String pseudoElement) {
-            if (pseudoSelectors.isEmpty()) {
-                return null;
-            }
-            CascadedStyle cs;
-            List<Selector> pe = pseudoSelectors.get(pseudoElement);
-            if (pe == null) {
+
+            if (pseudoSelectors == null) {
                 return null;
             }
 
-            List<PropertyDeclaration> propList = new ArrayList(64);
-            for (Selector selector : pe) {
-                Ruleset rs = selector.getRuleset();
-                propList.addAll(rs.getPropertyDeclarations());
+            // The list of property declarations,
+            List<PropertyDeclaration> propList = new ArrayList(32);
+            // All selectors that match that contain pseudo elements,
+            for (Selector selector : pseudoSelectors) {
+                // Is the selector for the pseudo element we are interested in?
+                if (selector.getPseudoElement().equals(pseudoElement)) {
+                    // Yup, so add the rules of the selector to the resultant
+                    // style.
+                    Ruleset rs = selector.getRuleset();
+                    propList.addAll(rs.getPropertyDeclarations());
+                }
             }
-            if (propList.isEmpty())
-                cs = CascadedStyle.emptyCascadedStyle;//already internalized
-            else {
-                cs = new CascadedStyle(propList.iterator());
-            }
-            return cs;
+
+            // Return the CascadedStyle,
+            return propList.isEmpty() ?
+                    CascadedStyle.emptyCascadedStyle :
+                    new CascadedStyle(propList.iterator());
+
         }
 
     }
