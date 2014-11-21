@@ -65,14 +65,7 @@ public class Selector {
     public final static int ACTIVE_PSEUDOCLASS = 8;
     public final static int FOCUS_PSEUDOCLASS = 16;
 
-    /**
-     * Give each a unique ID to be able to create a key to internalize Matcher.Mappers
-     */
-    private int selectorID;
-    private static int selectorCount = 0;
-
     public Selector() {
-        selectorID = selectorCount++;
     }
 
     /**
@@ -451,10 +444,6 @@ public class Selector {
         return "1" + "000" + "000" + "000" + "00000";
     }
 
-    public int getSelectorID() {
-        return selectorID;
-    }
-    
     public void setName(String name) {
         _name = name;
         _specificityD++;

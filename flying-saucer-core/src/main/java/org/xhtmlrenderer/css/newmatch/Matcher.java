@@ -66,7 +66,7 @@ public class Matcher {
     
     private List<PageRule> _pageRules;
     private List<FontFaceRule> _fontFaceRules;
-    
+
     public Matcher(
             TreeResolver tr, AttributeResolver ar, StylesheetFactory factory, List stylesheets, String medium) {
         newMaps();
@@ -263,6 +263,37 @@ public class Matcher {
         return _styleFactory.parseStyleDeclaration(StylesheetInfo.AUTHOR, style);
     }
 
+    /**
+     * A SelectorSet that is represented as a key.
+     */
+    private static class SelectorSetKey {
+
+        // The Selectors in specificity order,
+        private final List<Selector> selectors = new ArrayList();
+        private boolean immutable = false;
+
+        public void addSelector(Selector selector) {
+            if (immutable) {
+                throw new IllegalStateException("Key is immutable");
+            }
+            selectors.add(selector);
+        }
+        public void makeImmutable() {
+            this.immutable = true;
+        }
+        @Override
+        public int hashCode() {
+            return selectors.hashCode();
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof SelectorSetKey) {
+                SelectorSetKey other = (SelectorSetKey) obj;
+                return selectors.equals(other.selectors);
+            }
+            return false;
+        }
+    }
 
     /**
      * A Selector with an accompanying index representing its position relative
@@ -312,7 +343,7 @@ public class Matcher {
     class Mapper {
         private final MapperIndex baseIndex;
 
-        private HashMap<String, Mapper> children;
+        private HashMap<SelectorSetKey, Mapper> children;
 
         private final List<IndexedSelector> additionalAxes;
         private final List<Selector> discountedAxes;
@@ -381,7 +412,7 @@ public class Matcher {
             Set<Selector> selectorsThatMatch = new HashSet(20);
 
             // Create the key for this element,
-            StringBuilder key = new StringBuilder();
+            SelectorSetKey selectorSetKey = new SelectorSetKey();
 
             // For each indexed selector,
             for (IndexedSelector indexedSel : selList) {
@@ -419,17 +450,19 @@ public class Matcher {
                     continue;
                 }
 
-                key.append(sel.getSelectorID()).append(":");
+                // Add this selector to the key set,
+                selectorSetKey.addSelector(sel);
 
             }
-            // The Element key links to all selectors in specificity order.
-            String keyString = key.toString();
+
+            // Make the key immutable from here out,
+            selectorSetKey.makeImmutable();
 
             // The calculated children map,
             if (children == null) {
                 children = new HashMap();
             }
-            Mapper childMapper = (Mapper) children.get(keyString);
+            Mapper childMapper = (Mapper) children.get(selectorSetKey);
 
             // If the child mapper for this style already exists then link it
             // to the element and return,
@@ -446,8 +479,11 @@ public class Matcher {
             List<Selector> childDiscountedAxes = null;
             List<IndexedSelector> childAdditionalAxes = null;
 
-            List<Selector> pseudoSelectors = null;
-            List<Selector> mappedSelectors = new ArrayList(10);
+            // The pseudo selectors that are confirmed matched for the given
+            // element.
+            List<Selector> childPseudoSelectors = null;
+            // The selectors that are confirmed matched for the given element.
+            List<Selector> childMappedSelectors = new ArrayList(10);
 
             // For each indexed selector,
             for (IndexedSelector indexedSel : selList) {
@@ -472,10 +508,10 @@ public class Matcher {
                 String pseudoElement = sel.getPseudoElement();
                 if (pseudoElement != null) {
 
-                    if (pseudoSelectors == null) {
-                        pseudoSelectors = new ArrayList(6);
+                    if (childPseudoSelectors == null) {
+                        childPseudoSelectors = new ArrayList(6);
                     }
-                    pseudoSelectors.add(sel);
+                    childPseudoSelectors.add(sel);
                     continue;
 
                 }
@@ -490,7 +526,7 @@ public class Matcher {
                     // If the end of the chain is reached (or the selector was
                     // not part of a chain) then we have matched this selector
                     // to the element.
-                    mappedSelectors.add(sel);
+                    childMappedSelectors.add(sel);
                 }
                 else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
@@ -529,8 +565,11 @@ public class Matcher {
                 int p = 0;
                 IndexedSelector v1 = i1.hasNext() ? i1.next() : null;
                 IndexedSelector v2 = i2.hasNext() ? i2.next() : null;
+
                 while (true) {
                     if (v1 != null && v2 != null) {
+                        // Either consume from v1 or v2 depending on which of
+                        // the two contains the smallest value.
                         int c = v1.compareTo(v2);
                         if (c < 0) {
                             arr[p] = v1;
@@ -608,11 +647,11 @@ public class Matcher {
                                     additionalAxes : childAdditionalAxes,
                             childDiscountedAxes == null ?
                                     discountedAxes : childDiscountedAxes);
-            childMapper.pseudoSelectors = pseudoSelectors;
-            childMapper.mappedSelectors = mappedSelectors;
+            childMapper.pseudoSelectors = childPseudoSelectors;
+            childMapper.mappedSelectors = childMappedSelectors;
 
             // Put into the children map,
-            children.put(keyString, childMapper);
+            children.put(selectorSetKey, childMapper);
             // Link the element to this mapper and return it.
             link(e, childMapper);
 
