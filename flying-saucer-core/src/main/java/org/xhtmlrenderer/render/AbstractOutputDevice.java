@@ -213,12 +213,9 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
         // If the image width or height is zero, then there's nothing to draw.
         // Also prevents infinte loop when trying to tile an image with zero size.
-        if (backgroundImage == null) {
-            backgroundImage = null;
-        }
-        else {
+        if (backgroundImage != null) {
             FSImage fsImage = backgroundImage.getImage();
-            if (fsImage.getWidth() == 0 || fsImage.getHeight() == 0) {
+            if (fsImage == null || fsImage.getWidth() == 0 || fsImage.getHeight() == 0) {
                 backgroundImage = null;
             }
         }

@@ -65,6 +65,11 @@ public class ElementImpl extends NodeImpl implements Element {
     }
 
     @Override
+    public String getTextContent() {
+        return fsGetTextContent(new StringBuilder()).toString();
+    }
+
+    @Override
     public NodeList getChildNodes() {
         if (children == null) {
             return NodeListImpl.EMPTY;
@@ -131,6 +136,20 @@ public class ElementImpl extends NodeImpl implements Element {
                 e.fsPopulateElementsByTagName(elements, tagName);
             }
         }
+    }
+
+    private StringBuilder fsGetTextContent(StringBuilder b) {
+        for (Node n : getChildNodes()) {
+            if (n instanceof Element) {
+                ElementImpl e = (ElementImpl) n;
+                e.fsGetTextContent(b);
+            }
+            else if (n instanceof CharacterData) {
+                CharacterData cd = (CharacterData) n;
+                b.append(cd.getData());
+            }
+        }
+        return b;
     }
 
 }

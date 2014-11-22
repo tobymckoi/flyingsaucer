@@ -19,7 +19,7 @@
  */
 package org.xhtmlrenderer.demo.browser;
 
-import org.w3c.dom.Document;
+//import org.w3c.dom.Document;
 import org.xhtmlrenderer.event.DocumentListener;
 import org.xhtmlrenderer.layout.SharedContext;
 import org.xhtmlrenderer.pdf.ITextRenderer;
@@ -36,8 +36,6 @@ import org.xhtmlrenderer.util.XRLog;
 import org.xhtmlrenderer.util.XRRuntimeException;
 
 import javax.swing.*;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -49,6 +47,8 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.extend.AbstractUserAgent;
 
 
 /**
@@ -384,10 +384,13 @@ public class BrowserPanel extends JPanel implements DocumentListener {
                os = new FileOutputStream(path);
                try {
                ITextRenderer renderer = new ITextRenderer();
+               // A bit hacky...
+               // We set the user agent document parser for the PDF creator
+               AbstractUserAgent ua = (AbstractUserAgent) renderer.getSharedContext().getUac();
+               ua.setDocumentParser(manager.getDocumentParser());
 
-               DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-               DocumentBuilder db = dbf.newDocumentBuilder();
-               Document doc =  db.parse(manager.getBaseURL());
+               DocumentResource docResource = ua.getDocumentResource(manager.getBaseURL());
+               Document doc = docResource.getDocument();
 
                PDFCreationListener pdfCreationListener = new XHtmlMetaToPdfInfoAdapter( doc );
                renderer.setListener( pdfCreationListener );

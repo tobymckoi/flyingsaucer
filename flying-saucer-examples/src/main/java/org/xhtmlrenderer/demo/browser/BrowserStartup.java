@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 
+import org.xhtmlrenderer.parser.Parser;
 import org.xhtmlrenderer.util.GeneralUtil;
 import org.xhtmlrenderer.util.XRLog;
 
@@ -60,6 +61,11 @@ public class BrowserStartup {
     protected String startPage;
 
     /**
+     * The document parser to use.
+     */
+    protected Parser documentParser = null;
+
+    /**
      * Description of the Field
      */
     protected ValidationHandler error_handler = new ValidationHandler();
@@ -81,6 +87,15 @@ public class BrowserStartup {
     public BrowserStartup(String startPage) {
         logger.info("starting up");
         this.startPage = startPage;
+    }
+
+    /**
+     * Sets the document parser used by the browser.
+     * 
+     * @param documentParser 
+     */
+    public void setDocumentParser(Parser documentParser) {
+        this.documentParser = documentParser;
     }
 
     /**
@@ -133,10 +148,15 @@ public class BrowserStartup {
     /**
      * Returns a panel manager for this browser. This can be overridden to
      * customize the behaviour of the user agent.
+     * 
+     * @return 
      */
     protected PanelManager initPanelManager() {
         PanelManager manager = new PanelManager();
         manager.setDeferredImageLoadingEnabled(true);
+        if (documentParser != null) {
+            manager.setDocumentParser(documentParser);
+        }
         return manager;
     }
 

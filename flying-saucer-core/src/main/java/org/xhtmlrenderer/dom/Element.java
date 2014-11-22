@@ -30,6 +30,8 @@ public interface Element extends Node {
 
     public ElementSet getElementsByTagName(String tagName);
 
+    public String getTextContent();
+
     // -----
 
     public Element appendChild(Node child);
