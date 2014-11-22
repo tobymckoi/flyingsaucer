@@ -44,6 +44,7 @@ import org.xhtmlrenderer.layout.BoxBuilder;
 import org.xhtmlrenderer.layout.BoxLoadInfo;
 import org.xhtmlrenderer.layout.BreakAtLineContext;
 import org.xhtmlrenderer.layout.CounterFunction;
+import org.xhtmlrenderer.layout.FloatBounds;
 import org.xhtmlrenderer.layout.FloatManager;
 import org.xhtmlrenderer.layout.InlineBoxing;
 import org.xhtmlrenderer.layout.InlinePaintable;
@@ -806,6 +807,76 @@ public class BlockBox extends Box implements InlinePaintable {
         }
     }
 
+    /**
+     * When a block has an 'overflow' setting other than 'visible', it is
+     * required to maintain a rectangle shape even in the presence of floated
+     * areas. When that happens, this method is used to position this block
+     * so that it avoids the floated blocks.
+     * 
+     * @param c 
+     */
+    private void calcAvoidFloatingAreas(
+                        LayoutContext c, BlockFormattingContext parentBFC) {
+
+        final int inputWidth = getWidth();
+        final int maxAvailableWidth = getContainingBlockWidth();
+
+        FloatManager floats = parentBFC.getFloatManager();
+        Point blockCtxOffset = parentBFC.getOffset();
+
+        // The range of X that's permissible,
+        final int minContentX = -blockCtxOffset.x;
+        final int maxContentX = minContentX + maxAvailableWidth;
+        // Spacing,
+        RectPropertySet margin = getMargin(c);
+        BorderPropertySet border = getBorder(c);
+        RectPropertySet padding = getPadding(c);
+
+        Rectangle tableBounds = new Rectangle(
+                -blockCtxOffset.x, -blockCtxOffset.y,
+                getWidth(), 1);
+
+        // Calculate the float exclusion area if there is one,
+        FloatBounds exclus = floats.getFloatExclusionBounds(
+                    c, new Rectangle(tableBounds), minContentX, maxContentX);
+
+        // Intersects with no floating areas,
+        if (exclus == null) {
+            return;
+        }
+
+        // The maximum exclusion area is represented by the margin edge,
+        Rectangle maxExclus = exclus.getMarginEdge();
+
+        Rectangle normalizedExclus = new Rectangle(maxExclus);
+        normalizedExclus.translate(blockCtxOffset.x, blockCtxOffset.y);
+
+        int cappedMinX;
+        int cappedMaxX;
+        cappedMinX = normalizedExclus.x - (int) margin.left();
+        cappedMaxX = normalizedExclus.x + normalizedExclus.width + (int) margin.right();
+
+        // The calculated width of this table
+        final int calculatedWidth =
+                    Math.min(inputWidth, (cappedMaxX - cappedMinX));
+
+        // The computed content width for the next layout cycle,
+        int newContentWidth = calculatedWidth -
+                            (int) margin.left() - (int) margin.right() -
+                            (int) padding.left() - (int) padding.right() -
+                            (int) border.left() - (int) border.right();
+        
+        // Try and fit the table into the float exclusion width,
+        setContentWidth(newContentWidth);
+        getWidth();
+
+        // Set the new x position,
+        setX(cappedMinX);
+        calcCanvasLocation();
+        parentBFC.translate(cappedMinX, 0);
+
+    }
+
     private void addBoxID(LayoutContext c) {
         if (! isAnonymous()) {
             String name = c.getNamespaceHandler().getAnchorName(getElement());
@@ -825,6 +896,15 @@ public class BlockBox extends Box implements InlinePaintable {
 
     public void layout(LayoutContext c, int contentStart) {
         CalculatedStyle style = getStyle();
+
+        // When 'noFlowAroundFloats' is true then this block must position
+        // itself so that it remains rectangular while not hitting any floats.
+        boolean noFlowAroundFloats = false;
+        BlockFormattingContext parentBFC = c.getTopBFC();
+        if ( parentBFC != null && !style.isFloated() && !style.isTable() &&
+             !style.isOverflowVisible() ) {
+            noFlowAroundFloats = true;
+        }
 
         boolean pushedLayer = false;
         if (isRoot() || style.requiresLayer()) {
@@ -882,6 +962,11 @@ public class BlockBox extends Box implements InlinePaintable {
             createMarkerData(c);
             c.setCurrentMarkerData(getMarkerData());
             didSetMarkerData = true;
+        }
+
+        // Reposition x and width to avoid floating sections,
+        if (noFlowAroundFloats) {
+            calcAvoidFloatingAreas(c, parentBFC);
         }
 
         // do children's layout

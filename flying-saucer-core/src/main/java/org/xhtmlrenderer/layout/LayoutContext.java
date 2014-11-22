@@ -198,6 +198,21 @@ public class LayoutContext implements CssContext {
         return (BlockFormattingContext) _bfcs.getLast();
     }
 
+    /**
+     * Same as 'getBlockFormattingContext' except returns null when there's
+     * no BFCs on the stack.
+     * 
+     * @return 
+     */
+    public BlockFormattingContext getTopBFC() {
+        if (_bfcs.isEmpty()) {
+            return null;
+        }
+        else {
+            return getBlockFormattingContext();
+        }
+    }
+
     public void pushBFC(BlockFormattingContext bfc) {
         _bfcs.add(bfc);
     }

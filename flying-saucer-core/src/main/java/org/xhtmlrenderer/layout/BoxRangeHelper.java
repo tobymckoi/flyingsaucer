@@ -20,6 +20,7 @@
 package org.xhtmlrenderer.layout;
 
 import java.awt.Rectangle;
+import java.awt.Shape;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -55,7 +56,7 @@ public class BoxRangeHelper {
     }
     
     public void pushClipRegion(RenderingContext c, int contentIndex) {
-        Rectangle preClip = (Rectangle) _outputDevice.getClip();
+        Shape preClip = (Shape) _outputDevice.getClip();
         List<Rectangle> clips = new ArrayList(4);
         while (_current != null && _current.getRange().getStart() == contentIndex) {
 
