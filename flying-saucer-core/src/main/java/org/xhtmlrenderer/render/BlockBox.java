@@ -832,15 +832,22 @@ public class BlockBox extends Box implements InlinePaintable {
         BorderPropertySet border = getBorder(c);
         RectPropertySet padding = getPadding(c);
 
-        Rectangle tableBounds = new Rectangle(
+        // The spacing height,
+        float spacingHeight = margin.top() + border.top() + padding.top() +
+                          margin.bottom() + border.bottom() + padding.bottom();
+
+        // The box bounds. Note that we use a height of 1 plus spacing top
+        // and bottom here (minimum of 1). This should allow us to catch any
+        // floating sections.
+        Rectangle boxBounds = new Rectangle(
                 -blockCtxOffset.x, -blockCtxOffset.y,
-                getWidth(), 1);
+                getWidth(), Math.max(1, (int) (1 + spacingHeight)));
 
         // Calculate the float exclusion area if there is one,
         FloatBounds exclus = floats.getFloatExclusionBounds(
-                    c, new Rectangle(tableBounds), minContentX, maxContentX);
+                    c, new Rectangle(boxBounds), minContentX, maxContentX);
 
-        // Intersects with no floating areas,
+        // No intersection with floating areas,
         if (exclus == null) {
             return;
         }
@@ -848,31 +855,34 @@ public class BlockBox extends Box implements InlinePaintable {
         // The maximum exclusion area is represented by the margin edge,
         Rectangle maxExclus = exclus.getMarginEdge();
 
+        // Normalize the exclusion coordinates,
         Rectangle normalizedExclus = new Rectangle(maxExclus);
         normalizedExclus.translate(blockCtxOffset.x, blockCtxOffset.y);
 
+        // The minimum and maximum x coordinates for this blocks Y location,
         int cappedMinX;
         int cappedMaxX;
         cappedMinX = normalizedExclus.x - (int) margin.left();
         cappedMaxX = normalizedExclus.x + normalizedExclus.width + (int) margin.right();
 
-        // The calculated width of this table
+        // The calculated width of this box
         final int calculatedWidth =
                     Math.min(inputWidth, (cappedMaxX - cappedMinX));
 
-        // The computed content width for the next layout cycle,
+        // The computed content width,
         int newContentWidth = calculatedWidth -
                             (int) margin.left() - (int) margin.right() -
                             (int) padding.left() - (int) padding.right() -
                             (int) border.left() - (int) border.right();
-        
-        // Try and fit the table into the float exclusion width,
+
+        // Fit the block into the float exclusion width,
         setContentWidth(newContentWidth);
         getWidth();
 
         // Set the new x position,
         setX(cappedMinX);
         calcCanvasLocation();
+
         parentBFC.translate(cappedMinX, 0);
 
     }
