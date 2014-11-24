@@ -26,7 +26,8 @@ import org.xhtmlrenderer.render.FSFont;
 import org.xhtmlrenderer.render.FSFontMetrics;
 import org.xhtmlrenderer.render.JustificationInfo;
 
-public interface TextRenderer {
+public interface TextRenderer extends TextSystemAccessor {
+
     public void setup(FontContext context);
 
     public void drawString(OutputDevice outputDevice, String string, float x, float y);
@@ -38,11 +39,14 @@ public interface TextRenderer {
     public FSGlyphVector getGlyphVector(OutputDevice outputDevice, FSFont font, String string);
     
     public float[] getGlyphPositions(OutputDevice outputDevice, FSFont font, FSGlyphVector fsGlyphVector);
+
     public Rectangle getGlyphBounds(OutputDevice outputDevice, FSFont font, FSGlyphVector fsGlyphVector, int index, float x, float y);
 
+    @Override
     public FSFontMetrics getFSFontMetrics(
             FontContext context, FSFont font, String string );
 
+    @Override
     public int getWidth(FontContext context, FSFont font, String string);
 
     /**
@@ -55,10 +59,12 @@ public interface TextRenderer {
      * @param string
      * @return 
      */
+    @Override
     public float getLogicalGlyphsWidth(FontContext fontContext, FSFont font, String string);
 
     public void setFontScale(float scale);
 
+    @Override
     public float getFontScale();
 
     /**
@@ -71,6 +77,7 @@ public interface TextRenderer {
      */
     public void setSmoothingThreshold(float fontsize);
 
+    @Override
     public int getSmoothingLevel();
 
     /**
@@ -93,6 +100,7 @@ public interface TextRenderer {
      * 
      * @return 
      */
+    @Override
     public Boolean getFractionalMetrics();
 
     /**
@@ -110,6 +118,7 @@ public interface TextRenderer {
      * 
      * @return 
      */
+    @Override
     public Boolean getKerning();
 
     /**
@@ -127,7 +136,7 @@ public interface TextRenderer {
      * 
      * @return 
      */
+    @Override
     public Boolean getLigatures();
 
 }
-

@@ -88,7 +88,7 @@ public class LayoutContext implements CssContext {
     private final Map<String, List<BoxLoadInfo>> _resourcesToBoxes =
                                                                 new HashMap();
 
-    public TextRenderer getTextRenderer() {
+    public TextSystemAccessor getTextRenderer() {
         return _sharedContext.getTextRenderer();
     }
 

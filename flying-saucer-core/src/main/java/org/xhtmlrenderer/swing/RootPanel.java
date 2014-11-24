@@ -21,6 +21,7 @@ package org.xhtmlrenderer.swing;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -560,6 +561,13 @@ public class RootPanel extends JPanel implements Scrollable, UserInterface, FSCa
       return elementPane;
     }
 
+    @Override
+    public void paintSwingReplacedComponent(
+                Graphics g, Component c, Rectangle bounds, boolean validate) {
+        getSwingElementPane().paintComponent(g, c, bounds, validate);
+    }
+
+    
 
 
     /*

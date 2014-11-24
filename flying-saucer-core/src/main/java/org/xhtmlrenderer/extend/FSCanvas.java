@@ -19,6 +19,8 @@
  */
 package org.xhtmlrenderer.extend;
 
+import java.awt.Component;
+import java.awt.Graphics;
 import java.awt.Rectangle;
 
 public interface FSCanvas {
@@ -27,4 +29,17 @@ public interface FSCanvas {
     int getX();
 
     int getY();
+
+    /**
+     * Paints the given AWT/Swing component at the given bounds on the graphics
+     * object. This may also register the component onto the pane. If 'validate'
+     * is true then the component is also validated.
+     * 
+     * @param g
+     * @param c
+     * @param bounds
+     * @param validate 
+     */
+    void paintSwingReplacedComponent(Graphics g, Component c, Rectangle bounds, boolean validate);
+
 }

@@ -24,7 +24,6 @@ import java.awt.HeadlessException;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.xhtmlrenderer.dom.Document;

@@ -36,6 +36,7 @@ import javax.swing.*;
 
 import org.xhtmlrenderer.css.parser.FSColor;
 import org.xhtmlrenderer.css.parser.FSRGBColor;
+import org.xhtmlrenderer.extend.FSCanvas;
 import org.xhtmlrenderer.extend.FSGlyphVector;
 import org.xhtmlrenderer.extend.FSImage;
 import org.xhtmlrenderer.extend.OutputDevice;
@@ -195,9 +196,8 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
         if (replaced instanceof SwingReplacedElement) {
             Rectangle contentBounds = box.getContentAreaEdge(box.getAbsX(), box.getAbsY(), c);
             JComponent component = ((SwingReplacedElement)box.getReplacedElement()).getJComponent();
-            RootPanel canvas = (RootPanel)c.getCanvas();
-            SwingElementPane pane = canvas.getSwingElementPane();
-            pane.paintComponent(_graphics, component, contentBounds, true);
+            FSCanvas canvas = c.getCanvas();
+            canvas.paintSwingReplacedComponent(_graphics, component, contentBounds, true);
         } else if (replaced instanceof ImageReplacedElement) {
             FSImage image = ((ImageReplacedElement)replaced).getFSImage();
             

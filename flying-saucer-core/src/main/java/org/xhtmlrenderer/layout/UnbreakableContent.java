@@ -27,6 +27,7 @@ import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
 import org.xhtmlrenderer.dom.TextNode;
 import org.xhtmlrenderer.extend.TextRenderer;
+import org.xhtmlrenderer.extend.TextSystemAccessor;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.FSFont;
 import org.xhtmlrenderer.render.InlineBox;
@@ -226,7 +227,7 @@ public class UnbreakableContent {
                 float lineHeight = f.getInlineBox().getStyle().getLineHeight(c);
                 maxHeight = Math.max(lineHeight, maxHeight);
 
-                TextRenderer textRenderer = c.getTextRenderer();
+                TextSystemAccessor textRenderer = c.getTextRenderer();
                 FSFont font = f.getStyle().getFSFont(c);
 
                 // The width of the text with the whitespace,

@@ -40,6 +40,11 @@ import java.util.Map;
  */
 public class AWTFontResolver implements FontResolver {
 
+    /**
+     * The font lock.
+     */
+    private final Object lock = new Object();
+
     // Maps string to font objects,
     private final Map<String, Font> instance_hash = new HashMap();
 
@@ -50,6 +55,15 @@ public class AWTFontResolver implements FontResolver {
     private final Map<String, Font> overriden_fonts_hash = new HashMap();
 
     /**
+     * Static system information.
+     */
+    private static final String[] system_fonts;
+    static {
+        GraphicsEnvironment gfx = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        system_fonts = gfx.getAvailableFontFamilyNames();
+    }
+
+    /**
      * Constructor for the FontResolverTest object
      */
     public AWTFontResolver() {
@@ -57,8 +71,6 @@ public class AWTFontResolver implements FontResolver {
     }
 
     private void init() {
-        GraphicsEnvironment gfx = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        String[] available_fonts = gfx.getAvailableFontFamilyNames();
 
         instance_hash.clear();
         available_fonts_hash.clear();
@@ -67,7 +79,7 @@ public class AWTFontResolver implements FontResolver {
         // don't add the actual font objects because that would be a waste of memory
         // we will only add them once we need to use them
         // put empty strings in instead
-        for (String qualified_font_name : available_fonts) {
+        for (String qualified_font_name : system_fonts) {
             available_fonts_hash.put(
                     qualified_font_name.toLowerCase(Locale.ENGLISH),
                     qualified_font_name);
@@ -87,8 +99,11 @@ public class AWTFontResolver implements FontResolver {
 
     }
 
+    @Override
     public void flushCache() {
-        init();
+        synchronized (lock) {
+            init();
+        }
     }
 
     /**
@@ -105,7 +120,7 @@ public class AWTFontResolver implements FontResolver {
      * @param ligatures
      * @return Returns
      */
-    public FSFont resolveFont(SharedContext ctx, String[] families, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
+    private FSFont resolveFont(SharedContext ctx, String[] families, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
         //Uu.p("familes = ");
         //Uu.p(families);
         // for each font family
@@ -144,7 +159,7 @@ public class AWTFontResolver implements FontResolver {
      * @param ligatures
      * @return Returns
      */
-    protected Font createFont(SharedContext ctx, String fontFamily, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
+    private Font createFont(SharedContext ctx, String fontFamily, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
 
         Object tattr_weight = TextAttribute.WEIGHT_REGULAR;
         Object tattr_posture = TextAttribute.POSTURE_REGULAR;
@@ -233,7 +248,7 @@ public class AWTFontResolver implements FontResolver {
      * @param ligatures
      * @return Returns
      */
-    protected Font resolveFont(SharedContext ctx, String font, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
+    private Font resolveFont(SharedContext ctx, String font, float size, IdentValue weight, IdentValue style, IdentValue variant, Boolean kerning, Boolean ligatures) {
         //Uu.p("here");
         // strip off the "s if they are there
         if (font.startsWith("\"")) {
@@ -281,8 +296,10 @@ public class AWTFontResolver implements FontResolver {
      * This allows the user to replace one font family with another.
      */
     public void setFontMapping(final String name, final Font font) {
-        overriden_fonts_hash.put(name, font);
-        available_fonts_hash.put(name.toLowerCase(Locale.ENGLISH), name);
+        synchronized (lock) {
+            overriden_fonts_hash.put(name, font);
+            available_fonts_hash.put(name.toLowerCase(Locale.ENGLISH), name);
+        }
     }
 
     /**
@@ -304,7 +321,9 @@ public class AWTFontResolver implements FontResolver {
 
     @Override
     public FSFont resolveFont(SharedContext renderingContext, FontSpecification spec) {
-        return resolveFont(renderingContext, spec.getFamilies(), spec.getSize(), spec.getFontWeight(), spec.getFontStyle(), spec.getVariant(), spec.isKerning(), spec.isLigatures());
+        synchronized (lock) {
+            return resolveFont(renderingContext, spec.getFamilies(), spec.getSize(), spec.getFontWeight(), spec.getFontStyle(), spec.getVariant(), spec.isKerning(), spec.isLigatures());
+        }
     }
 }
 
