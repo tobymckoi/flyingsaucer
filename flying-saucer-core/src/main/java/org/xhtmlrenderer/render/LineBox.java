@@ -490,7 +490,8 @@ public class LineBox extends Box implements InlinePaintable {
         }
     }
 
-    public Box find(CssContext cssCtx, int absX, int absY, boolean findAnonymous) {
+    @Override
+    public Box find(CssContext css, int absX, int absY, boolean findAnonymous) {
         PaintingInfo pI = getPaintingInfo();
         if (pI !=null && ! pI.getAggregateBounds().contains(absX, absY)) {
             return null;
@@ -499,7 +500,7 @@ public class LineBox extends Box implements InlinePaintable {
         Box result = null;
         for (int i = 0; i < getChildCount(); i++) {
             Box child = getChild(i);
-            result = child.find(cssCtx, absX, absY, findAnonymous);
+            result = child.find(css, absX, absY, findAnonymous);
             if (result != null) {
                 return result;
             }

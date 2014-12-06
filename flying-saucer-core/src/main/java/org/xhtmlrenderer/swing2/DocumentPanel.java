@@ -20,8 +20,10 @@
 package org.xhtmlrenderer.swing2;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.logging.Level;
 import javax.swing.*;
+import javax.swing.event.MouseInputListener;
 
 import org.w3c.dom.css.CSSPrimitiveValue;
 import org.xhtmlrenderer.css.constants.CSSName;
@@ -33,14 +35,21 @@ import org.xhtmlrenderer.css.style.derived.ColorValue;
 import org.xhtmlrenderer.css.style.derived.LengthValue;
 import org.xhtmlrenderer.css.style.derived.StringValue;
 import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
+import org.xhtmlrenderer.dom.Node;
 import org.xhtmlrenderer.extend.FSCanvas;
+import org.xhtmlrenderer.extend.NamespaceHandler;
 import org.xhtmlrenderer.layout.BoxBuilder;
+import org.xhtmlrenderer.layout.BoxLoadInfo;
 import org.xhtmlrenderer.layout.Layer;
 import org.xhtmlrenderer.layout.LayoutContext;
+import org.xhtmlrenderer.layout.PaintingInfo;
+import org.xhtmlrenderer.layout.SharedContext;
 import org.xhtmlrenderer.render.BlockBox;
 import org.xhtmlrenderer.render.Box;
 import org.xhtmlrenderer.render.RenderingContext;
 import org.xhtmlrenderer.render.ViewportBox;
+import org.xhtmlrenderer.resource.ImageResource;
 import org.xhtmlrenderer.swing.Java2DFontContext;
 import org.xhtmlrenderer.swing.Java2DOutputDevice;
 import org.xhtmlrenderer.swing.SwingElementPane;
@@ -83,21 +92,217 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
         setBackground(Color.white);
         setLayout(new BorderLayout());
         add(elementPane, BorderLayout.CENTER);
+
+        addEventListeners();
+
     }
-    
 
+    public void scrollToTop() {
+        if (!SwingUtilities.isEventDispatchThread()) {
+           throw new AssertionError("Not dispatcher thread");
+        }
+        scrollRectToVisible(new Rectangle(0, 0, 5, 5));
+    }
 
-    private DocumentListener eventHandler = new DocumentListener() {
+    /**
+     * Adds Swing Event listeners.
+     */
+    private void addEventListeners() {
+        MouseInputListener eventHandler = new DPEventHandler();
+        addMouseListener(eventHandler);
+        addMouseMotionListener(eventHandler);
+    }
+
+    private class DPEventHandler implements MouseInputListener {
+
         @Override
-        public void notify(DocumentEvent evt) {
-            // If it's a document loaded event,
-            if (evt instanceof LoadedDocumentEvent) {
-                // Clear the elementPane of any replaced swing components,
-                elementPane.removeAll();
+        public void mouseClicked(MouseEvent e) {
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            Box mouseOverBox = find(e.getX(), e.getY());
+            handleMousePress(mouseOverBox);
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            Box mouseOverBox = find(e.getX(), e.getY());
+            handleMouseRelease(mouseOverBox);
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            Box mouseOverBox = find(e.getX(), e.getY());
+            handleMouseCursor(mouseOverBox);
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            setCursor(null);
+            releaseActiveLink();
+        }
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+        }
+
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            Box mouseOverBox = find(e.getX(), e.getY());
+            handleMouseCursor(mouseOverBox);
+        }
+
+    }
+
+    // ---- State ----
+
+    private Element hrefPressedElement = null;
+
+    // looks to see if the given element has a link URI associated with it; if
+    // so, returns the URI as a string, if not, returns null
+    private Element findLink(Element e) {
+        String uri = null;
+        LoadedDocument loadedDoc = documentState.getLoadedDocument();
+        if (loadedDoc != null) {
+            SharedContext sharedContext = loadedDoc.getSharedContext();
+            if (sharedContext != null) {
+                NamespaceHandler namespaceHandler = sharedContext.getNamespaceHandler();
+                for (Node node = e; node instanceof Element; node = node.getParentNode()) {
+                    uri = namespaceHandler.getLinkUri((Element) node);
+                    if (uri != null) {
+                        return (Element) node;
+                    }
+                }
             }
-            repaint();
+        }
+        return null;
+    }
+
+    private Element findHrefFromBox(Box box) {
+        Element ele = box.getElement();
+        if (ele != null) {
+            return findLink(ele);
+        }
+        return null;
+    }
+
+    private void makeActiveLink(Element element) {
+        hrefPressedElement = element;
+    }
+
+    private void releaseActiveLink() {
+        hrefPressedElement = null;
+    }
+
+    private void handleUriClick(Element e, String uri) {
+        // Notify the document state of the event (this will generate an event)
+        documentState.uriHrefClick(e, uri);
+    }
+
+    private void handleHrefClick(Element e) {
+        String uri = null;
+        LoadedDocument loadedDoc = documentState.getLoadedDocument();
+        if (loadedDoc != null) {
+            SharedContext sharedContext = loadedDoc.getSharedContext();
+            if (sharedContext != null) {
+                NamespaceHandler namespaceHandler = sharedContext.getNamespaceHandler();
+                uri = namespaceHandler.getLinkUri(e);
+            }
+        }
+        handleUriClick(e, uri);
+    }
+
+    private void handleMousePress(Box box) {
+        if (box != null) {
+            Element href = findHrefFromBox(box);
+            if (href != null) {
+                makeActiveLink(href);
+            }
+        }
+    }
+
+    private void handleMouseRelease(Box box) {
+        if (box != null) {
+            Element href = findHrefFromBox(box);
+            if (href != null) {
+                if (href == hrefPressedElement) {
+                    // Clicked on link,
+                    handleHrefClick(href);
+                }
+                releaseActiveLink();
+            }
+        }
+    }
+
+    private void handleMouseCursor(Box box) {
+        if (box != null) {
+            Cursor c = box.getStyle().getCursor();
+            if (!c.equals(getCursor())) {
+                setCursor(c);
+            }
+        }
+    }
+
+    private final DocumentListener eventHandler = new DocumentListener() {
+        @Override
+        public void notify(final DocumentEvent evt) {
+            // Dispatch to the AWT thread,
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // If it's a document loaded event,
+                    if (evt instanceof LoadedDocumentEvent) {
+                        setRootBox(null, null);
+                        // Clear the elementPane of any replaced swing components,
+                        elementPane.removeAll();
+                        setNeedRelayout(true);
+                    }
+                    if (evt instanceof LoadedImageProgressEvent) {
+                        LoadedImageProgressEvent levt =
+                                                (LoadedImageProgressEvent) evt;
+                        ImageResource ir = levt.getImageResource();
+                        String uri = ir.getImageUri();
+                        LayoutContext layoutCtx = layoutContext;
+                        if (layoutCtx != null) {
+                            java.util.List<BoxLoadInfo> boxes =
+                                    layoutCtx.getBoxesRegisteredWithResource(uri);
+                            repaintBoxes(boxes);
+                        }
+                        return;
+                    }
+                    repaint();
+                }
+            });
         }
     };
+
+    /**
+     * Repaint the list of boxes given.
+     * 
+     * @param boxes 
+     */
+    private void repaintBoxes(java.util.List<BoxLoadInfo> boxes) {
+        // If any of the boxes need a relayout on load then request relayout,
+        for (BoxLoadInfo boxLoadInfo : boxes) {
+            if (boxLoadInfo.getStatusOperation() == BoxLoadInfo.STATUS_RELAYOUT) {
+                repaint();
+                return;
+            }
+        }
+        // Repaint individual boxes,
+        for (BoxLoadInfo boxLoadInfo : boxes) {
+            PaintingInfo paintInfo = boxLoadInfo.getBox().getPaintingInfo();
+            if (paintInfo != null) {
+                Rectangle rect = paintInfo.getAggregateBounds();
+                repaint(rect);
+            }
+            else {
+                // Repaint the whole window,
+                repaint();
+            }
+        }
+    }
 
     /**
      * Sets the DocumentState object that maintains the state of a single
@@ -125,8 +330,9 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
 
     // -----
 
+    private LayoutContext layoutContext;
     private Box rootBox;
-    private boolean explicitlyOpaque;
+
     private boolean needRelayout;
     private boolean defaultFontFromComponent = false;
 
@@ -140,7 +346,8 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
         return rootBox;
     }
 
-    public void setRootBox(Box rootBox) {
+    public void setRootBox(LayoutContext layoutContext, Box rootBox) {
+        this.layoutContext = layoutContext;
         this.rootBox = rootBox;
     }
 
@@ -148,8 +355,16 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
         return getRootBox() == null ? null : getRootBox().getLayer();
     }
 
+    public Box find(int x, int y) {
+        Layer l = getRootLayer();
+        if (l != null) {
+            return l.find(layoutContext, x, y, false);
+        }
+        return null;
+    }
+
     private void paintDefaultBackground(Graphics g) {
-        if (explicitlyOpaque) {
+        if (super.isOpaque()) {
             g.setColor(getBackground());
             g.fillRect(0, 0, getWidth(), getHeight());
         }
@@ -325,7 +540,7 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
             }
             else {
                 root = BoxBuilder.createRootBox(c, doc);
-                setRootBox(root);
+                setRootBox(c, root);
             }
 
             initFontFromComponent(root);
@@ -444,6 +659,7 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
 
         LoadedDocument loadedDoc = documentState.getLoadedDocument();
         if (loadedDoc == null) {
+            paintDefaultBackground(g);
             return;
         }
 
@@ -520,53 +736,6 @@ public class DocumentPanel extends JPanel implements Scrollable, FSCanvas {
     public void removeNotify() {
         super.removeNotify();
         setEnclosingScrollPane(null);
-    }
-
-    /**
-     * Checks that the calling method of the method that calls this method is not in this class
-     * and throws a RuntimeException if it was. This is used to ensure that parts of this class that
-     * use the opacity to indicate something other than whether the background is painted do not
-     * interfere with the user's intentions regarding the background painting.
-     *
-     * @throws IllegalStateException if the method that called this method was itself called by a
-     *                               method in this same class.
-     */
-    private void checkOpacityMethodClient() {
-        StackTraceElement[] stackTrace = new Throwable().getStackTrace();
-        if (stackTrace.length > 2) {
-            String callingClassName = stackTrace[2].getClassName();
-            if (DocumentPanel.class.getName().equals(callingClassName))
-                throw new IllegalStateException("DocumentPanel should not use its own opacity methods. Use " +
-                        "super.isOpaque()/setOpaque() instead.");
-        }
-    }
-
-    /**
-     * Returns whether the background of this <code>DocumentPanel</code> will
-     * be painted when it is rendered.
-     *
-     * @return <code>true</code> if the background of this
-     *         <code>BasicPanel</code> will be painted, <code>false</code> if it
-     *         will not.
-     */
-    @Override
-    public boolean isOpaque() {
-        checkOpacityMethodClient();
-        return explicitlyOpaque;
-    }
-
-    /**
-     * Specifies whether the background of this <code>DocumentPanel</code> will
-     * be painted when it is rendered.
-     *
-     * @param opaque <code>true</code> if the background of this
-     *               <code>BasicPanel</code> should be painted, <code>false</code> if it
-     *               should not.
-     */
-    @Override
-    public void setOpaque(boolean opaque) {
-        checkOpacityMethodClient();
-        explicitlyOpaque = opaque;
     }
 
     // ----- FSCanvas interface -----

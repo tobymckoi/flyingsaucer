@@ -71,11 +71,6 @@ public class Agent {
      */
     private ExecutorService threadPool;
 
-//    /**
-//     * The user agent used to access the underlying resources.
-//     */
-//    private AbstractUserAgent agentUserAgent;
-
     /**
      * The shared font resolver.
      */
@@ -85,7 +80,7 @@ public class Agent {
      * True for deferred image loading (when an image is requested it's
      * loaded on a background thread).
      */
-    private boolean deferredImageLoading = false;
+    private boolean deferredImageLoading = true;
 
     /**
      * The image cache maps URI to ImageResource objects.
@@ -175,6 +170,9 @@ public class Agent {
                 catch (Exception e) {
                     e.printStackTrace(System.err);
                 }
+                catch (Error e) {
+                    e.printStackTrace(System.err);
+                }
             }
         });
     }
@@ -225,11 +223,21 @@ public class Agent {
         // The namespace handler,
         XhtmlNamespaceHandler nsh = new XhtmlNamespaceHandler();
 
+        tr.setSmoothingThreshold(0);
+
         // Create a shared context object,
         SharedContext ss = new SharedContext(uac, fr, ref, tr, dpi);
 
+        ss.setAntiAliasingShapes(true);
+
         // Load the document,
         DocumentResource docResource = uac.getDocumentResource(uri);
+        // Not found,
+        if (docResource == null) {
+            // Done,
+            state.documentLoaded(uri, null, null);
+            return;
+        }
         Document doc = docResource.getDocument();
 
         // Load the document into the shared context we created,
@@ -237,8 +245,6 @@ public class Agent {
         ss.setBaseURL(uri);
         ss.setNamespaceHandler(nsh);
         ss.getCss().setDocumentContext(ss, ss.getNamespaceHandler(), doc, ui);
-
-        
 
         // Done,
         state.documentLoaded(uri, ss, doc);
@@ -388,6 +394,7 @@ public class Agent {
             List<DocumentState> docStates = statesObservingImageProgress.get(uri);
             if (docStates == null) {
                 docStates = new ArrayList();
+                statesObservingImageProgress.put(uri, docStates);
             }
             for (DocumentState s : docStates) {
                 if (s == state) {
@@ -486,12 +493,6 @@ public class Agent {
 
             ImageResource ir = (ImageResource) imageCache.get(uri);
 
-            // If the image is loading (deferred) then put the document state
-            // into the notification list for this uri,
-            if (ir != null && ir == ImageResource.LOADING_IMG) {
-                addStateToNotifyOfImageProgress(uri, docState);
-            }
-
             //TODO: check that cached image is still valid
             if (ir == null) {
 
@@ -500,6 +501,10 @@ public class Agent {
 
                     // Deferred image resource,
                     ir = new ImageResource(uri, ImageResource.LOADING_IMG);
+
+                    // If the image is loading (deferred) then put the document
+                    // state into the notification list for this uri,
+                    addStateToNotifyOfImageProgress(uri, docState);
 
                     // Loads the given image resource in the background,
                     loadImageInBackground(ir);
@@ -532,7 +537,7 @@ public class Agent {
             return ir;
 
         }
-        
+
     }
 
     // -----
@@ -657,11 +662,33 @@ public class Agent {
         @Override
         public DocumentResource getDocumentResource(String uri) {
 
-            Reader inputReader = createReaderForURI(resolveURI(uri));
-            if (inputReader == null) {
-                return null;
-            }
+            String resolvedURI = resolveURI(uri);
+
+            Reader inputReader = null;
+
             try {
+
+                // Is it a local path,
+                URI uriOb = URI.create(resolvedURI);
+                String protocol = uriOb.getScheme();
+                if (protocol.equals("file")) {
+                    File f = new File(uriOb);
+                    if (f.exists()) {
+                        if (f.isDirectory()) {
+                            return GeneratedContent.localDirectoryDocument(
+                                    documentParser, uri, f.getAbsoluteFile());
+                        }
+                    }
+                    else {
+                        return GeneratedContent.fileNotExistsDocument(
+                                    documentParser, uri, f.getAbsoluteFile());
+                    }
+                }
+
+                inputReader = createReaderForURI(resolvedURI);
+                if (inputReader == null) {
+                    return null;
+                }
 
                 // Timing metrics,
                 long st = System.currentTimeMillis();
@@ -683,7 +710,9 @@ public class Agent {
             }
             finally {
                 try {
-                    inputReader.close();
+                    if (inputReader != null) {
+                        inputReader.close();
+                    }
                 }
                 catch (IOException e) {
                     // swallow

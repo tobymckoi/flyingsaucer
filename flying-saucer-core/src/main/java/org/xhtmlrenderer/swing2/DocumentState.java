@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.xhtmlrenderer.dom.Document;
+import org.xhtmlrenderer.dom.Element;
 import org.xhtmlrenderer.layout.SharedContext;
 
 /**
@@ -172,6 +173,17 @@ public class DocumentState {
      */
     void imageProgress(ImageProgressEvent evt) {
         fire(evt);
+    }
+
+    /**
+     * Called by the agent when a &lt;A&gt; link is clicked on. The given
+     * Element is the DOM node that was clicked, and the 'uri' string contains
+     * the content of the 'href' string.
+     * 
+     * @param uri 
+     */
+    void uriHrefClick(Element e, String uri) {
+        fire(new LinkClickedEvent(e, uri));
     }
 
     /**

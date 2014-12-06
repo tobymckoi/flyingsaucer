@@ -764,7 +764,8 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         setTextDecorations(decorations);
     }
     
-    public Box find(CssContext cssCtx, int absX, int absY, boolean findAnonymous) {
+    @Override
+    public Box find(CssContext css, int absX, int absY, boolean findAnonymous) {
         PaintingInfo pI = getPaintingInfo();
         if (pI != null && ! pI.getAggregateBounds().contains(absX, absY)) {
             return null;
@@ -774,14 +775,14 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         for (int i = 0; i < getInlineChildCount(); i++) {
             Object child = getInlineChild(i);
             if (child instanceof Box) {
-                    result = ((Box)child).find(cssCtx, absX, absY, findAnonymous);
+                    result = ((Box)child).find(css, absX, absY, findAnonymous);
                     if (result != null) {
                         return result;
                     }
             }
         }
         
-        Rectangle edge = getContentAreaEdge(getAbsX(), getAbsY(), cssCtx);
+        Rectangle edge = getContentAreaEdge(getAbsX(), getAbsY(), css);
         result = edge.contains(absX, absY) && getStyle().isVisible() ? this : null;
         
         if (! findAnonymous && result != null && getElement() == null) {

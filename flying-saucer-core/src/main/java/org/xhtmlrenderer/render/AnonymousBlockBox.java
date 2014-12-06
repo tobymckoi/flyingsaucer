@@ -51,8 +51,9 @@ public class AnonymousBlockBox extends BlockBox {
         return getContainingBlock().getContentWidth();
     }
     
-    public Box find(CssContext cssCtx, int absX, int absY, boolean findAnonymous) {
-        Box result = super.find(cssCtx, absX, absY, findAnonymous);
+    @Override
+    public Box find(CssContext css, int absX, int absY, boolean findAnonymous) {
+        Box result = super.find(css, absX, absY, findAnonymous);
         if (! findAnonymous && result == this) {
             return getParent();
         } else {

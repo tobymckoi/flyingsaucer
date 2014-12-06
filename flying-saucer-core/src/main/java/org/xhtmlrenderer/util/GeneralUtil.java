@@ -131,7 +131,7 @@ public class GeneralUtil {
      */
     public static String trackBack(int cnt) {
         Exception ex = new Exception();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         List list = new ArrayList(cnt);
         StackTraceElement[] stes = ex.getStackTrace();
         if (cnt >= stes.length) {
@@ -146,12 +146,12 @@ public class GeneralUtil {
             sb.append(ste.getMethodName());
             sb.append("(ln ").append(ste.getLineNumber()).append(")");
             list.add(sb.toString());
-            sb = new StringBuffer();
+            sb = new StringBuilder();
         }
 
         Iterator iter = list.iterator();
-        StringBuffer padding = new StringBuffer("");
-        StringBuffer trackback = new StringBuffer();
+        StringBuilder padding = new StringBuilder("");
+        StringBuilder trackback = new StringBuilder();
         while (iter.hasNext()) {
             String s = (String) iter.next();
             trackback.append(padding).append(s).append("\n");
@@ -214,8 +214,8 @@ public class GeneralUtil {
         return false;
     }
 
-    public static StringBuffer htmlEscapeSpace(String uri) {
-        StringBuffer sbURI = new StringBuffer((int) (uri.length() * 1.5));
+    public static StringBuilder htmlEscapeSpace(String uri) {
+        StringBuilder sbURI = new StringBuilder((int) (uri.length() * 1.5));
         char ch;
         for (int i = 0; i < uri.length(); ++i) {
             ch = uri.charAt(i);
@@ -300,7 +300,7 @@ public class GeneralUtil {
             return 0;
         }
 
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
 
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -342,7 +342,7 @@ public class GeneralUtil {
     	if (s == null) {
     		return "";
     	}
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         int n = s.length();
         for (int i = 0; i < n; i++) {
             char c = s.charAt(i);
@@ -410,6 +410,101 @@ public class GeneralUtil {
             }
         }
         return sb.toString();
+    }
+
+    private final static char[] hexc = new char[] {
+              '0', '1', '2', '3', '4', '5', '6', '7',
+              '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+    private static void percentEncode(StringBuilder b, int c) {
+        b.append('%');
+        int c1 = (c & 0x0F0) >> 4;
+        int c2 = c & 0x00F;
+        b.append(hexc[c1]);
+        b.append(hexc[c2]);
+    }
+
+    /**
+     * Encodes a URI string in a similar way to the JavaScript encodeURI method.
+     * For example, 'hello world' is encoded to 'hello%20world'.
+     * 
+     * @param val
+     * @return 
+     */
+    public static String URIEncode(String val) {
+        StringBuilder b = null;
+        int sz = val.length();
+        for (int i = 0; i < sz; ++i) {
+            char c = val.charAt(i);
+            // Characters that remain the same,
+            if ((c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= '0' && c <= '9') ||
+                c == '.' || c == '-' || c == '~' || c == '_' ||
+
+                c == '!' || c == '@' || c == '#' ||
+                c == '$' || c == '&' || c == '*' || c == '(' ||
+                c == ')' || c == '=' || c == ':' || c == '/' ||
+                c == ',' || c == ';' || c == '?' || c == '+' ||
+                c == '\'') {
+                if (b != null) {
+                    b.append(c);
+                }
+            }
+            else {
+                if (b == null) {
+                    b = new StringBuilder();
+                    b.append(val.substring(0, i));
+                }
+                percentEncode(b, c);
+            }
+        }
+        if (b == null) {
+            return val;
+        }
+        else {
+            return b.toString();
+        }
+    }
+
+    /**
+     * Encodes a URI string in a similar way to the JavaScript encodeURIComponent
+     * method.
+     * 
+     * @param val
+     * @return 
+     */
+    public static String URIEncodeComponent(String val) {
+        StringBuilder b = null;
+        int sz = val.length();
+        for (int i = 0; i < sz; ++i) {
+            char c = val.charAt(i);
+            // Characters that remain the same,
+            if ((c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= '0' && c <= '9') ||
+                c == '.' || c == '-' || c == '~' || c == '_' ||
+
+                c == '~' || c == '!' || c == '*' || c == '(' ||
+                c == ')' || c == '\'') {
+                if (b != null) {
+                    b.append(c);
+                }
+            }
+            else {
+                if (b == null) {
+                    b = new StringBuilder();
+                    b.append(val.substring(0, i));
+                }
+                percentEncode(b, c);
+            }
+        }
+        if (b == null) {
+            return val;
+        }
+        else {
+            return b.toString();
+        }
     }
 
 }

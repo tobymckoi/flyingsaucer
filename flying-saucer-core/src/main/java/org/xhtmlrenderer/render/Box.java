@@ -729,7 +729,7 @@ public abstract class Box implements Styleable {
         _relativeOffset = relativeOffset;
     }
 
-    public Box find(CssContext cssCtx, int absX, int absY, boolean findAnonymous) {
+    public Box find(CssContext css, int absX, int absY, boolean findAnonymous) {
         PaintingInfo pI = getPaintingInfo();
         if (pI != null && ! pI.getAggregateBounds().contains(absX, absY)) {
             return null;
@@ -738,13 +738,13 @@ public abstract class Box implements Styleable {
         Box result = null;
         for (int i = 0; i < getChildCount(); i++) {
             Box child = getChild(i);
-            result = child.find(cssCtx, absX, absY, findAnonymous);
+            result = child.find(css, absX, absY, findAnonymous);
             if (result != null) {
                 return result;
             }
         }
 
-        Rectangle edge = getContentAreaEdge(getAbsX(), getAbsY(), cssCtx);
+        Rectangle edge = getContentAreaEdge(getAbsX(), getAbsY(), css);
         return edge.contains(absX, absY) && getStyle().isVisible() ? this : null;
     }
 

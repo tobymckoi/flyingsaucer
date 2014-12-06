@@ -399,20 +399,20 @@ public class Layer {
         return _floats == null ? Collections.EMPTY_LIST : _floats;
     }
 
-    public Box find(CssContext cssCtx, int absX, int absY, boolean findAnonymous) {
+    public Box find(CssContext css, int absX, int absY, boolean findAnonymous) {
         Box result = null;
         if (isRootLayer() || isStackingContext()) {
-            result = find(cssCtx, absX, absY, getSortedLayers(POSITIVE), findAnonymous);
+            result = find(css, absX, absY, getSortedLayers(POSITIVE), findAnonymous);
             if (result != null) {
                 return result;
             }
 
-            result = find(cssCtx, absX, absY, getSortedLayers(ZERO), findAnonymous);
+            result = find(css, absX, absY, getSortedLayers(ZERO), findAnonymous);
             if (result != null) {
                 return result;
             }
 
-            result = find(cssCtx, absX, absY, collectLayers(AUTO), findAnonymous);
+            result = find(css, absX, absY, collectLayers(AUTO), findAnonymous);
             if (result != null) {
                 return result;
             }
@@ -420,19 +420,19 @@ public class Layer {
 
         for (int i = 0; i < getFloats().size(); i++) {
             Box floater = (Box)getFloats().get(i);
-            result = floater.find(cssCtx, absX, absY, findAnonymous);
+            result = floater.find(css, absX, absY, findAnonymous);
             if (result != null) {
                 return result;
             }
         }
 
-        result = getMaster().find(cssCtx, absX, absY, findAnonymous);
+        result = getMaster().find(css, absX, absY, findAnonymous);
         if (result != null) {
             return result;
         }
 
         if (isRootLayer() || isStackingContext()) {
-            result = find(cssCtx, absX, absY, getSortedLayers(NEGATIVE), findAnonymous);
+            result = find(css, absX, absY, getSortedLayers(NEGATIVE), findAnonymous);
             if (result != null) {
                 return result;
             }
@@ -441,13 +441,13 @@ public class Layer {
         return null;
     }
 
-    private Box find(CssContext cssCtx, int absX, int absY, List layers, boolean findAnonymous) {
+    private Box find(CssContext css, int absX, int absY, List layers, boolean findAnonymous) {
         Box result = null;
         // Work backwards since layers are painted forwards and we're looking
         // for the top-most box
         for (int i = layers.size()-1; i >= 0; i--) {
             Layer l = (Layer)layers.get(i);
-            result = l.find(cssCtx, absX, absY, findAnonymous);
+            result = l.find(css, absX, absY, findAnonymous);
             if (result != null) {
                 return result;
             }
